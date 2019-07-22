@@ -3,14 +3,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pylatexenc.macrospec import MacroSpec, ParsedMacroArgs, MacroStandardArgsParser
+from pylatexenc.macrospec import MacroSpec, std_macro, \
+    ParsedMacroArgs, MacroStandardArgsParser
 from pylatexenc import latexwalker
 
 
 # parse entropy macros etc.
 
 
-class Fixes(object):
+class QitObjectFixes(object):
     
     def __init__(self):
         self.macros = {}
@@ -28,9 +29,11 @@ class Fixes(object):
         self._def_Dbase('Dr', r'\mathrm{Rob}')
         self._def_Dbase('DHyp', r'\mathrm{H}')
         self._def_Dbase('Dhyp', r'\mathrm{h}')
+        self._def_Dbase('MM', None, r'M')
 
         self._def_DCohbase('DCohx')
         self._def_DCohbase('DCohz')
+        self._def_DCohbase('WProc', 'W', process_arg_subscripts=True)
 
         self.macros['DD'] = {
             'spec': MacroSpec('DD', args_parser=PhfQitObjectArgsParser("_^`{{")),
@@ -38,8 +41,8 @@ class Fixes(object):
             'p': ( 'D', )
         }
 
-    def iter_macro_specs(self):
-        return ( m['spec'] for mname, m in self.macros.items() )
+    def specs(self):
+        return dict(macros= ( m['spec'] for mname, m in self.macros.items() ) )
 
     def _def_Hbase(self, mname, sub, sym='H'):
         self.macros[mname] = {
@@ -62,23 +65,18 @@ class Fixes(object):
             'p': (sub, sym),
         }
 
-    def _def_DCohbase(self, mname, sym=r'\hat{D}'):
+    def _def_DCohbase(self, mname, sym=r'\hat{D}', **kwargs):
         self.macros[mname] = {
             'spec': MacroSpec(mname, args_parser=PhfQitObjectArgsParser("[`{{{{{")),
             'type': 'DCohbase',
-            'p': (sym,)
+            'p': (sym,dict(kwargs))
         }
 
 
-    def fix_node(self, n, latexpp):
+    def fix_node(self, n, lpp):
         
         if not n.isNodeType(latexwalker.LatexMacroNode) or n.macroname not in self.macros:
             return None
-
-        def latexpp_contents(n):
-            if n.isNodeType(latexwalker.LatexGroupNode):
-                return latexpp(n.nodelist)
-            return latexpp(n)
 
         m = self.macros[n.macroname]
 
@@ -90,13 +88,12 @@ class Fixes(object):
             if m['p'][0]:
                 text += '_{' + m['p'][0] + '}'
             if nepsilon is not None:
-                text += '^{' + latexpp_contents(nepsilon) + '}'
+                text += '^{' + lpp.latexpp_group_contents(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
             text += od
-            text += latexpp_contents(ntargetsys)
+            text += lpp.latexpp_group_contents(ntargetsys)
             if ncondsys is not None:
-                text += md
-                text += latexpp_contents(ncondsys)
+                text += r'\,' + md + r'\,' + lpp.latexpp_group_contents(ncondsys)
             text += cd
             return text
         
@@ -111,7 +108,7 @@ class Fixes(object):
                 text += '^{' + m['p'][1] + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
             text += od
-            text += latexpp_contents(narg)
+            text += lpp.latexpp_group_contents(narg)
             text += cd
             return text
 
@@ -123,9 +120,10 @@ class Fixes(object):
             if m['p'][0]:
                 text += '_{' + m['p'][0] + '}'
             if nepsilon is not None:
-                text += '^{' + latexpp_contents(nepsilon) + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', '\Vert', ')')
-            text += od + latexpp_contents(nstate) + md + latexpp_contents(nrel) + cd
+                text += '^{' + lpp.latexpp_group_contents(nepsilon) + '}'
+            (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
+            text += od + lpp.latexpp_group_contents(nstate) + r'\,' + md + r'\,' \
+                + lpp.latexpp_group_contents(nrel) + cd
             return text
 
         if m['type'] == 'DD':
@@ -134,11 +132,12 @@ class Fixes(object):
 
             text = '{' + m['p'][0] + '}'
             if nsub is not None:
-                text += '_{' + latexpp_contents(nsub) + '}'
+                text += '_{' + lpp.latexpp_group_contents(nsub) + '}'
             if nsup is not None:
-                text += '^{' + latexpp_contents(nsup) + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', '\Vert', ')')
-            text += od + latexpp_contents(nstate) + md + latexpp_contents(nrel) + cd
+                text += '^{' + lpp.latexpp_group_contents(nsup) + '}'
+            (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
+            text += od + lpp.latexpp_group_contents(nstate) + r'\,' + md + r'\,' \
+                + lpp.latexpp_group_contents(nrel) + cd
             return text
 
         if m['type'] == 'DCohbase':
@@ -146,18 +145,31 @@ class Fixes(object):
             nepsilon, nsizespec, nstate, nX, nXp, nGX, nGXp = n.nodeargd.argnlist
 
             text = '{' + m['p'][0] + '}'
-            text += '_{' + latexpp_contents(nX) + r'\to ' + latexpp_contents(nXp) + '}'
+            tX = lpp.latexpp_group_contents(nX)
+            tXp = lpp.latexpp_group_contents(nXp)
+            if tX and tXp:
+                text += '_{' + tX + r'\to ' + tXp + '}'
+            elif tX:
+                text += '_{' + tX + '}'
+            elif tXp:
+                text += '_{' + tXp + '}'
+
             if nepsilon is not None:
-                text += '^{' + latexpp_contents(nepsilon) + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', '\Vert', ')')
+                text += '^{' + lpp.latexpp_group_contents(nepsilon) + '}'
+            (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
             if nstate.isNodeType(latexwalker.LatexGroupNode) and \
                len(nstate.nodelist) and nstate.nodelist[0].isNodeType(latexwalker.LatexCharsNode) and \
                nstate.nodelist[0].chars.lstrip().startswith('*'):
-                statelatex = latexpp_contents(nstate).lstrip(' \t*') # remove '*'
+                statelatex = lpp.latexpp_group_contents(nstate).lstrip(' \t*') # remove '*'
             else:
-                statelatex = latexpp_contents(nstate) + '_{' + latexpp_contents(nXp) \
-                    + 'R_{' + latexpp_contents(nX) + '}}'
-            text += od + statelatex + md + latexpp_contents(nGX) + ', ' + latexpp_contents(nGXp) + cd
+                if m['p'][1].get('process_arg_subscripts', False):
+                    statelatex = lpp.latexpp_group_contents(nstate) + '_{' \
+                        + tX + r'\to ' + tXp + '}'
+                else:
+                    statelatex = lpp.latexpp_group_contents(nstate) + '_{' + tXp \
+                        + 'R_{' + tX + '}}'
+            text += od + statelatex + r'\,' + md + r'\,' + lpp.latexpp_group_contents(nGX) + r',\,' \
+                + lpp.latexpp_group_contents(nGXp) + cd
             return text
 
         raise ValueError("Unknown phfqit macro type: {!r}".format(m))
@@ -168,7 +180,7 @@ class Fixes(object):
             return (opendelim, middelim, closedelim)
         if sizenode.isNodeType(latexwalker.LatexCharsNode) and sizenode.chars == '*':
             return (r'\mathopen{}\left'+opendelim,
-                    r'\mathclose{}\middle'+middelim+'\mathopen{}',
+                    r'\mathclose{}\middle'+middelim+r'\mathopen{}',
                     r'\right'+closedelim+r'\mathclose{}')
         if sizenode.isNodeType(latexwalker.LatexMacroNode):
             mname = sizenode.macroname
@@ -177,6 +189,70 @@ class Fixes(object):
                     r'\mathopen{}'+'\\'+mname+closedelim) # \bigr)
 
         raise ValueError("unexpected optional sizing node : "+repr(sizenode))
+
+
+
+
+
+
+
+
+mathtools_delims_macros = {
+    'abs': (r'\lvert ', r'\rvert '),
+    'norm': (r'\lVert ', r'\rVert '),
+    'avg': (r'\langle ', r'\rangle '),
+}
+
+class MacrosFixes(object):
+    def __init__(self):
+        pass
+
+    def specs(self):
+        return dict(macros=[
+            std_macro('abs', '*[{'),
+            std_macro('norm', '*[{'),
+            std_macro('avg', '*[{'),
+        ])
+
+    def fix_node(self, n, lpp):
+
+        if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname in mathtools_delims_macros:
+            if n.nodeargd.argnlist[0] is not None:
+                delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
+            elif n.nodeargd.argnlist[1] is not None:
+                sizemacro = '\\'+n.nodeargd.argnlist[1].nodelist[0].macroname
+                delims_pc = (sizemacro+r'l%s', sizemacro+r'r%s')
+            else:
+                delims_pc = ('%s', '%s')
+
+            delimchars = mathtools_delims_macros[n.macroname]
+
+            if n.nodeargd.argnlist[2].isNodeType(latexwalker.LatexGroupNode):
+                contents_n = n.nodeargd.argnlist[2].nodelist
+            else:
+                contents_n = n.nodeargd.argnlist[2]
+
+            return delims_pc[0]%delimchars[0] + lpp.latexpp(contents_n) \
+                + delims_pc[1]%delimchars[1]
+                
+        return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

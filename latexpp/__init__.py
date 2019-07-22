@@ -1,3 +1,4 @@
+import os
 import os.path
 
 import logging
@@ -9,14 +10,39 @@ logger = logging.getLogger(__name__)
 
 
 
-class LatexDocumentPreprocessor(object):
-    def __init__(self, fname, latexwalker_kwargs={'tolerant_parsing': False}):
+class LatexPreprocessor(object):
+    def __init__(self, output_dir='_latexpp_output'):
         super().__init__()
-        self.fname = fname
-        self.latexwalker_kwargs = latexwalker_kwargs
 
-    def execute(self):
-        with open(self.fname, 'r') as f:
+        self.output_dir = os.path.realpath(os.path.abspath(output_dir))
+
+        if not os.path.isdir(self.output_dir):
+            os.makedirs(self.output_dir)
+
+        if len(os.listdir(self.output_dir)):
+            # TODO: in the future, add prog option --clean-output-dir that
+            # removes all before outputting...
+            logger.warning("Output directory %s is not empty", self.output_dir)
+        
+
+        self.latex_context = latexwalker.get_default_latex_context_db()
+
+        self.fixes = []
+
+    def install_fix(self, fix, prepend=False):
+        if prepend:
+            self.fixes.insert(fix, 0)
+        else:
+            self.fixes.append(fix)
+
+        if hasattr(fix, 'specs'):
+            self.latex_context.add_context_category('latexpp-fix:'+fix.__class__.__name__,
+                                                    **fix.specs())
+
+
+    def execute(self, fname, output_fname):
+
+        with open(fname, 'r') as f:
             s = f.read()
 
         # find \begin{document} ... \end{document}
@@ -31,12 +57,16 @@ class LatexDocumentPreprocessor(object):
         #
         #return s[:pos_begin_document] + self.execute_string(s)
 
-        return self.execute_string(s)
+        outdata = self.execute_string(s)
+
+        with open(os.path.join(self.output_dir, output_fname), 'w') as f:
+            f.write(outdata)
 
 
     def execute_string(self, s, pos=0):
 
-        lw = latexwalker.LatexWalker(s, **self.latexwalker_kwargs)
+        lw = latexwalker.LatexWalker(s, latex_context=self.latex_context,
+                                     tolerant_parsing=False)
         
         #lw.debug_nodes = True
         
@@ -60,6 +90,11 @@ class LatexDocumentPreprocessor(object):
 
         return self.latexpp_node(nx)
 
+    def latexpp_group_contents(self, n):
+        if n.isNodeType(latexwalker.LatexGroupNode):
+            return self.latexpp(n.nodelist)
+        return self.latexpp(n)
+
     def latexpp_node(self, n):
 
         # subclass this method to filter nodes
@@ -67,9 +102,21 @@ class LatexDocumentPreprocessor(object):
         if n is None:
             return ""
 
-        #if n.isNodeType(latexwalker.LatexCharsNode):
+        #
+        # Apply fixes to this node
+        #
+        for fix in self.fixes:
+            s = fix.fix_node(n, lpp=self)
+            if s is not None:
+                return s
+
+        #
+        # And then we recurse in the relevant node children
+        #
+
+        #if n.isNodeType(latexwalker.LatexCharsNode):  --- no children
         
-        #if n.isNodeType(latexwalker.LatexCommentNode):
+        #if n.isNodeType(latexwalker.LatexCommentNode):  --- no children
         
         if n.isNodeType(latexwalker.LatexGroupNode):
             return n.delimiters[0] + "".join(self.latexpp(n.nodelist)) \
@@ -118,7 +165,6 @@ class LatexDocumentPreprocessor(object):
 
         if n.isNodeType(latexwalker.LatexMathNode):
             return n.delimiters[0] + "".join( self.latexpp(n.nodelist) ) + n.delimiters[1]
-
 
 
         return n.latex_verbatim()

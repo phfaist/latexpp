@@ -3,8 +3,41 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pylatexenc.macrospec import ParsedMacroArgs, MacroStandardArgsParser
+from pylatexenc.macrospec import SpecialsSpec, ParsedMacroArgs, MacroStandardArgsParser
 from pylatexenc import latexwalker
+
+
+
+class Fixes(object):
+
+    def specs(self):
+        return dict(specials=[
+            SpecialsSpec('`', args_parser=PhfParenSpecialsArgsParser())
+        ])
+
+    def fix_node(self, n, lpp):
+
+        if n.isNodeType(latexwalker.LatexSpecialsNode) and n.specials_chars == '`':
+            if n.nodeargd.has_star:
+                delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
+            elif n.nodeargd.size_arg_node is not None:
+                sizemacro = '\\'+n.nodeargd.size_arg_node.macroname
+                delims_pc = (sizemacro+r'l%s', sizemacro+r'r%s')
+            else:
+                delims_pc = ('%s', '%s')
+
+            delimchars = n.nodeargd.contents_node.delimiters
+
+            if delimchars == ('{', '}'):
+                # literal braces if given with curly braces
+                delimchars = (r'\{', r'\}')
+
+            return delims_pc[0]%delimchars[0] + lpp.latexpp(n.nodeargd.contents_node.nodelist) \
+                + delims_pc[1]%delimchars[1]
+
+
+
+
 
 
 # parse `(...)  `[...]  `{ ... }
