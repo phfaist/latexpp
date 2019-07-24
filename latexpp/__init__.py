@@ -1,5 +1,6 @@
 import os
 import os.path
+import re
 
 import logging
 
@@ -9,12 +10,18 @@ from pylatexenc import latexwalker
 logger = logging.getLogger(__name__)
 
 
+#rx_lpp_pragma = re.compile(r'^%%!lpp\s*(?P<instruction>.*?)\s*$', flags=re.MULTILINE)
+
+
 
 class LatexPreprocessor(object):
-    def __init__(self, output_dir='_latexpp_output'):
+    def __init__(self, output_dir='_latexpp_output', main_doc_fname=None,
+                 main_doc_output_fname=None):
         super().__init__()
 
         self.output_dir = os.path.realpath(os.path.abspath(output_dir))
+        self.main_doc_fname = main_doc_fname
+        self.main_doc_output_fname = main_doc_output_fname
 
         if not os.path.isdir(self.output_dir):
             os.makedirs(self.output_dir)
@@ -23,7 +30,6 @@ class LatexPreprocessor(object):
             # TODO: in the future, add prog option --clean-output-dir that
             # removes all before outputting...
             logger.warning("Output directory %s is not empty", self.output_dir)
-        
 
         self.latex_context = latexwalker.get_default_latex_context_db()
 
@@ -36,26 +42,20 @@ class LatexPreprocessor(object):
             self.fixes.append(fix)
 
         if hasattr(fix, 'specs'):
-            self.latex_context.add_context_category('latexpp-fix:'+fix.__class__.__name__,
-                                                    **fix.specs())
+            self.latex_context.add_context_category(
+                'latexpp-fix:'+fix.__class__.__module__+'.'+fix.__class__.__name__,
+                **fix.specs()
+            )
+
+
+    def execute_main(self):
+        self.execute(self.main_doc_fname, self.main_doc_output_fname)
 
 
     def execute(self, fname, output_fname):
 
         with open(fname, 'r') as f:
             s = f.read()
-
-        # find \begin{document} ... \end{document}
-        # assert no content after \end{document}
-        # call latexwalker with pos=(position of \begin{document})
-
-        # ### NOTE: also filter comments in preamble
-
-        #pos_begin_document = s.find(r'\begin{document}')
-        #if pos_begin_document == -1:
-        #    raise ValueError(r"Can't find \begin{document}!")
-        #
-        #return s[:pos_begin_document] + self.execute_string(s)
 
         outdata = self.execute_string(s)
 
@@ -64,6 +64,20 @@ class LatexPreprocessor(object):
 
 
     def execute_string(self, s, pos=0):
+
+        # # check for lpp pragmas at top of file
+        # posi = pos
+        # while True:
+        #     m = rx_lpp_pragma.match(s, posi)
+        #     if m is None:
+        #         break
+        #     posi = m.end()+1 # skip newline
+        #     instruction = m.group('instruction')
+        #     if instruction == 'skip-file':
+        #         logger.debug("LPP pragma skip-file encountered --- disabling lpp for this round")
+        #         return s
+        #     else:
+        #         raise ValueError("Invalid %%!lpp pragma: {}".format(instruction))
 
         lw = latexwalker.LatexWalker(s, latex_context=self.latex_context,
                                      tolerant_parsing=False)
@@ -74,16 +88,15 @@ class LatexPreprocessor(object):
 
         return self.latexpp(nodelist)
 
-
     def latexpp(self, nx):
         # subclass this method to filter nodes
 
         if isinstance(nx, list):
             nodelist = nx
             latex = ''
-            for nn in nodelist:
-                this_one = self.latexpp(nn)
-                #logger.debug("processing node %r --> %r", nn, this_one)
+            for n in nodelist:
+                this_one = self.latexpp(n)
+                #logger.debug("processing node %r --> %r", n, this_one)
                 latex += this_one
 
             return latex
@@ -101,6 +114,25 @@ class LatexPreprocessor(object):
 
         if n is None:
             return ""
+
+        #
+        # Special treatment for \begin{document}.  See if we have any preamble
+        # definitions to add, and add them right before.
+        #
+        if n.isNodeType(latexwalker.LatexEnvironmentNode) and \
+           n.environmentname == 'document' and \
+           not getattr(n, '_latexpp_document_env_node_processed', False):
+           # find preamble required by all fixes
+           preamble_lines = []
+           for fix in self.fixes:
+               if hasattr(fix, 'add_preamble'):
+                   preamble_lines.append(fix.add_preamble())
+           n._latexpp_document_env_node_processed = True
+           if preamble_lines:
+               preamble_text = "\n%%%\n" + "\n".join(preamble_lines)+"\n%%%\n"
+           else:
+               preamble_text = ""
+           return preamble_text + self.latexpp(n)
 
         #
         # Apply fixes to this node
@@ -127,17 +159,7 @@ class LatexPreprocessor(object):
             if n.nodeargd is None or n.nodeargd.argspec is None or n.nodeargd.argnlist is None:
                 # no arguments or unknown argument structure
                 return ''
-            s = ''
-            for at, an in zip(n.nodeargd.argspec, n.nodeargd.argnlist):
-                if at == '*':
-                    s += an.latex_verbatim() if an is not None else ''
-                elif at in ('[', '{'):
-                    s += self.latexpp(an)
-                else:
-                    logger.warning("Unknown macro argtype %r", at)
-                    s += an.latex_verbatim() if an is not None else ''
-            #logger.debug("---> %r", s)
-            return s
+            return self.fmt_arglist(n.nodeargd.argspec, n.nodeargd.argnlist)
 
         if n.isNodeType(latexwalker.LatexMacroNode):
             if n.nodeargd is None or n.nodeargd.argspec is None or n.nodeargd.argnlist is None:
@@ -169,3 +191,15 @@ class LatexPreprocessor(object):
 
         return n.latex_verbatim()
         
+
+    def fmt_arglist(self, argspec, argnlist):
+        s = ''
+        for at, an in zip(argspec, argnlist):
+            if at == '*':
+                s += an.latex_verbatim() if an is not None else ''
+            elif at in ('[', '{'):
+                s += self.latexpp(an)
+            else:
+                logger.warning("Unknown macro argtype %r", at)
+                s += an.latex_verbatim() if an is not None else ''
+        return s
