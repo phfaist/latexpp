@@ -1,25 +1,38 @@
 import re
+import os
+import os.path
 import shutil
 import logging
 
 logger = logging.getLogger(__name__)
 
-from pylatexenc.latexwalker import LatexCommentNode
+from pylatexenc.macrospec import MacroSpec
+from pylatexenc.latexwalker import LatexMacroNode
 
 
 class FixInputBbl(object):
-    def __init__(self, bblname='main', outbblname='main.bbl'):
+    def __init__(self, bblname=None, outbblname=None):
         self.bblname = bblname
         self.outbblname = outbblname
 
     def fix_node(self, n, lpp):
         if n.isNodeType(LatexMacroNode) and n.macroname == 'bibliography':
             # check modif time wrt main tex file
-            if os.path.getmtime(self.bblname) < os.path.getmtime(lpp.main_doc_fname):
+            if self.bblname:
+                bblname = self.bblname
+            else:
+                bblname = re.sub('(\.(la)?tex)$', '', lpp.main_doc_fname) + '.bbl'
+                #print('lpp.main_doc_fname = ', lpp.main_doc_fname, '  --> bblname =', bblname)
+            if self.outbblname:
+                outbblname = self.outbblname
+            else:
+                outbblname = re.sub('(\.(la)?tex)?$', '', lpp.main_doc_output_fname) + '.bbl'
+
+            if os.path.getmtime(bblname) < os.path.getmtime(lpp.main_doc_fname):
                 logger.warning("BBL file %s might be out-of-date, main tex file %s is more recent",
-                               self.bblname, lpp.main_doc_fname)
-            shutil.copy2(self.bblname, os.path.join(lpp.output_dir, self.outbblname))
-            return r'\input{%s}'%(self.bblname)
+                               bblname, lpp.main_doc_fname)
+            shutil.copy2(bblname, os.path.join(lpp.output_dir, outbblname))
+            return r'\input{%s}'%(bblname)
 
         return None
 
@@ -31,12 +44,29 @@ class FixBibaliases(object):
 
         # which argument has the keys is obtained from the argspec as the first
         # mandatory argument
-        self.cite_macros = set('cite', 'citet', 'citep', 'citealt', 'citealp',
+        self.cite_macros = set(('cite', 'citet', 'citep', 'citealt', 'citealp',
                                'citeauthor', 'citefullauthor', 'citeyear', 'citeyearpar',
                                'Citet', 'Citep', 'Citealt', 'Citealp', 'Citeauthor',
-                               'citenum',)
+                               'citenum',))
 
         self._bibaliases = {}
+
+        # right away, populate bib aliases with search through given tex files.
+        # Hmmm, should we use a latexwalker here in any way? ...?  Not sure it's
+        # worth it
+        rx_bibalias = re.compile(r'\\'+self.bibaliascmd+'\{(?P<alias>[^}]+)\}\{(?P<target>[^}]+)\}')
+        for bfn in bibalias_defs_search_files:
+            with open(bfn) as ff:
+                for m in rx_bibalias.finditer(ff.read()):
+                    alias = m.group('alias')
+                    target = m.group('target')
+                    logger.debug("Found bibalias %s -> %s", alias, target)
+                    self._bibaliases[alias] = target
+        self._update_bibaliases()
+
+
+    def specs(self):
+        return dict(macros=[MacroSpec(self.bibaliascmd, '{{')])
 
     def fix_node(self, n, lpp):
         if n.isNodeType(LatexMacroNode):
@@ -59,9 +89,9 @@ class FixBibaliases(object):
                     return None
                 citargno = n.nodeargd.argspec.find('{')
                 ncitarg = n.nodeargd.argnlist[citargno]
-                citargnew = self._replace_aliases( lpp.latexpp(ncitarg) )
+                citargnew = self._replace_aliases( lpp.latexpp_group_contents(ncitarg) )
 
-                return n.macroname \
+                return '\\'+n.macroname \
                     + lpp.fmt_arglist(n.nodeargd.argspec[:citargno], n.nodeargd.argnlist[:citargno]) \
                     + '{'+citargnew+'}' \
                     + lpp.fmt_arglist(n.nodeargd.argspec[citargno+1:], n.nodeargd.argnlist[citargno+1:])

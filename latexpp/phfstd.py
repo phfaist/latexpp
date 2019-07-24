@@ -7,7 +7,7 @@ import yaml
 
 from . import LatexPreprocessor
 
-from pylatexenc.macrospec import MacroSpec, EnvironmentSpec, SpecialsSpec , std_macro
+from pylatexenc.macrospec import MacroSpec, EnvironmentSpec, SpecialsSpec, std_macro
 from pylatexenc.latexwalker import LatexNode, LatexMacroNode, LatexEnvironmentNode, \
     LatexSpecialsNode, LatexCommentNode, LatexMathNode
 from pylatexenc import latexwalker
