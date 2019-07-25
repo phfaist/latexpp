@@ -1,7 +1,6 @@
 
 import os.path
 import logging
-import shutil
 logger = logging.getLogger(__name__)
 
 from pylatexenc.latexwalker import LatexMacroNode
@@ -44,8 +43,9 @@ class CopyLocalPkgsFixes(object):
         if pkgname is not None:
             pkgnamesty = pkgname + '.sty'
             if os.path.exists(pkgnamesty):
-                shutil.copy2(pkgnamesty, os.path.join(lpp.output_dir, pkgnamesty))
-                logger.debug(r"Copy local package %s -> %s", pkgname, lpp.output_dir)
+                #logger.debug(r"Copy local package %s -> %s", pkgname, lpp.output_dir)
+                #shutil.copy2(pkgnamesty, os.path.join(lpp.output_dir, pkgnamesty))
+                lpp.copy_file(pkgnamesty)
                 return n.latex_verbatim()
 
         return None

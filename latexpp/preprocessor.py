@@ -1,5 +1,6 @@
 import os
 import os.path
+import shutil
 import re
 
 import logging
@@ -26,13 +27,16 @@ class LatexPreprocessor(object):
         self.main_doc_fname = main_doc_fname
         self.main_doc_output_fname = main_doc_output_fname
 
+        # version of output_dir for displaying purposes
+        self.display_output_dir = output_dir.rstrip('/') + '/'
+
         if not os.path.isdir(self.output_dir):
             os.makedirs(self.output_dir)
 
         if len(os.listdir(self.output_dir)):
             # TODO: in the future, add prog option --clean-output-dir that
             # removes all before outputting...
-            logger.warning("Output directory %s is not empty", self.output_dir)
+            logger.warning("Output directory %s is not empty", self.display_output_dir)
 
         self.latex_context = latexwalker.get_default_latex_context_db()
         self.latex_context.add_context_category('latexpp-categories-marker-end', macros=[], prepend=True)
@@ -162,7 +166,7 @@ class LatexPreprocessor(object):
            return preamble_text + self.latexpp(n)
 
         #
-        # Apply fixes to this node
+        # *** Apply fixes to this node ***
         #
         for fix in self.fixes:
             s = fix.fix_node(n, lpp=self)
@@ -199,10 +203,10 @@ class LatexPreprocessor(object):
         if n.isNodeType(latexwalker.LatexEnvironmentNode):
             # get environment behavior definition.
 
-            return ('\\begin{' + n.environmentname + '}' +
+            return (r'\begin{' + n.environmentname + '}' +
                     add_args(n) +
                     "".join( self.latexpp(n.nodelist) ) +
-                    '\\end{' + n.environmentname + '}')
+                    r'\end{' + n.environmentname + '}')
 
         if n.isNodeType(latexwalker.LatexSpecialsNode):
             if n.nodeargd is None or n.nodeargd.argspec is None or n.nodeargd.argnlist is None:
@@ -218,6 +222,10 @@ class LatexPreprocessor(object):
 
         return n.latex_verbatim()
         
+    
+    #
+    # More utilities for fixes to call via lpp.<method>
+    #
 
     def fmt_arglist(self, argspec, argnlist):
         s = ''
@@ -232,4 +240,16 @@ class LatexPreprocessor(object):
         return s
 
 
+    def copy_file(self, source, destfname=None):
+        #
+        # Copy the file `source` to the latexpp output directory.  If
+        # `destfname` is not None, rename the file to `destfname`.
+        #
+        if destfname is not None:
+            dest = os.path.join(self.output_dir, destfname)
+        else:
+            dest = self.output_dir
 
+        logger.info("Copying file %s -> %s", source,
+                    os.path.join(self.display_output_dir, destfname if destfname else ''))
+        shutil.copy2(source, dest)

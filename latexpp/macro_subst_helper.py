@@ -23,12 +23,12 @@ class MacroSubstHelper:
     def get_specs(self):
         return dict(
             macros=[
-                MacroSpec(m, mconfig[self.argspecfldname])
+                MacroSpec(m, args_parser=self.args_parser_class(mconfig[self.argspecfldname]))
                 for m, mconfig in self.macros.items()
                 if not isinstance(mconfig, str) and self.argspecfldname in mconfig
             ],
             environments=[
-                EnvironmentSpec(e, mconfig[self.argspecfldname])
+                EnvironmentSpec(e, args_parser=self.args_parser_class(mconfig[self.argspecfldname]))
                 for e, econfig in self.environments.items()
                 if not isinstance(econfig, str) and self.argspecfldname in econfig
             ]
@@ -49,7 +49,12 @@ class MacroSubstHelper:
             return self.get_environment_cfg(n.environmentname)
 
 
-    def eval_subst(self, c, n, lpp, *, context={}):
+    def eval_subst(self, c, n, lpp, *, argoffset=0, context={}):
+        """
+        If `argoffset` is nonzero, then the first `argoffset` arguments are skipped
+        and the arguments `argoffset+1, argoffset+2, ...` are exposed to the
+        replacement string as `%(1)s, %(2)s, ...`.
+        """
         if isinstance(c, str):
             repl = c
         else:
@@ -61,7 +66,7 @@ class MacroSubstHelper:
                 (str(1+k), v)
                 for k, v in enumerate(
                         lpp.latexpp_group_contents(n) if n is not None else ''
-                        for n in n.nodeargd.argnlist
+                        for n in n.nodeargd.argnlist[argoffset:]
                 )
             ))
 
@@ -74,5 +79,5 @@ class MacroSubstHelper:
         q.update(context)
 
         text = repl % q
-        logger.debug("Performing substitution %s -> %s", n.latex_verbatim(), text)
+        #logger.debug("Performing substitution %s -> %s", n.latex_verbatim(), text)
         return text

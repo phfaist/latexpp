@@ -1,7 +1,6 @@
 import re
 import os
 import os.path
-import shutil
 import logging
 
 logger = logging.getLogger(__name__)
@@ -31,9 +30,10 @@ class CopyBblFixes(object):
             if os.path.getmtime(bblname) < os.path.getmtime(lpp.main_doc_fname):
                 logger.warning("BBL file %s might be out-of-date, main tex file %s is more recent",
                                bblname, lpp.main_doc_fname)
-            logger.debug("Copying bbl file %s -> %s", bblname,
-                         os.path.join(lpp.output_dir, outbblname))
-            shutil.copy2(bblname, os.path.join(lpp.output_dir, outbblname))
+            # logger.debug("Copying bbl file %s -> %s", bblname,
+            #              os.path.join(lpp.output_dir, outbblname))
+            lpp.copy_file(bblname, outbblname)
+            #shutil.copy2(bblname, os.path.join(lpp.output_dir, outbblname))
             return r'\input{%s}'%(outbblname)
 
         return None

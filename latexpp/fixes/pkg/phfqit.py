@@ -8,6 +8,8 @@ from pylatexenc.macrospec import MacroSpec, std_macro, \
     ParsedMacroArgs, MacroStandardArgsParser
 from pylatexenc import latexwalker
 
+from latexpp.macro_subst_helper import MacroSubstHelper
+
 
 # parse entropy macros etc.
 
@@ -309,9 +311,9 @@ simple_substitution_macros = {
     r'Ident': r'\mathds{1}',
 
     # bits and gates
-    r'bit': {'argspec': '{', 'repl': r'\texttt{%(1)s}'},
-    r'bitstring': {'argspec': '{', 'repl': r'\ensuremath{\underline{\overline{\texttt{%(1)s}}}}'},
-    r'gate': {'argspec': '{',
+    r'bit': {'qitargspec': '{', 'repl': r'\texttt{%(1)s}'},
+    r'bitstring': {'qitargspec': '{', 'repl': r'\ensuremath{\underline{\overline{\texttt{%(1)s}}}}'},
+    r'gate': {'qitargspec': '{',
               'repl': gate("%(1)s") },
     r'AND': gate('And'),
     r'XOR': gate('Xor'),
@@ -320,16 +322,16 @@ simple_substitution_macros = {
     r'NOOP': gate('No-Op'),
 
     # math groups
-    'uu': dict(argspec='(', repl=r'\mathrm{u}({%(1)s})'),
-    'UU': dict(argspec='(', repl=r'\mathrm{U}({%(1)s})'),
-    'su': dict(argspec='(', repl=r'\mathrm{su}({%(1)s})'),
-    'SU': dict(argspec='(', repl=r'\mathrm{SU}({%(1)s})'),
-    'so': dict(argspec='(', repl=r'\mathrm{so}({%(1)s})'),
-    'SO': dict(argspec='(', repl=r'\mathrm{SO}({%(1)s})'),
-    #'sl': dict(argspec='(', repl=r'\mathrm{sl}({%(1)s})'), # not in phfqit -- why? should add it there
-    #'SL': dict(argspec='(', repl=r'\mathrm{SL}({%(1)s})'),
-    'GL': dict(argspec='(', repl=r'\mathrm{GL}({%(1)s})'),
-    'SN': dict(argspec='(', repl=r'\mathrm{S}_{%(1)s}'),
+    'uu': dict(qitargspec='(', repl=r'\mathrm{u}({%(1)s})'),
+    'UU': dict(qitargspec='(', repl=r'\mathrm{U}({%(1)s})'),
+    'su': dict(qitargspec='(', repl=r'\mathrm{su}({%(1)s})'),
+    'SU': dict(qitargspec='(', repl=r'\mathrm{SU}({%(1)s})'),
+    'so': dict(qitargspec='(', repl=r'\mathrm{so}({%(1)s})'),
+    'SO': dict(qitargspec='(', repl=r'\mathrm{SO}({%(1)s})'),
+    #'sl': dict(qitargspec='(', repl=r'\mathrm{sl}({%(1)s})'), # not in phfqit -- why? should add it there
+    #'SL': dict(qitargspec='(', repl=r'\mathrm{SL}({%(1)s})'),
+    'GL': dict(qitargspec='(', repl=r'\mathrm{GL}({%(1)s})'),
+    'SN': dict(qitargspec='(', repl=r'\mathrm{S}_{%(1)s}'),
 }
 math_operators = {
     'tr': 'tr',
@@ -345,115 +347,121 @@ math_operators = {
 
 rx_hspace = re.compile(r'\\hspace\*?\{[^}]+\}')
 
-class MacrosFixes(object):
-    def __init__(self, subst={}, ops={}, delims={}, subst_use_hspace=True):
-        self.simple_substitution_macros = dict(simple_substitution_macros)
-        self.simple_substitution_macros.update(subst)
+
+def _delempties(d):
+    delkeys = [k for k, v in d.items() if v is None]
+    for k in delkeys:
+        del d[k]
+
+class MacrosFixes:
+    def __init__(self, *,
+                 subst={}, ops={}, delims={},
+                 math_operator_fmt=r'\operatorname{%(opname)s}',
+                 subst_use_hspace=True):
+        the_simple_substitution_macros = dict(simple_substitution_macros)
+        the_simple_substitution_macros.update(subst)
         # remove any items which have a None value (used to indicate a default
         # key should be removed from the YAML config)
-        self._delempties(self.simple_substitution_macros)
 
-        self.math_operators = dict(math_operators)
-        self.math_operators.update(ops)
-        self._delempties(self.math_operators)
+        the_math_operators = dict(math_operators)
+        the_math_operators.update(ops)
+        the_simple_substitution_macros.update(**{
+            opname: math_operator_fmt%dict(opname=opv)
+            for opname, opv in the_math_operators.items()
+        })
 
+        # delimiter macros --> substitution rules
         self.mathtools_delims_macros = dict(mathtools_delims_macros)
         self.mathtools_delims_macros.update(delims)
-        self._delempties(self.mathtools_delims_macros)
+        _delempties(self.mathtools_delims_macros)
 
-        self.subst_use_hspace = subst_use_hspace
+        def delim_cfg(delimtuple):
+            if len(delimtuple) == 2:
+                return dict(qitargspec='*[{',
+                            repl=r'%(open_delim)s{%(1)s}%(close_delim)s')
+            numargs = max( int(m.group(1)) for m in re.finditer(r'\%\((\d)\)s', delimtuple[1]) )
+            return dict(qitargspec='*[' + '{'*numargs,
+                        repl='%(open_delim)s' + delimtuple[1] + '%(close_delim)s')
 
-    def _delempties(self, d):
-        delkeys = [k for k, v in d.items() if v is None]
-        for k in delkeys:
-            del d[k]
+        the_simple_substitution_macros.update(**{
+            mname: delim_cfg(delimtuple)
+            for mname, delimtuple in self.mathtools_delims_macros.items()
+        })
+
+        _delempties(the_simple_substitution_macros)
+
+
+        # remove \hspace...'s if we don't want them.
+        # Iterate over copy of dict because we modify it
+        if not subst_use_hspace:
+            for mname, mcfg in the_simple_substitution_macros.copy().items():
+                if isinstance(mcfg, str):
+                    the_simple_substitution_macros[mname] = rx_hspace.sub('', mcfg)
+                else:
+                    the_simple_substitution_macros[mname]['repl'] = \
+                        rx_hspace.sub('', mcfg['repl'])
+
+
+        self.substitution_helper = MacroSubstHelper(
+            macros=the_simple_substitution_macros,
+            argspecfldname='qitargspec',
+            args_parser_class=PhfQitObjectArgsParser,
+        )
+
+
 
     def specs(self):
-        # delimiter macros
-        def numargs(delimtuple):
-            if len(delimtuple) == 2:
-                return 1
-            return max( int(m.group(1)) for m in re.finditer(r'\%\((\d)\)s', delimtuple[1]) )
-        macros = [
-            std_macro(mname, '*[' + '{'*numargs(delimtuple))
-            for mname, delimtuple in self.mathtools_delims_macros.items()
-        ]
-        # simple substitution macros
-        macros += [
-            MacroSpec(macroname=mname, args_parser=PhfQitObjectArgsParser(m['argspec']))
-            for mname, m in self.simple_substitution_macros.items()
-            if not isinstance(m, str) and 'argspec' in m
-        ]
-        return dict(macros=macros)
+        # get specs from substitution helper
+        return dict(**self.substitution_helper.get_specs())
 
     def fix_node(self, n, lpp):
 
-        # simple substitution macros
-        if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname in self.simple_substitution_macros:
-            ## consistency check -- no macro arguments
-            #assert not n.nodeargd or (not n.nodeargd.argspec and not n.nodeargd.argnlist)
-            ## simply return substitution string
-            #return self.simple_substitution_macros[n.macroname]
-            c = self.simple_substitution_macros[n.macroname]
-            if isinstance(c, str):
-                repl = c
-            else:
-                repl = c.get('repl')
-            
-            return repl % dict(
-                (str(1+k), v)
-                for k, v in enumerate(
-                        lpp.latexpp_group_contents(n) if n is not None else ''
-                        for n in n.nodeargd.argnlist
-                )
-            )
+        # we treat all via the substitution helper
+        c = self.substitution_helper.get_node_cfg(n)
+        if c is not None:
 
-        # math operators
-        if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname in self.math_operators:
-            return r'\operatorname{'+self.math_operators[n.macroname]+'}'
+            # got a substitution. Check if it is a delimiter, which warrants
+            # further processing
+            if n.isNodeType(latexwalker.LatexMacroNode) and \
+               n.macroname in self.mathtools_delims_macros:
 
-        # delimiter macros
-        if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname in mathtools_delims_macros:
-            if n.nodeargd.argnlist[0] is not None:
-                # with star
-                delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
-                delimsize = r'\middle'
-            elif n.nodeargd.argnlist[1] is not None:
-                sizemacro = '\\'+n.nodeargd.argnlist[1].nodelist[0].macroname
-                delimsize = sizemacro
-                delims_pc = (sizemacro+r'l%s', sizemacro+r'r%s')
-            else:
-                delims_pc = ('%s', '%s')
-                delimsize = ''
-
-            # get delim specification for this macro
-            delimchars = list(mathtools_delims_macros[n.macroname])
-            if len(delimchars) == 2:
-                # provide default contents representation if not provided
-                delimchars = [delimchars[0], '{%(1)s}', delimchars[1]]
-
-            # remove \hspace...'s if we don't want them
-            if not self.subst_use_hspace:
-                delimchars[1] = rx_hspace.sub('', delimchars[1])
-
-            # ensure we protect bare delimiter macros with a trailing space
-            for j in (0, 2):
-                if re.match(r'^\\[a-zA-Z]+$', delimchars[j]): # bare macro, protect with space
-                    delimchars[j] = delimchars[j] + ' '
-
-            delims = (delims_pc[0]%delimchars[0], delims_pc[1]%delimchars[2])
-
-            q = dict(delimsize=delimsize)
-            for j in range(len(n.nodeargd.argnlist)-2):
-                nn = n.nodeargd.argnlist[2+j]
-                if nn is None:
-                    logger.warning("Invalid call to \\%s, missing argument(s)", n.macroname)
-                    return None
-                q[str(j+1)] = lpp.latexpp_group_contents(nn)
-
-            return delims[0] + delimchars[1]%q + delims[1]
-
+                #
+                # it's a delimiter macro!
+                #
                 
+                if n.nodeargd.argnlist[0] is not None:
+                    # with star
+                    delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
+                    delimsize = r'\middle'
+                elif n.nodeargd.argnlist[1] is not None:
+                    sizemacro = '\\'+n.nodeargd.argnlist[1].nodelist[0].macroname
+                    delimsize = sizemacro
+                    delims_pc = (sizemacro+r'l%s', sizemacro+r'r%s')
+                else:
+                    delims_pc = ('%s', '%s')
+                    delimsize = ''
+
+                # get delim specification for this macro
+                delimchars = list(self.mathtools_delims_macros[n.macroname])
+                if len(delimchars) == 3:
+                    # replacement string is already stored in substitution helper
+                    delimchars = [delimchars[0], delimchars[2]]
+
+                # ensure we protect bare delimiter macros with a trailing space
+                for j in (0, 1):
+                    if re.match(r'^\\[a-zA-Z]+$', delimchars[j]): # bare macro, protect with space
+                        delimchars[j] = delimchars[j] + ' '
+
+                context = dict(open_delim=delims_pc[0]%delimchars[0],
+                               delimsize=delimsize,
+                               close_delim=delims_pc[1]%delimchars[1])
+                return self.substitution_helper.eval_subst(c, n, lpp,
+                                                           argoffset=2,
+                                                           context=context)
+
+            return self.substitution_helper.eval_subst(c, n, lpp)
+                
+
         return None
 
 
