@@ -1,4 +1,5 @@
-
+import re
+import yaml
 import logging
 
 logger = logging.getLogger(__name__)
@@ -11,82 +12,143 @@ from pylatexenc import latexwalker
 # parse entropy macros etc.
 
 
+_thmsets = yaml.safe_load("""
+stdset:
+  HH:
+    type: Hbase
+  Hzero:
+    type: Hbase
+    sub: '\mathrm{max},0'
+  Hmin:
+    type: Hbase
+    sub: '\mathrm{min}'
+  Hmaxf:
+    type: Hbase
+    sub: '\mathrm{max}'
+
+  Hfn:
+    type: Hfnbase
+
+  Dmax:
+    type: Dbase
+    sub: '\mathrm{max}'
+  Dminz:
+    type: Dbase
+    sub: '0'
+  Dminf:
+    type: Dbase
+    sub: '\mathrm{min}'
+  Dr:
+    type: Dbase
+    sub: '\mathrm{Rob}'
+  DHyp:
+    type: Dbase
+    sub: '\mathrm{H}'
+  Dhyp:
+    type: Dbase
+    sub: '\mathrm{h}'
+
+  DCoh:
+    type: DCohbase
+  DCohx:
+    type: DCohbase
+
+  DD:
+    type: DD
+""")
+
+
+baseqitobjs = yaml.safe_load("""
+IdentProc:
+  type: IdentProc
+ee:
+  type: ee
+""")
+
+
 class QitObjectFixes(object):
     
-    def __init__(self):
-        self.macros = {}
-
-        self._def_Hbase('Hmin', r'\mathrm{min}')
-        self._def_Hbase('HH', None)
-        self._def_Hbase('Hzero', r'0')
-        self._def_Hbase('Hmaxf', r'\mathrm{max}')
-
-        self._def_Hfnbase('Hfn', None, None)
-
-        self._def_Dbase('Dmax', r'\mathrm{max}')
-        self._def_Dbase('Dminz', r'0')
-        self._def_Dbase('Dminf', r'\mathrm{min}')
-        self._def_Dbase('Dr', r'\mathrm{Rob}')
-        self._def_Dbase('DHyp', r'\mathrm{H}')
-        self._def_Dbase('Dhyp', r'\mathrm{h}')
-        self._def_Dbase('MM', None, r'M')
-
-        self._def_DCohbase('DCohx')
-        self._def_DCohbase('DCohz')
-        self._def_DCohbase('WProc', 'W', process_arg_subscripts=True)
-
-        self.macros['DD'] = {
-            'spec': MacroSpec('DD', args_parser=PhfQitObjectArgsParser("_^`{{")),
-            'type': 'DD',
-            'p': ( 'D', )
-        }
+    def __init__(self, qitobjs=dict(), thmsets=['stdset'],
+                 HSym='H', DSym='D', DCSym=r'\hat{D}'):
+        self.qitobjs = dict(baseqitobjs)
+        for tsetname in thmsets:
+            self.qitobjs.update(_thmsets[tsetname])
+        self.qitobjs.update(qitobjs)
+        self.HSym = HSym
+        self.DSym = DSym
+        self.DCSym = DCSym
 
     def specs(self):
-        return dict(macros= ( m['spec'] for mname, m in self.macros.items() ) )
+        return dict(macros= (
+            MacroSpec(mname, args_parser=PhfQitObjectArgsParser(self.qitargspec(m['type'])))
+            for mname, m in self.qitobjs.items()
+        ) )
 
-    def _def_Hbase(self, mname, sub, sym='H'):
-        self.macros[mname] = {
-            'spec': MacroSpec(mname, args_parser=PhfQitObjectArgsParser("`[[{[")),
-            'type': 'Hbase',
-            'p': (sub, sym)
-        }
-
-    def _def_Hfnbase(self, mname, sub, sup, sym='H'):
-        self.macros[mname] = {
-            'spec': MacroSpec(mname, args_parser=PhfQitObjectArgsParser("`(")),
-            'type': 'Hfnbase',
-            'p': (sub, sup, sym),
-        }
-
-    def _def_Dbase(self, mname, sub, sym='D'):
-        self.macros[mname] = {
-            'spec': MacroSpec(mname, args_parser=PhfQitObjectArgsParser("[`{{")),
-            'type': 'Dbase',
-            'p': (sub, sym),
-        }
-
-    def _def_DCohbase(self, mname, sym=r'\hat{D}', **kwargs):
-        self.macros[mname] = {
-            'spec': MacroSpec(mname, args_parser=PhfQitObjectArgsParser("[`{{{{{")),
-            'type': 'DCohbase',
-            'p': (sym,dict(kwargs))
-        }
+    def qitargspec(self, t):
+        return {
+            "IdentProc": "`[[{",
+            "ee": "^",
+            "Hbase": "`[[{[",
+            "Hfnbase": "`(",
+            "DD": "_^`{{",
+            "Dbase": "[`{{",
+            "DCohbase": "[`{{{{{",
+        }.get(t)
 
 
     def fix_node(self, n, lpp):
         
-        if not n.isNodeType(latexwalker.LatexMacroNode) or n.macroname not in self.macros:
+        if not n.isNodeType(latexwalker.LatexMacroNode) or n.macroname not in self.qitobjs:
             return None
 
-        m = self.macros[n.macroname]
+        m = self.qitobjs[n.macroname]
 
+        return self.fix_qitobj(m, n, lpp)
+
+
+
+    def fix_qitobj(self, m, n, lpp):
+
+        if m['type'] == 'IdentProc':
+
+            nsizespec, nsysA, nsysB, narg = n.nodeargd.argnlist
+            sym = m.get('sym', r'\mathrm{id}')
+
+            subscript = ''
+            A, B = '', ''
+            if nsysA is not None:
+                A = lpp.latexpp_group_contents(nsysA)
+            if nsysB is not None:
+                B = lpp.latexpp_group_contents(nsysB)
+            if A:
+                if B:
+                    subscript = A + r'\to ' + B
+                else:
+                    subscript = A
+
+            text = '{' + sym + '}'
+            if subscript:
+                text += '_{' + subscript + '}'
+            (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
+            text += od + lpp.latexpp_group_contents(narg) + cd
+            return text
+
+        if m['type'] == 'ee':
+
+            narg, = n.nodeargd.argnlist
+            sym = m.get('sym', r'e')
+
+            return '{'+sym+'}^{' + lpp.latexpp_group_contents(narg) + '}'
+        
         if m['type'] == 'Hbase':
 
             nsizespec, nstate, nepsilon, ntargetsys, ncondsys = n.nodeargd.argnlist
+            sym = m.get('sym', self.HSym)
+            sub = m.get('sub', None)
 
-            text = '{' + m['p'][1] + '}'
-            if m['p'][0]:
-                text += '_{' + m['p'][0] + '}'
+            text = '{' + sym + '}'
+            if sub:
+                text += '_{' + sub + '}'
             if nepsilon is not None:
                 text += '^{' + lpp.latexpp_group_contents(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
@@ -95,30 +157,35 @@ class QitObjectFixes(object):
             if ncondsys is not None:
                 text += r'\,' + md + r'\,' + lpp.latexpp_group_contents(ncondsys)
             text += cd
+            if nstate is not None:
+                text += r'_{' + lpp.latexpp_group_contents(nstate) + '}'
             return text
         
         if m['type'] == 'Hfnbase':
             
             nsizespec, narg = n.nodeargd.argnlist
+            sub = m.get('sub', None)
+            sup = m.get('sup', None)
+            sym = m.get('sym', self.HSym)
 
-            text = '{' + m['p'][2] + '}'
-            if m['p'][0]:
-                text += '_{' + m['p'][0] + '}'
-            if m['p'][1]:
-                text += '^{' + m['p'][1] + '}'
+            text = '{' + sym + '}'
+            if sub:
+                text += '_{' + sub + '}'
+            if sup:
+                text += '^{' + sup + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
-            text += od
-            text += lpp.latexpp_group_contents(narg)
-            text += cd
+            text += od + lpp.latexpp_group_contents(narg) + cd
             return text
 
         if m['type'] == 'Dbase':
             
             nepsilon, nsizespec, nstate, nrel = n.nodeargd.argnlist
+            sub = m.get('sub', None)
+            sym = m.get('sym', self.DSym)
 
-            text = '{' + m['p'][1] + '}'
-            if m['p'][0]:
-                text += '_{' + m['p'][0] + '}'
+            text = '{' + sym + '}'
+            if sub:
+                text += '_{' + sub + '}'
             if nepsilon is not None:
                 text += '^{' + lpp.latexpp_group_contents(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
@@ -129,8 +196,9 @@ class QitObjectFixes(object):
         if m['type'] == 'DD':
             
             nsub, nsup, nsizespec, nstate, nrel = n.nodeargd.argnlist
+            sym = m.get('sym', self.DSym)
 
-            text = '{' + m['p'][0] + '}'
+            text = '{' + sym + '}'
             if nsub is not None:
                 text += '_{' + lpp.latexpp_group_contents(nsub) + '}'
             if nsup is not None:
@@ -143,8 +211,11 @@ class QitObjectFixes(object):
         if m['type'] == 'DCohbase':
 
             nepsilon, nsizespec, nstate, nX, nXp, nGX, nGXp = n.nodeargd.argnlist
+            sym = m.get('sym', self.DCSym)
+            process_arg_subscripts = m.get('process_arg_subscripts', False)
 
-            text = '{' + m['p'][0] + '}'
+            text = '{' + sym + '}'
+
             tX = lpp.latexpp_group_contents(nX)
             tXp = lpp.latexpp_group_contents(nXp)
             if tX and tXp:
@@ -162,7 +233,7 @@ class QitObjectFixes(object):
                nstate.nodelist[0].chars.lstrip().startswith('*'):
                 statelatex = lpp.latexpp_group_contents(nstate).lstrip(' \t*') # remove '*'
             else:
-                if m['p'][1].get('process_arg_subscripts', False):
+                if process_arg_subscripts:
                     statelatex = lpp.latexpp_group_contents(nstate) + '_{' \
                         + tX + r'\to ' + tXp + '}'
                 else:
@@ -198,42 +269,190 @@ class QitObjectFixes(object):
 
 
 mathtools_delims_macros = {
-    'abs': (r'\lvert ', r'\rvert '),
-    'norm': (r'\lVert ', r'\rVert '),
-    'avg': (r'\langle ', r'\rangle '),
+    'abs': (r'\lvert', r'\rvert'),
+    'norm': (r'\lVert', r'\rVert'),
+    'avg': (r'\langle', r'\rangle'),
+
+    'ket': (r'\lvert', r'{%(1)s}', r'\rangle'),
+    'bra': (r'\langle', r'{%(1)s}', r'\rvert'),
+    'braket': (r'\langle', r'{%(1)s}\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(2)s}',
+               r'\rangle'),
+    'ketbra': (r'\lvert', r'{%(1)s}%(delimsize)s\rangle\hspace*{-0.25ex}%(delimsize)s\langle{%(2)s}',
+               r'\rvert'),
+    'proj': (r'\lvert', r'{%(1)s}%(delimsize)s\rangle\hspace*{-0.25ex}%(delimsize)s\langle{%(1)s}',
+             r'\rvert'),
+    
+    'matrixel': (r'\langle',
+                 r'{%(1)s}\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(2)s}'
+                 +r'\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(3)s}',
+                 r'\rangle'),
+    'dmatrixel': (r'\langle',
+                  r'{%(1)s}\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(2)s}'
+                 +r'\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(1)s}',
+                  r'\rangle'),
+    'innerprod': (r'\langle',
+                  r'{%(1)s},\hspace*{0.2ex}{%(2)s}',
+                  r'\rangle'),
+
+    'intervalc': (r'[', r'{%(1)s\mathclose{},\mathopen{}%(2)s}', r']'),
+    'intervalo': (r']', r'{%(1)s\mathclose{},\mathopen{}%(2)s}', r'['),
+    'intervalco': (r'[', r'{%(1)s\mathclose{},\mathopen{}%(2)s}', r'['),
+    'intervaloc': (r']', r'{%(1)s\mathclose{},\mathopen{}%(2)s}', r']'),
+
 }
 
+def gate(x):
+    return r'\ifmmode\textsc{\lowercase{'+x+r'}}\else{\rmfamily\textsc{\lowercase{'+x+r'}}}\fi'
+
+simple_substitution_macros = {
+    r'Hs': r'\mathscr{H}',
+    r'Ident': r'\mathds{1}',
+
+    # bits and gates
+    r'bit': {'argspec': '{', 'repl': r'\texttt{%(1)s}'},
+    r'bitstring': {'argspec': '{', 'repl': r'\ensuremath{\underline{\overline{\texttt{%(1)s}}}}'},
+    r'gate': {'argspec': '{',
+              'repl': gate("%(1)s") },
+    r'AND': gate('And'),
+    r'XOR': gate('Xor'),
+    r'CNOT': gate('C-Not'),
+    r'NOT': gate('Not'),
+    r'NOOP': gate('No-Op'),
+
+    # math groups
+    'uu': dict(argspec='(', repl=r'\mathrm{u}({%(1)s})'),
+    'UU': dict(argspec='(', repl=r'\mathrm{U}({%(1)s})'),
+    'su': dict(argspec='(', repl=r'\mathrm{su}({%(1)s})'),
+    'SU': dict(argspec='(', repl=r'\mathrm{SU}({%(1)s})'),
+    'so': dict(argspec='(', repl=r'\mathrm{so}({%(1)s})'),
+    'SO': dict(argspec='(', repl=r'\mathrm{SO}({%(1)s})'),
+    #'sl': dict(argspec='(', repl=r'\mathrm{sl}({%(1)s})'), # not in phfqit -- why? should add it there
+    #'SL': dict(argspec='(', repl=r'\mathrm{SL}({%(1)s})'),
+    'GL': dict(argspec='(', repl=r'\mathrm{GL}({%(1)s})'),
+    'SN': dict(argspec='(', repl=r'\mathrm{S}_{%(1)s}'),
+}
+math_operators = {
+    'tr': 'tr',
+    'supp': 'supp',
+    'rank': 'rank',
+    'linspan': 'span',
+    'spec': 'spec',
+    'diag': 'diag',
+    'Re': 'Re',
+    'Im': 'Im',
+    'poly': 'poly',
+}
+
+rx_hspace = re.compile(r'\\hspace\*?\{[^}]+\}')
+
 class MacrosFixes(object):
-    def __init__(self):
-        pass
+    def __init__(self, subst={}, ops={}, delims={}, subst_use_hspace=True):
+        self.simple_substitution_macros = dict(simple_substitution_macros)
+        self.simple_substitution_macros.update(subst)
+        # remove any items which have a None value (used to indicate a default
+        # key should be removed from the YAML config)
+        self._delempties(self.simple_substitution_macros)
+
+        self.math_operators = dict(math_operators)
+        self.math_operators.update(ops)
+        self._delempties(self.math_operators)
+
+        self.mathtools_delims_macros = dict(mathtools_delims_macros)
+        self.mathtools_delims_macros.update(delims)
+        self._delempties(self.mathtools_delims_macros)
+
+        self.subst_use_hspace = subst_use_hspace
+
+    def _delempties(self, d):
+        delkeys = [k for k, v in d.items() if v is None]
+        for k in delkeys:
+            del d[k]
 
     def specs(self):
-        return dict(macros=[
-            std_macro('abs', '*[{'),
-            std_macro('norm', '*[{'),
-            std_macro('avg', '*[{'),
-        ])
+        # delimiter macros
+        def numargs(delimtuple):
+            if len(delimtuple) == 2:
+                return 1
+            return max( int(m.group(1)) for m in re.finditer(r'\%\((\d)\)s', delimtuple[1]) )
+        macros = [
+            std_macro(mname, '*[' + '{'*numargs(delimtuple))
+            for mname, delimtuple in self.mathtools_delims_macros.items()
+        ]
+        # simple substitution macros
+        macros += [
+            MacroSpec(macroname=mname, args_parser=PhfQitObjectArgsParser(m['argspec']))
+            for mname, m in self.simple_substitution_macros.items()
+            if not isinstance(m, str) and 'argspec' in m
+        ]
+        return dict(macros=macros)
 
     def fix_node(self, n, lpp):
 
+        # simple substitution macros
+        if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname in self.simple_substitution_macros:
+            ## consistency check -- no macro arguments
+            #assert not n.nodeargd or (not n.nodeargd.argspec and not n.nodeargd.argnlist)
+            ## simply return substitution string
+            #return self.simple_substitution_macros[n.macroname]
+            c = self.simple_substitution_macros[n.macroname]
+            if isinstance(c, str):
+                repl = c
+            else:
+                repl = c.get('repl')
+            
+            return repl % dict(
+                (str(1+k), v)
+                for k, v in enumerate(
+                        lpp.latexpp_group_contents(n) if n is not None else ''
+                        for n in n.nodeargd.argnlist
+                )
+            )
+
+        # math operators
+        if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname in self.math_operators:
+            return r'\operatorname{'+self.math_operators[n.macroname]+'}'
+
+        # delimiter macros
         if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname in mathtools_delims_macros:
             if n.nodeargd.argnlist[0] is not None:
+                # with star
                 delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
+                delimsize = r'\middle'
             elif n.nodeargd.argnlist[1] is not None:
                 sizemacro = '\\'+n.nodeargd.argnlist[1].nodelist[0].macroname
+                delimsize = sizemacro
                 delims_pc = (sizemacro+r'l%s', sizemacro+r'r%s')
             else:
                 delims_pc = ('%s', '%s')
+                delimsize = ''
 
-            delimchars = mathtools_delims_macros[n.macroname]
+            # get delim specification for this macro
+            delimchars = list(mathtools_delims_macros[n.macroname])
+            if len(delimchars) == 2:
+                # provide default contents representation if not provided
+                delimchars = [delimchars[0], '{%(1)s}', delimchars[1]]
 
-            if n.nodeargd.argnlist[2].isNodeType(latexwalker.LatexGroupNode):
-                contents_n = n.nodeargd.argnlist[2].nodelist
-            else:
-                contents_n = n.nodeargd.argnlist[2]
+            # remove \hspace...'s if we don't want them
+            if not self.subst_use_hspace:
+                delimchars[1] = rx_hspace.sub('', delimchars[1])
 
-            return delims_pc[0]%delimchars[0] + lpp.latexpp(contents_n) \
-                + delims_pc[1]%delimchars[1]
+            # ensure we protect bare delimiter macros with a trailing space
+            for j in (0, 2):
+                if re.match(r'^\\[a-zA-Z]+$', delimchars[j]): # bare macro, protect with space
+                    delimchars[j] = delimchars[j] + ' '
+
+            delims = (delims_pc[0]%delimchars[0], delims_pc[1]%delimchars[2])
+
+            q = dict(delimsize=delimsize)
+            for j in range(len(n.nodeargd.argnlist)-2):
+                nn = n.nodeargd.argnlist[2+j]
+                if nn is None:
+                    logger.warning("Invalid call to \\%s, missing argument(s)", n.macroname)
+                    return None
+                q[str(j+1)] = lpp.latexpp_group_contents(nn)
+
+            return delims[0] + delimchars[1]%q + delims[1]
+
                 
         return None
 

@@ -3,6 +3,7 @@ from pylatexenc.macrospec import MacroSpec
 from pylatexenc.latexwalker import LatexMacroNode
 
 
+
 class Fixes(object):
     def __init__(self, macros):
         self.macros = macros

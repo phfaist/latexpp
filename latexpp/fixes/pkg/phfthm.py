@@ -9,14 +9,25 @@ from pylatexenc import latexwalker
 
 
 class Fixes(object):
-    def __init__(self, proofenvs=dict(proof='proof'),
+    def __init__(self,
+                 deftheorems=['theorem', 'lemma', 'proposition', 'corollary'],
+                 proofenvs=dict(proof='proof'),
                  ref_type=r'\cref{%s}', proof_of_name='Proof of %s'):
+        self.deftheorems = deftheorems
         self.proofenvs = dict(proofenvs)
         self.ref_type = ref_type
         self.proof_of_name = proof_of_name
 
     def add_preamble(self):
-        return r'\usepackage{amsthm}'
+        p = [ r"\usepackage{amsthm}" ]
+        if isinstance(self.deftheorems, str):
+            # raw preamble
+            p.append(self.deftheorems)
+        else:
+            for t in self.deftheorems:
+                p.append( r"\newtheorem{%s}{%s}"%(t, t.capitalize()) )
+        return "\n".join(p)
+        
 
     def fix_node(self, n, lpp):
 

@@ -10,7 +10,7 @@ from pylatexenc.macrospec import MacroSpec
 from pylatexenc.latexwalker import LatexMacroNode
 
 
-class FixInputBbl(object):
+class CopyBblFixes(object):
     def __init__(self, bblname=None, outbblname=None):
         self.bblname = bblname
         self.outbblname = outbblname
@@ -26,13 +26,15 @@ class FixInputBbl(object):
             if self.outbblname:
                 outbblname = self.outbblname
             else:
-                outbblname = re.sub('(\.(la)?tex)?$', '', lpp.main_doc_output_fname) + '.bbl'
+                outbblname = re.sub('(\.(la)?tex)$', '', lpp.main_doc_output_fname) + '.bbl'
 
             if os.path.getmtime(bblname) < os.path.getmtime(lpp.main_doc_fname):
                 logger.warning("BBL file %s might be out-of-date, main tex file %s is more recent",
                                bblname, lpp.main_doc_fname)
+            logger.debug("Copying bbl file %s -> %s", bblname,
+                         os.path.join(lpp.output_dir, outbblname))
             shutil.copy2(bblname, os.path.join(lpp.output_dir, outbblname))
-            return r'\input{%s}'%(bblname)
+            return r'\input{%s}'%(outbblname)
 
         return None
 
