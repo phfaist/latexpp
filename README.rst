@@ -41,7 +41,7 @@ Sample ``lppconfig.yml``:
   
     # copy any style files (.sty) that are used in the document and that
     # are present in the current directory to the output directory
-    - name: 'latexpp.fixes.usepackage.CopyLocalPkgsFixes'
+    - 'latexpp.fixes.usepackage.CopyLocalPkgsFixes'
   
     # copy figure files to the output directory and rename them fig-1.xxx,
     # fig-2.xxx, etc.
