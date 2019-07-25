@@ -3,3 +3,6 @@
 __pycache__
 *.py[cdo]
 junk
+build
+dist
+*.egg-info

@@ -24,6 +24,9 @@ def main(argv=None):
     parser.add_argument('fname', metavar='file', nargs='?',
                         help='input file name, master LaTeX document file')
 
+    parser.add_argument('-c', '--lppconfig', action='store', default='lppconfig.yml',
+                        help='lpp config file (YAML) to use instead of lppconfig.yml')
+
     parser.add_argument('-o', '--output-dir',
                         dest='output_dir',
                         default=None,

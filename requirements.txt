@@ -1,0 +1,2 @@
+# require pylatexenc 2.0
+pylatexenc >= 2.0a0
