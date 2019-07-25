@@ -5,7 +5,7 @@ from pylatexenc.latexwalker import LatexMacroNode
 
 exts = ['', '.tex', '.latex']
 
-class Fixes(object):
+class EvalInputFixes(object):
     def fix_node(self, n, lpp):
 
         if n.isNodeType(LatexMacroNode) and n.macroname in ('input', 'include'):

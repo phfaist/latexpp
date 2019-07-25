@@ -2,7 +2,7 @@
 from pylatexenc.latexwalker import LatexCommentNode
 
 
-class Fixes(object):
+class RemoveCommentsFixes(object):
 
     def fix_node(self, n, lpp):
 

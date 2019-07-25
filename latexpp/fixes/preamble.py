@@ -1,6 +1,6 @@
 
 
-class Fixes(object):
+class AddPreambleFixes(object):
     def __init__(self, preamble):
         self.preamble = preamble
 

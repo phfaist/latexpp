@@ -7,7 +7,7 @@ from pylatexenc.latexwalker import LatexMacroNode
 
 exts = ['', '.pdf', '.png', '.jpg', '.jpeg', '.eps']
 
-class Fixes(object):
+class CopyNumberFigsFixes(object):
     def __init__(self):
         self.fig_counter = 1 # start at Fig #1 because journals like separate
                              # files with numbered figures starting at 1

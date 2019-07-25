@@ -39,8 +39,19 @@ class CopyBblFixes(object):
         return None
 
 
-class FixBibaliases(object):
-    def __init__(self, bibaliascmd='bibalias', bibalias_defs_search_files=None):
+class ApplyAliasesFixes(object):
+    r"""
+    Scans the files `bibalias_def_search_files` for bibalias commands
+    ``\bibalias{alias}{target}`` (or whatever macro is given to `bibaliascmd`),
+    and applies the aliases to all known citation commands (from the natbib
+    doc).  Any bibalias commands are encountered in the input they are stored as
+    aliases. Further manual aliases can be specified using the `aliases={...}`
+    argument.
+    """
+    def __init__(self,
+                 bibaliascmd='bibalias',
+                 bibalias_defs_search_files=[],
+                 aliases={}):
         self.bibaliascmd = bibaliascmd
         self.bibalias_defs_search_files = bibalias_defs_search_files
 
@@ -52,6 +63,7 @@ class FixBibaliases(object):
                                'citenum',))
 
         self._bibaliases = {}
+        self._bibaliases.update(aliases)
 
         # right away, populate bib aliases with search through given tex files.
         # Hmmm, should we use a latexwalker here in any way? ...?  Not sure it's
