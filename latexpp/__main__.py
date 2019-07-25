@@ -20,7 +20,8 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('fname', metavar='file',
+    # this is an optional argument, fname can be specified in lppconfig.yml
+    parser.add_argument('fname', metavar='file', nargs='?',
                         help='input file name, master LaTeX document file')
 
     parser.add_argument('-o', '--output-dir',
