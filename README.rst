@@ -24,7 +24,7 @@ Sample ``lppconfig.yml``:
   
   # the master LaTeX document -- nothing will be modified, all output will be
   # done in the output_dir
-  fname: 'ThermoCapacityTechnicalPaper.tex'
+  fname: 'MyDocument.tex'
 
   # output file(s) will be created in this directory, originals will not be
   # modified
