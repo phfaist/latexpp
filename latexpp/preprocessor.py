@@ -43,6 +43,8 @@ class LatexPreprocessor(object):
 
         self.fixes = []
 
+        self.initialized = False
+
     def install_fix(self, fix, prepend=False):
         if prepend:
             self.fixes.insert(fix, 0)
@@ -56,12 +58,24 @@ class LatexPreprocessor(object):
                 **fix.specs(),
             )
 
+    def initialize(self):
+        # must be called after all fixes are installed, but before
+        # execute_main() is called.
+        for fix in self.fixes:
+            if hasattr(fix, 'initialize'):
+                fix.initialize(lpp=self)
+
+        self.initialized = True
+
 
     def execute_main(self):
-        self.execute(self.main_doc_fname, self.main_doc_output_fname)
+        self.execute_file(self.main_doc_fname, self.main_doc_output_fname)
 
 
-    def execute(self, fname, output_fname):
+    def execute_file(self, fname, output_fname):
+
+        if not self.initialized:
+            raise RuntimeError("You forgot to call LatexPreprocessor.initialize()")
 
         with open(fname, 'r') as f:
             s = f.read()

@@ -178,6 +178,8 @@ def main(argv=None):
 
         pp.install_fix(cls(**fixconfig.get('config', {})))
 
+    pp.initialize()
+
     pp.execute_main()
 
 
