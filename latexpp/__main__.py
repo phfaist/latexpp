@@ -5,6 +5,9 @@ import sys
 import importlib
 import argparse
 import logging
+
+import colorlog
+
 logger = logging.getLogger(__name__)
 
 import yaml
@@ -17,6 +20,21 @@ _LATEXPP_QUICKSTART_DOC_URL = 'https://github.com/phfaist/latexpp/blob/master/RE
 
 
 from .preprocessor import LatexPreprocessor
+
+
+
+def setup_logging(level):
+    handler = colorlog.StreamHandler()
+    handler.setFormatter(colorlog.TTYColoredFormatter(
+        stream=sys.stderr,
+        fmt='%(log_color)s%(levelname)-8s: %(message)s  [in:%(name)s]'
+    ))
+
+    root = colorlog.getLogger()
+    root.addHandler(handler)
+
+    root.setLevel(level)
+
 
 
 _lppconfig_template = r"""
@@ -113,9 +131,13 @@ def main(argv=None):
     parser.add_argument('fname', metavar='file', nargs='?',
                         help='input file name, master LaTeX document file')
 
+    parser.add_argument('-p', '--profile', dest='lppconfig_profile',
+                        action='store', default='',
+                        help='look for config file lppconfig-<PROFILE>.yml instead of lppconfig.yml')
+
     parser.add_argument('-c', '--lppconfig', dest='lppconfig',
-                        action='store', default='lppconfig.yml',
-                        help='lpp config file (YAML) to use instead of lppconfig.yml')
+                        action='store', default='',
+                        help='lpp config file (YAML) to use instead of lppconfig.yml. Overrides -p option.')
 
     parser.add_argument('-o', '--output-dir',
                         dest='output_dir',
@@ -138,15 +160,23 @@ def main(argv=None):
 
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=args.verbosity)
 
+    setup_logging(level=args.verbosity)
+
+
+    if args.lppconfig:
+        lppconfigyml = args.lppconfig
+    elif args.lppconfig_profile:
+        lppconfigyml = 'lppconfig-{}.yml'.format(args.lppconfig_profile)
+    else:
+        lppconfigyml = 'lppconfig.yml'
 
     try:
-        with open(args.lppconfig) as f:
+        with open(lppconfigyml) as f:
             lppconfig = yaml.load(f, Loader=yaml.FullLoader)
     except FileNotFoundError:
         logger.error("Can't file config file %s.  See %s for instructions to create a lppconfig file.",
-                     args.lppconfig, _LPPCONFIG_DOC_URL)
+                     lppconfigyml, _LPPCONFIG_DOC_URL)
         sys.exit(1)
 
     output_dir = lppconfig.get('output_dir', '_latexpp_output')

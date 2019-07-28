@@ -9,12 +9,22 @@ from pylatexenc.macrospec import MacroSpec
 from pylatexenc.latexwalker import LatexMacroNode
 
 
-class CopyBblFixes(object):
+class CopyAndInputBblFixes(object):
     def __init__(self, bblname=None, outbblname=None):
         self.bblname = bblname
         self.outbblname = outbblname
+    
+    def specs(self):
+        return dict(macros=[
+            MacroSpec('bibliographystyle', '{'),
+            MacroSpec('bibliography', '{'),
+        ])
 
     def fix_node(self, n, lpp):
+        if n.isNodeType(LatexMacroNode) and n.macroname == 'bibliographystyle':
+            # remove \bibliographystyle{} command
+            return ''
+
         if n.isNodeType(LatexMacroNode) and n.macroname == 'bibliography':
             # check modif time wrt main tex file
             if self.bblname:

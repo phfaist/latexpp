@@ -8,10 +8,12 @@ from pylatexenc.latexwalker import LatexMacroNode
 exts = ['', '.pdf', '.png', '.jpg', '.jpeg', '.eps']
 
 class CopyNumberFigsFixes(object):
-    def __init__(self, num_digits=1):
-        self.fig_counter = 1 # start at Fig #1 because journals like separate
-                             # files with numbered figures starting at 1
+    def __init__(self, num_digits=1, fig_prefix='fig-', start_fig_counter=1):
+        # By default we start at Fig #1 because journals like separate files
+        # with numbered figures starting at 1
+        self.fig_counter = start_fig_counter
         self.num_digits = num_digits
+        self.fig_prefix = fig_prefix
 
     def fix_node(self, n, lpp):
 
@@ -32,7 +34,7 @@ class CopyNumberFigsFixes(object):
                 logger.warning("File not found: %s. Tried extensions %r", picfname, exts)
                 return None # keep the node as it is
 
-            figcntname = f'fig-{self.fig_counter:0{self.num_digits}d}{ext}'
+            figcntname = f'{self.fig_prefix}{self.fig_counter:0{self.num_digits}d}{ext}'
 
             lpp.copy_file(picfname, figcntname)
             #shutil.copy2(picfname, os.path.join(lpp.output_dir, figcntname))
