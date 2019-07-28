@@ -37,7 +37,7 @@ class ApplyPoorManFixes(object):
         sedfn = re.sub('(\.(la)?tex)$', '', lpp.main_doc_fname) + '.sed'
         if not os.path.exists(sedfn):
             logger.error("Cannot find file %s. Are you sure you provided the "
-                         "[poorman] option to \usepackage[poorman]{cleveref} "
+                         "[poorman] option to \\usepackage[poorman]{cleveref} "
                          "and that you ran (pdf)latex?")
         lpp.check_autofile_up_to_date(sedfn)
 
