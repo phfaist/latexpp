@@ -212,6 +212,8 @@ def main(argv=None):
 
     pp.execute_main()
 
+    pp.finalize()
+
 
 def run_main():
 

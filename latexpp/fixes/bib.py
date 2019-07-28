@@ -21,29 +21,26 @@ class CopyAndInputBblFixes(object):
         ])
 
     def fix_node(self, n, lpp):
+
         if n.isNodeType(LatexMacroNode) and n.macroname == 'bibliographystyle':
             # remove \bibliographystyle{} command
             return ''
 
         if n.isNodeType(LatexMacroNode) and n.macroname == 'bibliography':
-            # check modif time wrt main tex file
+
             if self.bblname:
                 bblname = self.bblname
             else:
                 bblname = re.sub('(\.(la)?tex)$', '', lpp.main_doc_fname) + '.bbl'
-                #print('lpp.main_doc_fname = ', lpp.main_doc_fname, '  --> bblname =', bblname)
             if self.outbblname:
                 outbblname = self.outbblname
             else:
                 outbblname = re.sub('(\.(la)?tex)$', '', lpp.main_doc_output_fname) + '.bbl'
 
-            if os.path.getmtime(bblname) < os.path.getmtime(lpp.main_doc_fname):
-                logger.warning("BBL file %s might be out-of-date, main tex file %s is more recent",
-                               bblname, lpp.main_doc_fname)
-            # logger.debug("Copying bbl file %s -> %s", bblname,
-            #              os.path.join(lpp.output_dir, outbblname))
+            lpp.check_autofile_up_to_date(bblname)
+
             lpp.copy_file(bblname, outbblname)
-            #shutil.copy2(bblname, os.path.join(lpp.output_dir, outbblname))
+
             return r'\input{%s}'%(outbblname)
 
         return None
