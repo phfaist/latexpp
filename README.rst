@@ -3,6 +3,17 @@ latexpp
 
 Latex preprocessor — apply macro definitions, remove comments, and more
 
+Installation
+------------
+
+Clone this repository (``git clone https://github.com/phfaist/latexpp.git``) or
+download and extract a ZIP.  Then in the latexpp directory run the commands:
+
+.. code-block:: sh
+
+    > python setup.py sdist
+    > pip install dist/latexpp-0.1.tar.gz
+
 How it works
 ------------
 
@@ -22,8 +33,8 @@ Sample ``lppconfig.yml``:
 
   # latexpp config for MyDocument.tex
   #
-  # This is YAML syntax -- google "YAML tutorial" to get a quick intro.  Careful
-  # with spaces, correct indentation is important.
+  # This is YAML syntax -- google "YAML tutorial" to get a quick intro.  Be
+  # careful with spaces since indentation is important.
 
   # the master LaTeX document -- this file will not be modified, all output will
   # be produced in the output_dir
@@ -55,14 +66,13 @@ Sample ``lppconfig.yml``:
     # before running latexpp
     - 'latexpp.fixes.bib.CopyBblFixes'
   
-    # Expand some macros. Instead of trying to infer the exact expansion that
-    # (pdf)latex would itself perform, you specify here a custom string that the
-    # macro will be expanded to. If the macro has arguments, specify the nature
-    # of the arguments here in the 'argspec:' key (a '*' is an optional *
-    # character, a '[' one optional square-bracket-delimited argument, and a '{'
-    # is a mandatory argument). The argument values are available via the
-    # placeholders %(1)s, %(2)s, etc. Make sure to use single quotes for strings
-    # that contain \ backslashes.
+    # Expand some macros. Latexpp doesn't parse \newcommand's, so you need to
+    # specify here the LaTeX code that the macro should be expanded to. If the
+    # macro has arguments, specify the nature of the arguments here in the
+    # 'argspec:' key (a '*' is an optional * character, a '[' one optional
+    # square-bracket-delimited argument, and a '{' is a mandatory argument). The
+    # argument values are available via the placeholders %(1)s, %(2)s, etc. Make
+    # sure to use single quotes for strings that contain \ backslashes.
     - name: 'latexpp.fixes.macro_subst.Fixes'
       config:
         macros:
@@ -83,7 +93,7 @@ tutorial).
 See the ``latexpp/fixes/`` directory for the list of possible fixes.  There
 isn't any good documentation at the moment (I wrote this preprocessor in the
 matter of a few days, and I won't have tons of time to devote to it). But the
-python source should be short and relatively understandable.
+python source is pretty short and should be relatively decipherable.
 
 Each `XXXFixes` class in each module provides a fix that you can invoke from the
 YAML config file as shown above.  You can specify custom arguments to the class
@@ -96,12 +106,14 @@ supposed to apply all definitions of the corresponding package in order to
 remove a dependency on that package.
 
 It's also straightforward to write your own fix classes to do more complicated
-stuff.  Start from one of the simple examples in the ``latexpp/fixes/`` folder.
-Put you fix class in a module and set up your ``$PYTHONPATH`` so that the
-package/module is exposed to python.  Then simply specify the pacakge/module
-your fix is located in in the YAML file, instead of
+stuff.  Create a python package (a new folder ``mypackage`` with an empty
+``__init__.py`` file) and create a python module (e.g. ``myfixmodule.py``) in
+that package that defines your fix class (e.g. ``MyFix``).  You can get
+inspiration from one of the simple examples in the ``latexpp/fixes/`` folder.
+Set up your ``$PYTHONPATH`` so that your python package is exposed to python.
+Then simply specify the pacakge/module your fix is located in in the YAML file,
+e.g., ``mypackage.myfixmodule.MyFix`` instead of
 ``latexpp.fixes.xxxxx.XXXFixes``.
-
 
 How it actually works
 ---------------------
