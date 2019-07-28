@@ -27,7 +27,7 @@ def setup_logging(level):
     handler = colorlog.StreamHandler()
     handler.setFormatter(colorlog.TTYColoredFormatter(
         stream=sys.stderr,
-        fmt='%(log_color)s%(levelname)-8s: %(message)s  [in:%(name)s]'
+        fmt='%(log_color)s%(levelname)-8s: %(message)s  [%(name)s]'
     ))
 
     root = colorlog.getLogger()
