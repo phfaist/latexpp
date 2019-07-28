@@ -14,6 +14,18 @@ from pylatexenc import latexwalker
 
 
 class ApplyPoorManFixes(object):
+    r"""
+    Applies the replacements provided by `cleveref`\ 's "poor man" mode.
+
+    Make sure you use `cleveref` with the ``[poorman]`` package option, like
+    this::
+
+        \usepackage[poorman]{cleveref}
+
+    After this fix, the file no longer depends on the cleveref package.  Note,
+    there are some limitations of cleveref's "poor man" mode that we can't get
+    around here.
+    """
     def __init__(self):
         pass
 
