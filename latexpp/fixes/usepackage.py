@@ -19,7 +19,7 @@ def node_get_usepackage(n, lpp):
     return None
 
 
-class RemovePkgsFixes(object):
+class RemovePkgs(object):
     def __init__(self, pkglist):
         self.pkglist = set(pkglist)
 
@@ -33,7 +33,7 @@ class RemovePkgsFixes(object):
         return None
 
 
-class CopyLocalPkgsFixes(object):
+class CopyLocalPkgs(object):
     def __init__(self):
         pass
 

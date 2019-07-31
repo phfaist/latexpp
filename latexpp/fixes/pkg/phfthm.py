@@ -6,9 +6,14 @@ logger = logging.getLogger(__name__)
 from pylatexenc.macrospec import SpecialsSpec, ParsedMacroArgs, MacroStandardArgsParser
 from pylatexenc import latexwalker
 
+from latexpp.fixes import BaseFix
 
 
-class Fixes(object):
+
+class Expand(BaseFix):
+    """
+    Expand theorem definitions to remove {phfthm} package dependency.
+    """
     def __init__(self,
                  deftheorems=['theorem', 'lemma', 'proposition', 'corollary'],
                  proofenvs=dict(proof='proof'),
@@ -19,6 +24,7 @@ class Fixes(object):
         self.proof_of_name = proof_of_name
 
     def add_preamble(self):
+
         p = [ r"\usepackage{amsthm}" ]
         if isinstance(self.deftheorems, str):
             # raw preamble

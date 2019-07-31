@@ -64,7 +64,7 @@ Sample ``lppconfig.yml``:
     # Replace \bibliography{...} by \input{xxx.bbl} and copy the bbl file to the
     # output directory.  Make sure you run (pdf)latex on the main docuemnt
     # before running latexpp
-    - 'latexpp.fixes.bib.CopyBblFixes'
+    - 'latexpp.fixes.bib.CopyAndInputBblFixes'
   
     # Expand some macros. Latexpp doesn't parse \newcommand's, so you need to
     # specify here the LaTeX code that the macro should be expanded to. If the

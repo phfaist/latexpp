@@ -23,22 +23,35 @@ class MacroSubstHelper:
     def get_specs(self):
         return dict(
             macros=[
-                MacroSpec(m, args_parser=self.args_parser_class(mconfig[self.argspecfldname]))
+                MacroSpec(m, args_parser=self.args_parser_class(
+                    _cfg_argspec_repl(mconfig)[0]
+                ))
                 for m, mconfig in self.macros.items()
-                if not isinstance(mconfig, str) and self.argspecfldname in mconfig
             ],
             environments=[
-                EnvironmentSpec(e, args_parser=self.args_parser_class(mconfig[self.argspecfldname]))
+                EnvironmentSpec(e, args_parser=self.args_parser_class(
+                    _cfg_argspec_repl(econfig)[0]
+                ))
                 for e, econfig in self.environments.items()
-                if not isinstance(econfig, str) and self.argspecfldname in econfig
             ]
         )
 
+    def _cfg_argspec_repl(self, meinfo):
+        if isinstance(meinfo, str):
+            return '', meinfo
+        return meinfo.get(self.argspecfldname, ''), meinfo.get('repl', '')
+
     def get_macro_cfg(self, macroname):
-        return self.macros.get(macroname, None)
+        if macroname not in self.macros:
+            return None
+        return dict(zip([self.argspecfldname, 'repl'],
+                        self._cfg_argspec_repl(self.macros[macroname])))
 
     def get_environment_cfg(self, environmentname):
-        return self.environments.get(environmentname, None)
+        if environmentname not in self.environments:
+            return None
+        return dict(zip([self.argspecfldname, 'repl'],
+                        self._cfg_argspec_repl(self.environments[environmentname])))
 
     def get_node_cfg(self, n):
         if n is None:
@@ -55,10 +68,8 @@ class MacroSubstHelper:
         and the arguments `argoffset+1, argoffset+2, ...` are exposed to the
         replacement string as `%(1)s, %(2)s, ...`.
         """
-        if isinstance(c, str):
-            repl = c
-        else:
-            repl = c.get('repl')
+
+        _, repl = self._cfg_argspec_repl(c)
             
         q = dict(self.context)
 

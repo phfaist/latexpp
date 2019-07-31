@@ -5,8 +5,28 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from latexpp.fixes import BaseFix
 
-class CopyFilesFixes(object):
+
+class CopyFiles(BaseFix):
+    """
+    Copies the given files to the output directory.  Use this for dependencies
+    that aren't obvious, like a custom LaTeX class.
+
+    For packages, you can use :lpp:fix:`latexpp.fixes.usepackage.CopyLocalPkgs`.
+    For figures, consider using
+    :lpp:fix:`latexpp.fixes.figures.CopyAndRenameFigs`.
+
+    Arguments:
+    
+    - `files`: a list of files to include in the output directory.  The files
+      are not renamed.
+
+    .. warning::
+
+       Subdirectories are not honored.  TODO: fix this.
+    """
+
     def __init__(self, files=[]):
         self.files = files
 
@@ -15,6 +35,3 @@ class CopyFilesFixes(object):
         for fn in self.files:
             lpp.copy_file(fn)
 
-
-    def fix_node(self, n, lpp):
-        return None

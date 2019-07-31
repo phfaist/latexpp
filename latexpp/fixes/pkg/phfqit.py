@@ -10,11 +10,13 @@ from pylatexenc import latexwalker
 
 from latexpp.macro_subst_helper import MacroSubstHelper
 
+from latexpp.fixes import BaseFix
+
 
 # parse entropy macros etc.
 
 
-_thmsets = yaml.safe_load("""
+_qitobjdefs = yaml.safe_load("""
 stdset:
   HH:
     type: Hbase
@@ -68,19 +70,28 @@ ee:
 """)
 
 
-class QitObjectFixes(object):
+class ExpandQitObjects(BaseFix):
+    r"""
+    Expand the definitions for the "QIT Objects" that are defined via the
+    {phfqit} package.
+
+    If applied along with :lpp:fix:`latexpp.fixes.pkg.ExpandMacros`, the
+    dependency on package {phfqit} should be removed.
+
+    TODO: DOC.......
+    """
     
-    def __init__(self, qitobjs=dict(), thmsets=['stdset'],
+    def __init__(self, qitobjs=dict(), qitobjdef=['stdset'],
                  HSym='H', DSym='D', DCSym=r'\hat{D}'):
         self.qitobjs = dict(baseqitobjs)
-        for tsetname in thmsets:
-            self.qitobjs.update(_thmsets[tsetname])
+        for qitobjname in qitobjdef:
+            self.qitobjs.update(_qitobjdefs[qitobjname])
         self.qitobjs.update(qitobjs)
         self.HSym = HSym
         self.DSym = DSym
         self.DCSym = DCSym
 
-    def specs(self):
+    def specs(self, **kwargs):
         return dict(macros= (
             MacroSpec(mname, args_parser=PhfQitObjectArgsParser(self.qitargspec(m['type'])))
             for mname, m in self.qitobjs.items()
@@ -98,7 +109,7 @@ class QitObjectFixes(object):
         }.get(t)
 
 
-    def fix_node(self, n, lpp):
+    def fix_node(self, n, lpp, **kwargs):
         
         if not n.isNodeType(latexwalker.LatexMacroNode) or n.macroname not in self.qitobjs:
             return None
@@ -353,7 +364,16 @@ def _delempties(d):
     for k in delkeys:
         del d[k]
 
-class MacrosFixes:
+class ExpandMacros(BaseFix):
+    r"""
+    Expand various macros defined by the {phfqit} package.
+
+    If applied along with :lpp:fix:`latexpp.fixes.pkg.ExpandQitObjects`, the
+    dependency on package {phfqit} should be removed.
+
+    TODO: DOC...
+    """
+
     def __init__(self, *,
                  subst={}, ops={}, delims={},
                  math_operator_fmt=r'\operatorname{%(opname)s}',
@@ -410,11 +430,11 @@ class MacrosFixes:
 
 
 
-    def specs(self):
+    def specs(self, **kwargs):
         # get specs from substitution helper
         return dict(**self.substitution_helper.get_specs())
 
-    def fix_node(self, n, lpp):
+    def fix_node(self, n, lpp, **kwargs):
 
         # we treat all via the substitution helper
         c = self.substitution_helper.get_node_cfg(n)

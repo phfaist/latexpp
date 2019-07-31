@@ -2,11 +2,18 @@
 import os.path
 from pylatexenc.latexwalker import LatexMacroNode
 
+from latexpp.fixes import BaseFix
+
 
 exts = ['', '.tex', '.latex']
 
-class EvalInputFixes(object):
-    def fix_node(self, n, lpp):
+class EvalInput(BaseFix):
+    r"""
+    Evaluate ``\input`` and ``\include`` routines by replacing the corresponding
+    instruction by the contents of the included file.
+    """
+
+    def fix_node(self, n, lpp, **kwargs):
 
         if n.isNodeType(LatexMacroNode) and n.macroname in ('input', 'include'):
             # arg is a group necessarily (unlikely to have single-char file name...)
@@ -27,7 +34,14 @@ class EvalInputFixes(object):
             with open(infname) as f:
                 infdata = f.read()
 
-            res = lpp.execute_string(infdata)
+
+            res = ''
+            # for \include, we need to issue \clearpage.  See
+            # https://tex.stackexchange.com/a/32058/32188
+            if n.macroname == 'include':
+                res = r'\clearpage\n'
+
+            res += lpp.execute_string(infdata)
 
             return res
 

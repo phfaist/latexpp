@@ -8,19 +8,40 @@ logger = logging.getLogger(__name__)
 from pylatexenc.macrospec import MacroSpec
 from pylatexenc.latexwalker import LatexMacroNode
 
+from latexpp.fixes import BaseFix
 
-class CopyAndInputBblFixes(object):
+
+class CopyAndInputBbl(BaseFix):
+    r"""
+    Copy the (latex-generated) BBL file from the current directory into the
+    output directory, and replace ``\bibliography{...}`` by
+    ``\input{(...).bbl}``.
+
+    .. note::
+
+       Multiple bibliographies are not supported.
+
+    Arguments:
+
+    - `bblname`: the name of the BBL file to include.  If `None` or not
+      provided, the bbl name is derived from the main latex file name.
+   
+    - `outbblname`: the bbl file is copied to the output directory and renamed
+      to `outbblname`.  By default this derived from the main output latex file
+      name.
+    """
+
     def __init__(self, bblname=None, outbblname=None):
         self.bblname = bblname
         self.outbblname = outbblname
     
-    def specs(self):
+    def specs(self, **kwargs):
         return dict(macros=[
             MacroSpec('bibliographystyle', '{'),
             MacroSpec('bibliography', '{'),
         ])
 
-    def fix_node(self, n, lpp):
+    def fix_node(self, n, lpp, **kwargs):
 
         if n.isNodeType(LatexMacroNode) and n.macroname == 'bibliographystyle':
             # remove \bibliographystyle{} command
@@ -46,7 +67,7 @@ class CopyAndInputBblFixes(object):
         return None
 
 
-class ApplyAliasesFixes(object):
+class ApplyAliases(BaseFix):
     r"""
     Scans the files `bibalias_def_search_files` for bibalias commands
     ``\bibalias{alias}{target}`` (or whatever macro is given to `bibaliascmd`),
@@ -86,10 +107,10 @@ class ApplyAliasesFixes(object):
         self._update_bibaliases()
 
 
-    def specs(self):
+    def specs(self, **kwargs):
         return dict(macros=[MacroSpec(self.bibaliascmd, '{{')])
 
-    def fix_node(self, n, lpp):
+    def fix_node(self, n, lpp, **kwargs):
         if n.isNodeType(LatexMacroNode):
             if n.macroname == self.bibaliascmd:
                 if not n.nodeargd or not n.nodeargd.argnlist or len(n.nodeargd.argnlist) != 2:

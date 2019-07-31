@@ -71,7 +71,7 @@ fixes:
   # Replace \bibliography{...} by \input{xxx.bbl} and copy the bbl file to the
   # output directory.  Make sure you run (pdf)latex on the main docuemnt
   # before running latexpp
-  - 'latexpp.fixes.bib.CopyBblFixes'
+  - 'latexpp.fixes.bib.CopyAndInputBblFixes'
 
   # Expand some macros. Instead of trying to infer the exact expansion that
   # (pdf)latex would itself perform, you specify here a custom string that the

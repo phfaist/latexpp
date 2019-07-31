@@ -7,6 +7,8 @@ logger = logging.getLogger(__name__)
 from pylatexenc.macrospec import MacroSpec
 from pylatexenc import latexwalker
 
+from latexpp.fixes import BaseFix
+
 
 def bulk_replace(s, dic):
     rx = re.compile( "|".join( re.escape(k)
@@ -30,7 +32,7 @@ def sed_to_py_re(pat):
 # replacements after we're finished processing the document.
 
 
-class ApplyPoorManFixes(object):
+class ApplyPoorMan(BaseFix):
     r"""
     Applies the replacements provided by `cleveref`\ 's "poor man" mode.
 
@@ -39,17 +41,17 @@ class ApplyPoorManFixes(object):
 
         \usepackage[poorman]{cleveref}
 
-    After this fix, the file no longer depends on the cleveref package.  Note,
+    After this fix, the file no longer depends on the {cleveref} package.  Note,
     there are some limitations of cleveref's "poor man" mode that we can't get
     around here.
     """
     def __init__(self):
         pass
 
-    def fix_node(self, n, lpp):
+    def fix_node(self, n, lpp, **kwargs):
         return None
 
-    def finalize(self, lpp):
+    def finalize(self, lpp, **kwargs):
         # read the cleveref-generated .sed file
         sedfn = re.sub('(\.(la)?tex)$', '', lpp.main_doc_fname) + '.sed'
         if not os.path.exists(sedfn):

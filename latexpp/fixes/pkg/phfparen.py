@@ -6,16 +6,17 @@ logger = logging.getLogger(__name__)
 from pylatexenc.macrospec import SpecialsSpec, ParsedMacroArgs, MacroStandardArgsParser
 from pylatexenc import latexwalker
 
+from latexpp.fixes import BaseFix
 
 
-class Fixes(object):
+class Expand(BaseFix):
 
-    def specs(self):
+    def specs(self, **kwargs):
         return dict(specials=[
             SpecialsSpec('`', args_parser=PhfParenSpecialsArgsParser())
         ])
 
-    def fix_node(self, n, lpp):
+    def fix_node(self, n, lpp, **kwargs):
 
         if n.isNodeType(latexwalker.LatexSpecialsNode) and n.specials_chars == '`':
             if n.nodeargd.has_star:
