@@ -3,6 +3,8 @@ latexpp
 
 Latex preprocessor — apply macro definitions, remove comments, and more
 
+*Disclaimer: latexpp is still at an experimental development stage.*
+
 Installation
 ------------
 
