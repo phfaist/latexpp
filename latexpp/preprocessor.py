@@ -44,6 +44,9 @@ class LatexPreprocessor(object):
         self.fixes = []
 
         self.initialized = False
+        
+        self.output_files = []
+
 
     def install_fix(self, fix, prepend=False):
         if prepend:
@@ -98,6 +101,8 @@ class LatexPreprocessor(object):
             s = f.read()
 
         outdata = self.execute_string(s)
+
+        self.register_output_file(output_fname)
 
         with open(os.path.join(self.output_dir, output_fname), 'w') as f:
             f.write(outdata)
@@ -287,7 +292,12 @@ class LatexPreprocessor(object):
             logger.warning("File %s might be out-of-date, main tex file %s is more recent",
                            autotexfile, self.main_doc_fname)
         
-        
+    def register_output_file(self, fname):
+        r"""
+        Record the given file `fname` as being part of the official output of this
+        run.  The file name `fname` should be relative to `self.output_dir`.
+        """
+        self.output_files.append(fname)
 
     def copy_file(self, source, destfname=None):
         #
@@ -298,7 +308,10 @@ class LatexPreprocessor(object):
             dest = os.path.join(self.output_dir, destfname)
         else:
             dest = self.output_dir
+            destfname = os.path.basename(source)
 
         logger.info("Copying file %s -> %s", source,
                     os.path.join(self.display_output_dir, destfname if destfname else ''))
         shutil.copy2(source, dest)
+        
+        self.register_output_file(destfname)

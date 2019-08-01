@@ -143,10 +143,17 @@ class ApplyAliases(BaseFix):
 
     def _update_bibaliases(self):
         self._rx_pattern = re.compile(
-            "|".join( re.escape(k) for k in sorted(self._bibaliases, key=len, reverse=True) )
+            r"^(" +
+            r"|".join( re.escape(k) for k in sorted(self._bibaliases, key=len, reverse=True) )
+            + r")$"
         )
 
     def _replace_aliases(self, s):
         # use multiple string replacements --> apparently we need a regex.
         # Cf. https://stackoverflow.com/a/36620263/1694896
-        return self._rx_pattern.sub(lambda m: self._bibaliases[m.group(0)], s)
+        s2 = ",".join(
+            self._rx_pattern.sub(lambda m: self._bibaliases[m.group()], citk.strip())
+            for citk in s.split(",")
+        )
+        #logger.debug("bibalias: Replaced %s -> %s", s, s2)
+        return s2

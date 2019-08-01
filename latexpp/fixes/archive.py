@@ -2,11 +2,55 @@ import os
 import os.path
 import datetime
 import shutil
+import zipfile
+import tarfile
 import logging
 
 logger = logging.getLogger(__name__)
 
 from latexpp.fixes import BaseFix
+
+
+class FnArchive:
+    def __init__(self, basefname, artype):
+        self.basefname = basefname
+        artypeparts = artype.split('.', maxsplit=1)
+        if len(artypeparts) > 1:
+            self.artype, self.arcompr = artypeparts
+        else:
+            self.artype, self.arcompr = artype, None
+        self.fname = self.basefname + '.' + self.artype
+        if self.arcompr:
+            self.fname += '.' + self.arcompr
+
+    def __enter__(self):
+        if self.artype == 'zip':
+            assert not self.arcompr
+            self.f = zipfile.ZipFile(self.fname, "w",
+                                     compression=zipfile.ZIP_DEFLATED)
+
+            self.f.__enter__()
+            return self
+        if self.artype == 'tar':
+            self.f = tarfile.open(self.fname, "w:%s"%self.arcompr)
+            self.f.__enter__()
+            return self
+
+        raise ValueError("Unknown archive type: {}".format(self.artype))
+            
+
+    def add_file(self, fname, arfname=None):
+        if arfname is None:
+            arfname = fname
+        logger.debug("%s: Adding %s", os.path.relpath(self.fname), arfname)
+        if self.artype == 'zip':
+            return self.f.write(fname, arfname)
+        elif self.artype == 'tar':
+            return self.f.add(fname, arfname)
+
+    def __exit__(self, *args, **kwargs):
+        return self.f.__exit__(*args, **kwargs)
+
 
 
 class CreateArchive(BaseFix):
@@ -25,7 +69,7 @@ class CreateArchive(BaseFix):
     - `use_date`: If `True`, the current date/time is appended to the archive
       file name.
 
-    - `archive_type`: One of 'zip', 'tar', 'gztar', 'bztar', 'xztar'.
+    - `archive_type`: One of 'zip', 'tar', 'tar.gz', 'tar.bz2', 'tar.xz'.
     """
     def __init__(self, use_root_dir=True, use_date=True, archive_type='zip'):
         self.use_root_dir = use_root_dir
@@ -36,20 +80,18 @@ class CreateArchive(BaseFix):
     def finalize(self, lpp, **kwargs):
         # all set, we can create the archive
 
-        zipname = lpp.output_dir
+        arbasename = lpp.output_dir
         if self.use_date:
-            zipname += '-'+datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+            arbasename += '-'+datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
 
         if self.use_root_dir:
-            root_dir = '.'
+            base_dir = os.path.relpath(lpp.output_dir)
         else:
-            root_dir = lpp.output_dir
-
-        arname = shutil.make_archive(
-            zipname,
-            self.archive_type, # eg., 'zip'
-            root_dir=root_dir,
-            base_dir=os.path.relpath(lpp.output_dir),
-            logger=logger
-        )
-        logger.info("Create archive %s", arname)
+            base_dir = ''
+        
+        with FnArchive(arbasename, self.archive_type) as far:
+            for fn in lpp.output_files:
+                far.add_file(os.path.join(lpp.output_dir, fn),
+                             os.path.join(base_dir, fn))
+            
+        logger.info("Created archive %s", os.path.relpath(far.fname))

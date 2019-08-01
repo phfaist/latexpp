@@ -24,13 +24,13 @@ class MacroSubstHelper:
         return dict(
             macros=[
                 MacroSpec(m, args_parser=self.args_parser_class(
-                    _cfg_argspec_repl(mconfig)[0]
+                    self._cfg_argspec_repl(mconfig)[0]
                 ))
                 for m, mconfig in self.macros.items()
             ],
             environments=[
                 EnvironmentSpec(e, args_parser=self.args_parser_class(
-                    _cfg_argspec_repl(econfig)[0]
+                    self._cfg_argspec_repl(econfig)[0]
                 ))
                 for e, econfig in self.environments.items()
             ]

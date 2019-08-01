@@ -5,6 +5,8 @@ logger = logging.getLogger(__name__)
 
 from pylatexenc.latexwalker import LatexMacroNode
 
+from latexpp.fixes import BaseFix
+
 
 def node_get_usepackage(n, lpp):
     """
@@ -19,7 +21,11 @@ def node_get_usepackage(n, lpp):
     return None
 
 
-class RemovePkgs(object):
+class RemovePkgs(BaseFix):
+    r"""
+    Remove some instances of ``\usepackage[..]{...}`` for some selected pacage
+    names.
+    """
     def __init__(self, pkglist):
         self.pkglist = set(pkglist)
 
@@ -33,7 +39,11 @@ class RemovePkgs(object):
         return None
 
 
-class CopyLocalPkgs(object):
+class CopyLocalPkgs(BaseFix):
+    r"""
+    Copy package style files that are present in the current directory and that
+    are included with ``\usepackage{...}``.
+    """
     def __init__(self):
         pass
 

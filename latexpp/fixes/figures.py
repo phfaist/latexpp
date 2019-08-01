@@ -76,7 +76,10 @@ class CopyAndRenameFigs(BaseFix):
                 orig_fig_ext=orig_fig_ext
             )
 
-            lpp.copy_file(picfname, figoutname)
+            # increment fig counter
+            self.fig_counter += 1
+
+            lpp.copy_file(orig_fig_name, figoutname)
 
             return r'\includegraphics' + \
                 (n.nodeargd.argnlist[0].latex_verbatim() if n.nodeargd.argnlist[0] else '') + \
