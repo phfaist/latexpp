@@ -14,8 +14,8 @@ from latexpp.fixes import BaseFix
 class CopyAndInputBbl(BaseFix):
     r"""
     Copy the (latex-generated) BBL file from the current directory into the
-    output directory, and replace ``\bibliography{...}`` by
-    ``\input{(...).bbl}``.
+    output directory, and replace a ``\bibliography`` call by
+    ``\input{<BBLFILE>}``.
 
     .. note::
 
