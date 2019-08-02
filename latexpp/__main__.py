@@ -110,8 +110,11 @@ class NewLppconfigTemplate(argparse.Action):
             raise ValueError("The file {} already exists. I won't overwrite it.".format(cfgfile))
         with open(cfgfile, 'w') as f:
             f.write(_lppconfig_template)
-        print("Wrote template config file ", cfgfile,
-              ".  Please edit to your liking and then run latexpp.", sep='')
+        # logger hasn't been set up yet.
+        sys.stderr.write(
+            ("Wrote template config file {}.  Please edit to your "
+             "liking and then run latexpp.\n").format(cfgfile)
+        )
         sys.exit(0)
 
 
@@ -133,11 +136,13 @@ def main(argv=None):
 
     parser.add_argument('-p', '--profile', dest='lppconfig_profile',
                         action='store', default='',
-                        help='look for config file lppconfig-<PROFILE>.yml instead of lppconfig.yml')
+                        help='look for config file lppconfig-<PROFILE>.yml '
+                        'instead of lppconfig.yml')
 
     parser.add_argument('-c', '--lppconfig', dest='lppconfig',
                         action='store', default='',
-                        help='lpp config file (YAML) to use instead of lppconfig.yml. Overrides -p option.')
+                        help='lpp config file (YAML) to use instead of lppconfig.yml. '
+                        'Overrides -p option.')
 
     parser.add_argument('-o', '--output-dir',
                         dest='output_dir',
@@ -155,8 +160,10 @@ def main(argv=None):
 
     parser.add_argument('--new', action=NewLppconfigTemplate)
 
-    parser.add_argument('--version', action='version', version='%(prog)s {}'.format(version_str))
-    parser.add_argument('--help', action='help', help='show this help message and exit')
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s {}'.format(version_str))
+    parser.add_argument('--help', action='help',
+                        help='show this help message and exit')
 
     args = parser.parse_args(argv)
 
