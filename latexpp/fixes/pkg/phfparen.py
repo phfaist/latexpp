@@ -10,6 +10,15 @@ from latexpp.fixes import BaseFix
 
 
 class Expand(BaseFix):
+    r"""
+    Expand expressions provided by the {phfparen} package, such as ```*(...)``
+    or ```{...}``, into equivalent LaTeX code that does not require the
+    {phfparen} package.
+
+    This fix takes no arguments, and once applied, removes the dependency on the
+    {phfparen} package.  (That is, unless you defined custom delimiters etc. via
+    {phfparen} internals or if you did other weird stuff like that...)
+    """
 
     def specs(self, **kwargs):
         return dict(specials=[

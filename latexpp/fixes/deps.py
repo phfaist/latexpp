@@ -13,9 +13,9 @@ class CopyFiles(BaseFix):
     Copies the given files to the output directory.  Use this for dependencies
     that aren't obvious, like a custom LaTeX class.
 
-    For packages, you can use :lpp:fix:`latexpp.fixes.usepackage.CopyLocalPkgs`.
-    For figures, consider using
-    :lpp:fix:`latexpp.fixes.figures.CopyAndRenameFigs`.
+    For packages, you can use
+    :py:class:`latexpp.fixes.usepackage.CopyLocalPkgs`.  For figures, consider
+    using :py:class:`latexpp.fixes.figures.CopyAndRenameFigs`.
 
     Arguments:
     

@@ -25,11 +25,12 @@ class Expand(BaseFix):
 
     def add_preamble(self):
 
-        p = [ r"\usepackage{amsthm}" ]
+        p = [ ]
         if isinstance(self.deftheorems, str):
             # raw preamble
             p.append(self.deftheorems)
         else:
+            p.append(r"\usepackage{amsthm}")
             for t in self.deftheorems:
                 p.append( r"\newtheorem{%s}{%s}"%(t, t.capitalize()) )
         return "\n".join(p)

@@ -10,16 +10,18 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+import latexpp
 
 # -- Project information -----------------------------------------------------
 
 project = 'latexpp'
 copyright = '2019, Philippe Faist'
 author = 'Philippe Faist'
+version = latexpp.__version__
 
 
 # -- General configuration ---------------------------------------------------

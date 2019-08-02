@@ -75,10 +75,72 @@ class ExpandQitObjects(BaseFix):
     Expand the definitions for the "QIT Objects" that are defined via the
     {phfqit} package.
 
-    If applied along with :lpp:fix:`latexpp.fixes.pkg.ExpandMacros`, the
+    If applied along with :py:class:`latexpp.fixes.pkg.phfqit.ExpandMacros`, the
     dependency on package {phfqit} should be removed.
 
-    TODO: DOC.......
+    Arguments:
+
+    - `qitobjs`: a dictionary of custom "QIT Objects" to expand.  The dictionary
+      has the structure ``{macroname: qitobjspec, ...}``, where:
+
+      - `macroname` is the name of the macro representing this QIT object (no
+        leading backslash);
+
+      - `qitobjspec` is a dictionary with the following structure::
+
+          {
+            'type': <type>,
+            'sym': <sym>
+            <...>
+          }
+
+        The `<type>` is a string that must be one of the following QIT object
+        types: 'Hbase', 'Hfnbase', 'DD', 'Dbase', 'DCohbase', 'IdentProc', 'ee'.
+        This determines on one hand how the arguments to the macro are parsed
+        and on the other hand the template latex code that will serve as a
+        replacement for the QIT object invocation.
+    
+        The `<sym>` is any string that will be used to override the default
+        symbol for this qit object type.  The 'sym' key can be left out to use
+        the default symbol for the qit object.
+
+        Depending on `<type>`, you can specify further keys that specify how the
+        qit object is rendered (specified alongside `type: <type>` above, where
+        `<...>` stands):
+
+        - `<type>='Hbase'`: You may further specify ``'sub': <sub>`` which
+          specifies the subscript to add to the entropy object.  This can be any
+          LaTeX code.
+
+        - `<type>='Hfnbase'`: You may further specify ``'sub': <sub>`` and
+          ``'sup': <sup>`` which specifies the subscript and superscript to add
+          to the entropy object.  Both can be any LaTeX code.
+
+        - `<type>='Dbase'`: You may further specify ``'sub': <sub>`` which
+          specifies the subscript to add to the relative entropy object.  This
+          can be any LaTeX code.
+
+        - `<type>='DD'`: There are no further keys you can specify.
+
+        - `<type>='DCohbase'`: There are no further keys you can specify.
+    
+        - `<type>='IdentProc'`: There are no further keys you can specify.
+
+        - `<type>='ee'`: There are no further keys you can specify.
+
+    - `qitobjdef`: a list of built-in QIT object sets to use, designated by
+      builtin set name.  Currently only the set named "stdset" is available,
+      i.e., you may use ``qitobjdef=[]`` (don't use built-in QIT objects) or
+      ``qitobjdef=['stdset']`` (use built-in QIT objects).
+
+    - `HSym`: the default symbol to use for entropy-like QIT objects.  Defaults
+      to 'H'
+
+    - `DSym`: the default symbol to use for relative-entropy-like QIT objects.
+      Defaults to 'D'
+
+    - `DCSym`: the default symbol to use for coherent-relative-entropy-like QIT
+      objects.  Defaults to '\\hat{D}'
     """
     
     def __init__(self, qitobjs=dict(), qitobjdef=['stdset'],
@@ -368,10 +430,103 @@ class ExpandMacros(BaseFix):
     r"""
     Expand various macros defined by the {phfqit} package.
 
-    If applied along with :lpp:fix:`latexpp.fixes.pkg.ExpandQitObjects`, the
-    dependency on package {phfqit} should be removed.
+    If applied along with :py:class:`latexpp.fixes.pkg.phfqit.ExpandQitObjects`,
+    the dependency on package {phfqit} should be removed.
 
-    TODO: DOC...
+    Arguments:
+
+    - `subst`: a dictionary of substitutions to perform.  The dictionary keys
+      are macro names without leading backslash, and values are dictionaries of
+      the form ``{'qitargspec': <qitargspec>, 'repl': <repl>}``.  This has a
+      similar syntax to the :py:class:`latexpp.fixes.macro_subst.Subst` fix
+      class, but argument parsing allows an extended syntax.  Instead of
+      specifying an `'argspec': <argspec>`, you specify `'qitargspec':
+      <qitargspec>` which provides argument parsing extensions to the usual
+      `argspec`.
+
+      Each character in `<qitargspec>` is one of:
+
+      - '*', '[', '{' represent the same kind of arguments as for 'argspec' in
+        :py:class:`latexpp.fixes.macro_subst.Subst`;
+
+      - '(' represents a mandatory argument in parentheses;
+
+      - '`' represents an optional argument introduced by ```<token or group>``;
+
+      - '_' represents an optional argument introduced by ``_<token or group>``;
+
+      - or '^' which represents an optional argument introduced by ``^<token or
+        group>``.
+
+      As for :py:class:`latexpp.fixes.macro_subst.Subst`, arguments are
+      available in the replacement string `<repl>` via the syntax ``%(n)s``
+      where `n` is the argument number.
+
+      A default set of substitutions are provided according to the macros
+      defined in the {phfqit} package; arguments here override the defaults.
+      You can disable individual default substitutions by providingthe value
+      `None` (`null` in the YAML file) for the given macro name in the `subst`
+      dictionary.
+
+    - `ops`: a dictionary of "operator names" to substitute for.  This is a
+      dictionary ``{<opname>: <opstring>, ...}`` where `<opname>` is the macro
+      name of the operator without leading backslash (e.g., ``tr`` for "trace"),
+      and `<opstring>` is the replacement LaTeX string that will be formatted as
+      an operator name.  See `math_operator_fmt=` for how operators are
+      formatted.
+
+      A default set of operator names are provided according to the macros
+      defined in the {phfqit} package; arguments here override the defaults.
+      You can disable individual default operator names by providing the value
+      `None` (`null` in the YAML file) for the given operator name in the `ops`
+      dictionary.
+
+    - `math_operator_fmt`: The template string to use to format an operator.  By
+      default, we use `\\operatorname{...}` to format the operator.  The
+      template should contain the string `%(opname)s` which will be replaced by
+      the actual operator name.  The default value is
+      ``\operatorname{%(opname)s}``; if you prefer to use ``\mbox`` for
+      operators, you could set this to ``\mbox{%(opname)s}``.
+
+    - `delims`: A dictionary specifying macros that format delimited expressions
+      (such as `\\abs`, `\\ket`, `\\norm`, etc.).  These macros take an optional
+      star (which indicates that the delimiters should be latex-dynamically
+      sized with ``\left`` and ``\right``), or an optional sizing macro in
+      square braces (such as ``\norm[\big]{...}``).  After the optional star and
+      optional argument, the macro must take a fixed number of mandatory
+      arguments (e.g., one for ``\norm`` but two for ``\ketbra`` and three for
+      ``\matrixel``).
+
+      The `delims` argument is a dictionary ``{<delim-macro-name>: <delim-spec>,
+      ...}`` where `<delim-macro-name>` is the name of the macro without leading
+      backslash (e.g., 'ket' or 'abs').  The `<delim-spec>` is either:
+
+      - `<delim-spec>=(<left-delim>, <right-delim>)`, i.e., a two-item tuple or
+        list specifying the left and right delimiter.  The macro must take a
+        single mandatory argument, which will be typeset between the two
+        delimiters.  One must be able to size the delimiters using sizing
+        commands such as ``\big`` or ``\left``/``\right``.
+
+      - `<delim-spec>=(<left-delim>, <contents-repl>, <right-delim>)`, i.e., a
+        three-item tuple or list.  The `<left-delim>` and `<right-delim>` are as
+        above.  The `<contents-repl>` specifies how to format the contents
+        between the two delimiters, and should contain replacement strings of
+        the form ``%(n)s`` that expand into the `n`-th mandatory argument of the
+        macro.  The number of mandatory arguments that the macro accepts is
+        inferred by inspecting the replacement string and looking for the
+        highest `n` in these replacement placeholders.  Furthermore, you can use
+        the replacement placeholder ``%(delimsize)s``, which expands to the
+        relevant sizing command (e.g., ``\big``, ``\middle`` to match
+        ``\left``/``\right``, or nothing if no sizing options are given) and
+        which can be placed immediately before a delimiter.
+
+    - `subst_use_hspace`: In all the above substitutions (including delimiters),
+      there are some custom sizing corrections in the form of ``\hspace*{XXex}``
+      that adjust the spacing between the different symbols in the expansion of
+      those macros.  By default, they are kept in the replacement latex code so
+      that the document looks the same when compiled.  If instead, you would
+      like simple substitutions without these fine-tuning spacing commands, set
+      `subst_use_hspace=False`.
     """
 
     def __init__(self, *,
