@@ -18,6 +18,8 @@ class Expand(BaseFix):
                  deftheorems=['theorem', 'lemma', 'proposition', 'corollary'],
                  proofenvs=dict(proof='proof'),
                  ref_type=r'\cref{%s}', proof_of_name='Proof of %s'):
+        super().__init__()
+
         self.deftheorems = deftheorems
         self.proofenvs = dict(proofenvs)
         self.ref_type = ref_type
@@ -36,7 +38,7 @@ class Expand(BaseFix):
         return "\n".join(p)
         
 
-    def fix_node(self, n, lpp):
+    def fix_node(self, n, **kwargs):
 
         if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'noproofref':
             return ''
@@ -45,13 +47,13 @@ class Expand(BaseFix):
             proofenv = self.proofenvs[n.environmentname]
             if n.nodeargd.argnlist[0] is not None: # optional argument to proof
                 if n.nodeargd.argnlist[0].isNodeType(latexwalker.LatexGroupNode):
-                    optargstr = lpp.latexpp(n.nodeargd.argnlist[0].nodelist).strip()
+                    optargstr = self.nodelist_to_latex(n.nodeargd.argnlist[0].nodelist).strip()
                     if optargstr.startswith('*'):
                         # have \begin{proof}[*thm:label] ... \end{proof}
                         # replace with \begin{proof}[Proof of <ref>] ... \end{proof}
                         reflbl = optargstr[1:]
                         return r'\begin{%s}['%(proofenv) \
                             + self.proof_of_name%(self.ref_type%(reflbl)) + ']' \
-                            + lpp.latexpp(n.nodelist) + r'\end{%s}'%(proofenv)
+                            + self.nodelist_to_latex(n.nodelist) + r'\end{%s}'%(proofenv)
 
         return None

@@ -95,13 +95,18 @@ class ApplyAliases(BaseFix):
         self._bibaliases = {}
         self._bibaliases.update(aliases)
 
+        self.bibalias_defs_search_files = bibalias_defs_search_files
+
+
+    def initialize(self):
         # right away, populate bib aliases with search through given tex files.
         # Hmmm, should we use a latexwalker here in any way? ...?  Not sure it's
         # worth it
         rx_bibalias = re.compile(
-            r'\\'+self.bibaliascmd+r'\s*\{(?P<alias>[^}]+)\}\s*\{(?P<target>[^}]+)\}'
+            r'^([^%]|\\%)*?\\'+self.bibaliascmd+r'\s*\{(?P<alias>[^}]+)\}\s*\{(?P<target>[^}]+)\}',
+            flags=re.MULTILINE
         )
-        for bfn in bibalias_defs_search_files:
+        for bfn in self.bibalias_defs_search_files:
             with open(bfn) as ff:
                 for m in rx_bibalias.finditer(ff.read()):
                     alias = m.group('alias')

@@ -61,7 +61,7 @@ class BaseFix:
         return None
 
 
-    def preprocess(self, nodelist):
+    def preprocess(self, nodelist, children_only=False):
         r"""
         Return a new node list that corresponds to the pre-processed version of
         `nodelist`.  It's the `BaseFix`\ 's responsibility to recurse into
@@ -71,36 +71,35 @@ class BaseFix:
         :py:meth:`fix_nodelist()` or :py:meth:`fix_node()`.
         """
 
-        newnodelist = self._call_fix_nodelist(nodelist)
+        if not children_only:
+            newnodelist = self._call_fix_nodelist(nodelist)
 
         # recurse into subnodes
 
         for n in newnodelist:
 
             if n.isNodeType(latexwalker.LatexGroupNode):
-                n.nodelist = self._call_fix_nodelist(n.nodelist)
+                n.nodelist = self.preprocess(n.nodelist)
 
             if n.isNodeType(latexwalker.LatexMacroNode):
                 if n.nodeargd is not None and n.nodeargd.argnlist is not None:
                     for j in range(len(n.nodeargd.argnlist)):
-                        n.nodeargd.argnlist[j] = self._call_fix_argnode(n.nodeargd.argnlist[j])
+                        n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
 
             if n.isNodeType(latexwalker.LatexEnvironmentNode):
                 if n.nodeargd is not None and n.nodeargd.argnlist is not None:
                     for j in range(len(n.nodeargd.argnlist)):
-                        #print("Before arg node: ", n.nodeargd.argnlist[j])
-                        n.nodeargd.argnlist[j] = self._call_fix_argnode(n.nodeargd.argnlist[j])
-                        #print("New arg node: ", n.nodeargd.argnlist[j])
+                        n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
 
-                n.nodelist = self._call_fix_nodelist(n.nodelist)
+                n.nodelist = self.preprocess(n.nodelist)
 
             if n.isNodeType(latexwalker.LatexSpecialsNode):
                 if n.nodeargd is not None and n.nodeargd.argnlist is not None:
                     for j in range(len(n.nodeargd.argnlist)):
-                        n.nodeargd.argnlist[j] = self._call_fix_argnode(n.nodeargd.argnlist[j])
+                        n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
 
             if n.isNodeType(latexwalker.LatexMathNode):
-                n.nodelist = self._call_fix_nodelist(n.nodelist)
+                n.nodelist = self.preprocess(n.nodelist)
 
         return newnodelist
 
@@ -115,34 +114,39 @@ class BaseFix:
             raise
 
     def _call_fix_nodelist(self, nodelist):
-        # first call fix_nodelist()
         newnodelist = self.fix_nodelist(nodelist)
         if newnodelist is None:
-            newnodelist = nodelist
+            return nodelist
         if isinstance(newnodelist, str):
-            newnodelist = self._parse_nodes(newnodelist) # re-parse with latexwalker etc.
+            return self._parse_nodes(newnodelist) # re-parse with latexwalker etc.
         return newnodelist
 
-    def _call_fix_argnode(self, node):
+    def _call_preprocess_argnode(self, node):
+
         if node is None:
             return None
-        if node.isNodeType(latexwalker.LatexGroupNode):
-            node.nodelist = self._call_fix_nodelist(node.nodelist)
-            return node
+
         newnode = self.fix_node(node, is_single_token_arg=True)
         if newnode is None:
-            return node
+            newnode = node
+
+        if newnode.isNodeType(latexwalker.LatexGroupNode):
+            newnode.nodelist = self.preprocess(newnode.nodelist)
+            return newnode
+
         if isinstance(newnode, str):
             newnode = self._parse_nodes(newnode) # re-parse with latexwalker etc.
+            # fall through to list case ->
+
         if isinstance(newnode, list):
-            nx = newnode
-            thelatex = ''.join(n.latex_verbatim() for n in nx)
+            # run arguments also through our preprocessor:
+            nx = self.preprocess(nx, children_only=True)
             return latexwalker.LatexGroupNode(
                 nodelist=newnode,
                 delimiters=('{', '}'),
                 parsed_context=latexwalker.ParsedContext(
-                    s=thelatex,
-                    latex_context=node.parsed_context.latex_context
+                    s=self.nodelist_to_latex(nx),
+                    latex_context=node.parsed_context.latex_context,
                 ),
                 pos=0,
                 len=len(thelatex)
@@ -204,7 +208,7 @@ class BaseFix:
         return newnodelist
 
 
-    def fix_node(self, node, *, is_single_token_arg=False, prev_node=None):
+    def fix_node(self, node, *, is_single_token_arg=False, prev_node=None, next_node=None):
         r"""
         Transforms a given node to implement the fixes provided by this fix class.
 
@@ -252,6 +256,9 @@ class BaseFix:
     # utilities for subclasses
     def node_to_latex(self, *args, **kwargs):
         return self.lpp.node_to_latex(*args, **kwargs)
+
+    def nodelist_to_latex(self, nodelist):
+        return self.lpp.nodelist_to_latex(nodelist)
 
     def node_contents_to_latex(self, *args, **kwargs):
         return self.lpp.node_contents_to_latex(*args, **kwargs)

@@ -25,7 +25,7 @@ class Expand(BaseFix):
             SpecialsSpec('`', args_parser=PhfParenSpecialsArgsParser())
         ])
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
 
         if n.isNodeType(latexwalker.LatexSpecialsNode) and n.specials_chars == '`':
             if n.nodeargd.has_star:
@@ -42,9 +42,11 @@ class Expand(BaseFix):
                 # literal braces if given with curly braces
                 delimchars = (r'\{', r'\}')
 
-            return delims_pc[0]%delimchars[0] + lpp.latexpp(n.nodeargd.contents_node.nodelist) \
+            return delims_pc[0]%delimchars[0] \
+                + self.nodelist_to_latex(n.nodeargd.contents_node.nodelist) \
                 + delims_pc[1]%delimchars[1]
 
+        return None
 
 
 

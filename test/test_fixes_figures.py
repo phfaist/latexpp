@@ -19,7 +19,6 @@ class TestCopyAndRenameFigs(unittest.TestCase):
             'fignew/results schematic.pdf',
             'fignew/results schematic 2.jpg'
         ])
-            
         
         lpp = helpers.MockLPP()
         lpp.install_fix( figures.CopyAndRenameFigs() )

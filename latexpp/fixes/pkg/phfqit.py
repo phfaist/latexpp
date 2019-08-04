@@ -145,6 +145,8 @@ class ExpandQitObjects(BaseFix):
     
     def __init__(self, qitobjs=dict(), qitobjdef=['stdset'],
                  HSym='H', DSym='D', DCSym=r'\hat{D}'):
+        super().__init__()
+
         self.qitobjs = dict(baseqitobjs)
         for qitobjname in qitobjdef:
             self.qitobjs.update(_qitobjdefs[qitobjname])
@@ -171,18 +173,24 @@ class ExpandQitObjects(BaseFix):
         }.get(t)
 
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
         
         if not n.isNodeType(latexwalker.LatexMacroNode) or n.macroname not in self.qitobjs:
             return None
 
         m = self.qitobjs[n.macroname]
 
-        return self.fix_qitobj(m, n, lpp)
+        fixs = self.fix_qitobj(m, n)
+
+        #logger.debug(" --> %r", fixs)
+
+        return fixs
 
 
 
-    def fix_qitobj(self, m, n, lpp):
+    def fix_qitobj(self, m, n):
+
+        #logger.debug("fix_qitobj: m=%r, n=%r", m, n)
 
         if m['type'] == 'IdentProc':
 
@@ -192,9 +200,9 @@ class ExpandQitObjects(BaseFix):
             subscript = ''
             A, B = '', ''
             if nsysA is not None:
-                A = lpp.latexpp_group_contents(nsysA)
+                A = self.node_contents_to_latex(nsysA)
             if nsysB is not None:
-                B = lpp.latexpp_group_contents(nsysB)
+                B = self.node_contents_to_latex(nsysB)
             if A:
                 if B:
                     subscript = A + r'\to ' + B
@@ -205,7 +213,7 @@ class ExpandQitObjects(BaseFix):
             if subscript:
                 text += '_{' + subscript + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
-            text += od + lpp.latexpp_group_contents(narg) + cd
+            text += od + self.node_contents_to_latex(narg) + cd
             return text
 
         if m['type'] == 'ee':
@@ -213,7 +221,7 @@ class ExpandQitObjects(BaseFix):
             narg, = n.nodeargd.argnlist
             sym = m.get('sym', r'e')
 
-            return '{'+sym+'}^{' + lpp.latexpp_group_contents(narg) + '}'
+            return '{'+sym+'}^{' + self.node_contents_to_latex(narg) + '}'
         
         if m['type'] == 'Hbase':
 
@@ -225,15 +233,15 @@ class ExpandQitObjects(BaseFix):
             if sub:
                 text += '_{' + sub + '}'
             if nepsilon is not None:
-                text += '^{' + lpp.latexpp_group_contents(nepsilon) + '}'
+                text += '^{' + self.node_contents_to_latex(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
             text += od
-            text += lpp.latexpp_group_contents(ntargetsys)
+            text += self.node_contents_to_latex(ntargetsys)
             if ncondsys is not None:
-                text += r'\,' + md + r'\,' + lpp.latexpp_group_contents(ncondsys)
+                text += r'\,' + md + r'\,' + self.node_contents_to_latex(ncondsys)
             text += cd
             if nstate is not None:
-                text += r'_{' + lpp.latexpp_group_contents(nstate) + '}'
+                text += r'_{' + self.node_contents_to_latex(nstate) + '}'
             return text
         
         if m['type'] == 'Hfnbase':
@@ -249,7 +257,7 @@ class ExpandQitObjects(BaseFix):
             if sup:
                 text += '^{' + sup + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
-            text += od + lpp.latexpp_group_contents(narg) + cd
+            text += od + self.node_contents_to_latex(narg) + cd
             return text
 
         if m['type'] == 'Dbase':
@@ -262,10 +270,10 @@ class ExpandQitObjects(BaseFix):
             if sub:
                 text += '_{' + sub + '}'
             if nepsilon is not None:
-                text += '^{' + lpp.latexpp_group_contents(nepsilon) + '}'
+                text += '^{' + self.node_contents_to_latex(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
-            text += od + lpp.latexpp_group_contents(nstate) + r'\,' + md + r'\,' \
-                + lpp.latexpp_group_contents(nrel) + cd
+            text += od + self.node_contents_to_latex(nstate) + r'\,' + md + r'\,' \
+                + self.node_contents_to_latex(nrel) + cd
             return text
 
         if m['type'] == 'DD':
@@ -275,12 +283,12 @@ class ExpandQitObjects(BaseFix):
 
             text = '{' + sym + '}'
             if nsub is not None:
-                text += '_{' + lpp.latexpp_group_contents(nsub) + '}'
+                text += '_{' + self.node_contents_to_latex(nsub) + '}'
             if nsup is not None:
-                text += '^{' + lpp.latexpp_group_contents(nsup) + '}'
+                text += '^{' + self.node_contents_to_latex(nsup) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
-            text += od + lpp.latexpp_group_contents(nstate) + r'\,' + md + r'\,' \
-                + lpp.latexpp_group_contents(nrel) + cd
+            text += od + self.node_contents_to_latex(nstate) + r'\,' + md + r'\,' \
+                + self.node_contents_to_latex(nrel) + cd
             return text
 
         if m['type'] == 'DCohbase':
@@ -291,8 +299,8 @@ class ExpandQitObjects(BaseFix):
 
             text = '{' + sym + '}'
 
-            tX = lpp.latexpp_group_contents(nX)
-            tXp = lpp.latexpp_group_contents(nXp)
+            tX = self.node_contents_to_latex(nX)
+            tXp = self.node_contents_to_latex(nXp)
             if tX and tXp:
                 text += '_{' + tX + r'\to ' + tXp + '}'
             elif tX:
@@ -301,21 +309,21 @@ class ExpandQitObjects(BaseFix):
                 text += '_{' + tXp + '}'
 
             if nepsilon is not None:
-                text += '^{' + lpp.latexpp_group_contents(nepsilon) + '}'
+                text += '^{' + self.node_contents_to_latex(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
             if nstate.isNodeType(latexwalker.LatexGroupNode) and \
                len(nstate.nodelist) and nstate.nodelist[0].isNodeType(latexwalker.LatexCharsNode) and \
                nstate.nodelist[0].chars.lstrip().startswith('*'):
-                statelatex = lpp.latexpp_group_contents(nstate).lstrip(' \t*') # remove '*'
+                statelatex = self.node_contents_to_latex(nstate).lstrip(' \t*') # remove '*'
             else:
                 if process_arg_subscripts:
-                    statelatex = lpp.latexpp_group_contents(nstate) + '_{' \
+                    statelatex = self.node_contents_to_latex(nstate) + '_{' \
                         + tX + r'\to ' + tXp + '}'
                 else:
-                    statelatex = lpp.latexpp_group_contents(nstate) + '_{' + tXp \
+                    statelatex = self.node_contents_to_latex(nstate) + '_{' + tXp \
                         + 'R_{' + tX + '}}'
-            text += od + statelatex + r'\,' + md + r'\,' + lpp.latexpp_group_contents(nGX) + r',\,' \
-                + lpp.latexpp_group_contents(nGXp) + cd
+            text += od + statelatex + r'\,' + md + r'\,' + self.node_contents_to_latex(nGX) + r',\,' \
+                + self.node_contents_to_latex(nGXp) + cd
             return text
 
         raise ValueError("Unknown phfqit macro type: {!r}".format(m))
@@ -533,6 +541,8 @@ class ExpandMacros(BaseFix):
                  subst={}, ops={}, delims={},
                  math_operator_fmt=r'\operatorname{%(opname)s}',
                  subst_use_hspace=True):
+        super().__init__()
+
         the_simple_substitution_macros = dict(simple_substitution_macros)
         the_simple_substitution_macros.update(subst)
         # remove any items which have a None value (used to indicate a default
@@ -589,7 +599,7 @@ class ExpandMacros(BaseFix):
         # get specs from substitution helper
         return dict(**self.substitution_helper.get_specs())
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
 
         # we treat all via the substitution helper
         c = self.substitution_helper.get_node_cfg(n)
@@ -630,11 +640,12 @@ class ExpandMacros(BaseFix):
                 context = dict(open_delim=delims_pc[0]%delimchars[0],
                                delimsize=delimsize,
                                close_delim=delims_pc[1]%delimchars[1])
-                return self.substitution_helper.eval_subst(c, n, lpp,
+                return self.substitution_helper.eval_subst(c, n,
+                                                           fix=self,
                                                            argoffset=2,
                                                            context=context)
 
-            return self.substitution_helper.eval_subst(c, n, lpp)
+            return self.substitution_helper.eval_subst(c, n, fix=self)
                 
 
         return None

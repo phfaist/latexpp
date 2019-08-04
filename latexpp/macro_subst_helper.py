@@ -62,7 +62,7 @@ class MacroSubstHelper:
             return self.get_environment_cfg(n.environmentname)
 
 
-    def eval_subst(self, c, n, fix, *, argoffset=0, context={}):
+    def eval_subst(self, c, n, *, fix, argoffset=0, context={}):
         """
         If `argoffset` is nonzero, then the first `argoffset` arguments are skipped
         and the arguments `argoffset+1, argoffset+2, ...` are exposed to the

@@ -11,6 +11,7 @@ from latexpp.fixes import BaseFix
 
 exts = ['', '.pdf', '.png', '.jpg', '.jpeg', '.eps']
 
+
 class CopyAndRenameFigs(BaseFix):
     r"""
     Copy graphics files that are included by ``\includegraphics`` commands to

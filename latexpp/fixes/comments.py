@@ -51,6 +51,6 @@ class RemoveComments(BaseFix):
                         # space to ensure LaTeX code stays valid
                         prev_node.macro_post_space = ' '
                     
-                return "" # remove entirely.
+                return [] # remove entirely.
 
         return None

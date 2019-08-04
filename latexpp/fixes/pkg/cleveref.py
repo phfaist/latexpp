@@ -46,19 +46,19 @@ class ApplyPoorMan(BaseFix):
     around here.
     """
     def __init__(self):
-        pass
+        super().__init__()
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
         return None
 
-    def finalize(self, lpp, **kwargs):
+    def finalize(self, **kwargs):
         # read the cleveref-generated .sed file
-        sedfn = re.sub('(\.(la)?tex)$', '', lpp.main_doc_fname) + '.sed'
+        sedfn = re.sub(r'(\.(la)?tex)$', '', self.lpp.main_doc_fname) + '.sed'
         if not os.path.exists(sedfn):
-            logger.error("Cannot find file %s. Are you sure you provided the "
-                         "[poorman] option to \\usepackage[poorman]{cleveref} "
-                         "and that you ran (pdf)latex?")
-        lpp.check_autofile_up_to_date(sedfn)
+            logger.error(r"Cannot find file %s. Are you sure you provided the "
+                         r"[poorman] option to \usepackage[poorman]{cleveref} "
+                         r"and that you ran (pdf)latex?")
+        self.lpp.check_autofile_up_to_date(sedfn)
 
         replacements = []
         with open(sedfn) as sedf:

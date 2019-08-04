@@ -47,6 +47,9 @@ class LatexPreprocessor:
         
         self.output_files = []
 
+        self.add_preamble_comment_start = '\n%%%\n'
+        self.add_preamble_comment_end = '\n%%%\n'
+
 
     def install_fix(self, fix, *, prepend=False):
 
@@ -69,7 +72,7 @@ class LatexPreprocessor:
         # must be called after all fixes are installed, but before
         # execute_main() is called.
 
-        logger.debug("initializing preprocessor")
+        logger.debug("initializing preprocessor and fixes")
 
         for fix in self.fixes:
             fix.initialize()
@@ -98,7 +101,7 @@ class LatexPreprocessor:
         finish up stuff after the document has been processed.
         """
 
-        logger.debug("finalizing preprocessor")
+        logger.debug("finalizing preprocessor and fixes")
 
         for fix in self.fixes:
             fix.finalize()
@@ -132,7 +135,7 @@ class LatexPreprocessor:
 
 
     def execute_main(self):
-        self.execute_file(self.main_doc_fname, self.main_doc_output_fname)
+        self.execute_file(self.main_doc_fname, output_fname=self.main_doc_output_fname)
 
 
     def execute_file(self, fname, *, output_fname):
@@ -181,14 +184,56 @@ class LatexPreprocessor:
         newnodelist = list(nodelist)
 
         #
-        # execute %%!lpp pragmas and do add_preamble if necessary.
+        # execute %%!lpp pragmas
         #
-        for n in nodelist:
-            .....
+        lpp_pragma.do_pragmas(newnodelist, lpp=self)
+
+        #
+        # do add_preamble if necessary
+        #
+        for j in range(len(newnodelist)):
+            n = newnodelist[j]
+            if n is not None and n.isNodeType(latexwalker.LatexEnvironmentNode) \
+               and n.environmentname == 'document':
+                # here is where we should insert preamble instructions.
+                add_preamble = ''
+                for fix in self.fixes:
+                    p = fix.add_preamble()
+                    if p:
+                        add_preamble += p
+
+                if not add_preamble.strip():
+                    # no preamble to add, all ok
+                    break
+
+                add_preamble = self.add_preamble_comment_start + add_preamble  + \
+                    self.add_preamble_comment_end
+
+                # and insert preamble before document. TODO: mark nodes with
+                # "lpp_ignore" to inhibit further processing; see TODO below.
+
+                try:
+                    lw = self.make_latex_walker(add_preamble)
+                    preamble_nodes = lw.get_latex_nodes()[0]
+                except latexwalker.LatexWalkerParseError as e:
+                    logger.error("Internal error: can't parse latex code that fixes want to include:"
+                                 "\n%r\n%s", s, e)
+                    raise
+
+                newnodelist[j:j] = preamble_nodes
+
+                # finished with preamble business.
+                break
+
 
         #
         # run all fixes
         #
+
+        # TODO: allow nodes to be marked with an attribute "node.lpp_ignore =
+        # True" which would inhibit processing by fixes.  Implement this by
+        # passing only chunks at a time to fix.preprocess of contiguous nodes
+        # that do not have lpp_ignore set.
 
         for fix in self.fixes:
             logger.info("Running fix: %s", fix.fix_name())
@@ -196,6 +241,9 @@ class LatexPreprocessor:
 
         return newnodelist
 
+
+    def nodelist_to_latex(self, nodelist):
+        return ''.join(self.node_to_latex(n) if n else '' for n in nodelist)
 
     def node_to_latex(self, n):
 
