@@ -32,6 +32,7 @@ class CopyAndInputBbl(BaseFix):
     """
 
     def __init__(self, bblname=None, outbblname=None):
+        super().__init__()
         self.bblname = bblname
         self.outbblname = outbblname
     
@@ -41,7 +42,7 @@ class CopyAndInputBbl(BaseFix):
             MacroSpec('bibliography', '{'),
         ])
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
 
         if n.isNodeType(LatexMacroNode) and n.macroname == 'bibliographystyle':
             # remove \bibliographystyle{} command
@@ -52,15 +53,15 @@ class CopyAndInputBbl(BaseFix):
             if self.bblname:
                 bblname = self.bblname
             else:
-                bblname = re.sub('(\.(la)?tex)$', '', lpp.main_doc_fname) + '.bbl'
+                bblname = re.sub(r'(\.(la)?tex)$', '', self.lpp.main_doc_fname) + '.bbl'
             if self.outbblname:
                 outbblname = self.outbblname
             else:
-                outbblname = re.sub('(\.(la)?tex)$', '', lpp.main_doc_output_fname) + '.bbl'
+                outbblname = re.sub(r'(\.(la)?tex)$', '', self.lpp.main_doc_output_fname) + '.bbl'
 
-            lpp.check_autofile_up_to_date(bblname)
+            self.lpp.check_autofile_up_to_date(bblname)
 
-            lpp.copy_file(bblname, outbblname)
+            self.lpp.copy_file(bblname, outbblname)
 
             return r'\input{%s}'%(outbblname)
 
@@ -80,6 +81,7 @@ class ApplyAliases(BaseFix):
                  bibaliascmd='bibalias',
                  bibalias_defs_search_files=[],
                  aliases={}):
+        super().__init__()
         self.bibaliascmd = bibaliascmd
         self.bibalias_defs_search_files = bibalias_defs_search_files
 
@@ -96,7 +98,9 @@ class ApplyAliases(BaseFix):
         # right away, populate bib aliases with search through given tex files.
         # Hmmm, should we use a latexwalker here in any way? ...?  Not sure it's
         # worth it
-        rx_bibalias = re.compile(r'\\'+self.bibaliascmd+'\{(?P<alias>[^}]+)\}\{(?P<target>[^}]+)\}')
+        rx_bibalias = re.compile(
+            r'\\'+self.bibaliascmd+r'\s*\{(?P<alias>[^}]+)\}\s*\{(?P<target>[^}]+)\}'
+        )
         for bfn in bibalias_defs_search_files:
             with open(bfn) as ff:
                 for m in rx_bibalias.finditer(ff.read()):
@@ -110,33 +114,40 @@ class ApplyAliases(BaseFix):
     def specs(self, **kwargs):
         return dict(macros=[MacroSpec(self.bibaliascmd, '{{')])
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
         if n.isNodeType(LatexMacroNode):
             if n.macroname == self.bibaliascmd:
                 if not n.nodeargd or not n.nodeargd.argnlist or len(n.nodeargd.argnlist) != 2:
                     logger.warning(r"No arguments or invalid arguments to \bibalias command: %s",
-                                   n.latex_verbatim())
+                                   self.node_to_latex(n))
                     return None
 
-                alias = n.nodeargd.argnlist[0].latex_verbatim().strip()
-                target = n.nodeargd.argnlist[1].latex_verbatim().strip()
+                alias = self.node_contents_to_latex(n.nodeargd.argnlist[0]).strip()
+                target = self.node_contents_to_latex(n.nodeargd.argnlist[1]).strip()
                 logger.debug("Defined bibalias %s -> %s", alias, target)
                 self._bibaliases[alias] = target
                 self._update_bibaliases()
-                return '' # remove bibalias command from input
+                return [] # remove bibalias command from input
 
             if n.macroname in self.cite_macros:
                 if n.nodeargd is None or n.nodeargd.argspec is None or n.nodeargd.argnlist is None:
                     logger.warning(r"Ignoring invalid citation command: %s", n.latex_verbatim())
                     return None
+
                 citargno = n.nodeargd.argspec.find('{')
                 ncitarg = n.nodeargd.argnlist[citargno]
-                citargnew = self._replace_aliases( lpp.latexpp_group_contents(ncitarg) )
+                citargnew = self._replace_aliases( self.node_contents_to_latex(ncitarg) )
 
-                return '\\'+n.macroname \
-                    + lpp.fmt_arglist(n.nodeargd.argspec[:citargno], n.nodeargd.argnlist[:citargno]) \
+                s = '\\'+n.macroname \
+                    + self.node_arglist_to_latex(n.nodeargd.argspec[:citargno],
+                                                 n.nodeargd.argnlist[:citargno]) \
                     + '{'+citargnew+'}' \
-                    + lpp.fmt_arglist(n.nodeargd.argspec[citargno+1:], n.nodeargd.argnlist[citargno+1:])
+                    + self.node_arglist_to_latex(n.nodeargd.argspec[citargno+1:],
+                                                 n.nodeargd.argnlist[citargno+1:])
+
+                #print("*** replaced in cite cmd: ", s)
+
+                return s
                 
 
         return None
@@ -151,6 +162,7 @@ class ApplyAliases(BaseFix):
     def _replace_aliases(self, s):
         # use multiple string replacements --> apparently we need a regex.
         # Cf. https://stackoverflow.com/a/36620263/1694896
+        #print("*** rx_pattern = ", self._rx_pattern.pattern, "; aliases = ", self._bibaliases)
         s2 = ",".join(
             self._rx_pattern.sub(lambda m: self._bibaliases[m.group()], citk.strip())
             for citk in s.split(",")

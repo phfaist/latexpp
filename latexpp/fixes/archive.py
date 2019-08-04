@@ -72,13 +72,16 @@ class CreateArchive(BaseFix):
     - `archive_type`: One of 'zip', 'tar', 'tar.gz', 'tar.bz2', 'tar.xz'.
     """
     def __init__(self, use_root_dir=True, use_date=True, archive_type='zip'):
+        super().__init__()
         self.use_root_dir = use_root_dir
         self.use_date = use_date
         self.archive_type = archive_type
 
 
-    def finalize(self, lpp, **kwargs):
+    def finalize(self, **kwargs):
         # all set, we can create the archive
+
+        lpp = self.lpp
 
         arbasename = lpp.output_dir
         if self.use_date:
