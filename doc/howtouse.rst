@@ -33,12 +33,12 @@ Sample ``lppconfig.yml``:
   # specify list of fixes to apply, in the given order
   fixes:
 
-    # remove all comments
-    - 'latexpp.fixes.comments.RemoveComments'
-
     # replace \input{...} directives by the contents of the included file
     - 'latexpp.fixes.input.EvalInput'
   
+    # remove all comments
+    - 'latexpp.fixes.comments.RemoveComments'
+
     # copy any style files (.sty) that are used in the document and that
     # are present in the current directory to the output directory
     - 'latexpp.fixes.usepackage.CopyLocalPkgs'

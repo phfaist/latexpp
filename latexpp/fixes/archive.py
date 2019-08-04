@@ -12,6 +12,10 @@ from latexpp.fixes import BaseFix
 
 
 class FnArchive:
+    """
+    A context manager that provides a simple unified interface for `ZipFile` and
+    `TarFile`.
+    """
     def __init__(self, basefname, artype):
         self.basefname = basefname
         artypeparts = artype.split('.', maxsplit=1)

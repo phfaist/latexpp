@@ -1,5 +1,9 @@
+import os
+import os.path as os_path # allow tests to monkey-patch this
 
-import os.path
+import logging
+logger = logging.getLogger(__name__)
+
 from pylatexenc.latexwalker import LatexMacroNode
 
 from latexpp.fixes import BaseFix
@@ -12,19 +16,31 @@ class EvalInput(BaseFix):
     Evaluate ``\input`` and ``\include`` routines by replacing the corresponding
     instruction by the contents of the included file.
 
-    The contents of the included file is processed in the same way as the main
-    document.
+    The contents of the included file will be processed with the rules that are
+    declared *after* the `EvalInput` rule.  Any rules that have already been
+    applied do not affect the contents pasted in place of the
+    ``\input``/``\include`` directives.
+
+    .. note::
+
+       You most likely want to have this rule first in your `lppconfig.yml` fix
+       list.
     """
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
 
         if n.isNodeType(LatexMacroNode) and n.macroname in ('input', 'include'):
-            # arg is a group necessarily (unlikely to have single-char file name...)
-            infname = "".join(nn.latex_verbatim() for nn in n.nodeargd.argnlist[0].nodelist)
+        
+            if not n.nodeargd.argnlist:
+                logger.warning(r"Invalid \input/\include directive: ‘%s’, skipping.",
+                               n.latex_verbatim())
+                return None
+
+            infname = self.node_contents_to_latex(n.nodeargd.argnlist[0])
 
             ext = ''
             for e in exts:
-                if os.path.exists(infname+e):
+                if os_path.exists(infname+e):
                     infname = infname+e
                     ext = e
                     break
@@ -34,19 +50,57 @@ class EvalInput(BaseFix):
 
             # open that file and go through it, too
 
-            with open(infname) as f:
-                infdata = f.read()
-
+            infdata = self._read_file_contents(infname)
 
             res = ''
             # for \include, we need to issue \clearpage.  See
             # https://tex.stackexchange.com/a/32058/32188
             if n.macroname == 'include':
-                res = r'\clearpage\n'
+                res = r'\clearpage' + '\n'
 
-            res += lpp.execute_string(infdata)
+            res += infdata
 
-            return res
+            return res # replace the input node by the content of the input file
 
         return None
 
+    def _read_file_contents(self, infname):
+        with open(infname) as f:
+            return f.read()
+
+
+
+class CopyInputDeps(BaseFix):
+    r"""
+    Copy files referred to by ``\input`` and ``\include`` routines to the output
+    directory, and run the full collection of fixes on them.
+    """
+
+    def fix_node(self, n, **kwargs):
+
+        if n.isNodeType(LatexMacroNode) and n.macroname in ('input', 'include'):
+        
+            if not n.nodeargd.argnlist:
+                logger.warning(r"Invalid \input/\include directive: ‘%s’, skipping.",
+                               n.latex_verbatim())
+                return None
+
+            infname = self.node_contents_to_latex(n.nodeargd.argnlist[0])
+
+            ext = ''
+            for e in exts:
+                if os_path.exists(infname+e):
+                    infname = infname+e
+                    ext = e
+                    break
+            else:
+                logger.warning("File not found: %s. Tried extensions %r", infname, exts)
+                return None # keep the node as it is
+
+            # copy file to output while running our whole selection of fixes on
+            # it!  Recurse into a full instantiation of lpp.execute_file().
+            self.lpp.execute_file(infname, output_fname=infname)
+
+            return None # don't change the \input directive
+
+        return None

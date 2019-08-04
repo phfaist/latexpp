@@ -28,6 +28,7 @@ class BaseFix:
     """
     def __init__(self):
         self.lpp = None
+        self._basefix_constr_called = True # preprocessor checks this to prevent silly bugs
 
     def fix_name(self):
         return self.__class__.__module__ + '.' + self.__class__.__name__
@@ -181,9 +182,13 @@ class BaseFix:
         the token being wrapped in a LaTeX group.
         """
         newnodelist = []
-        for n in nodelist:
+        for j, n in enumerate(nodelist):
             # call fix_node()
-            nn = self.fix_node(n, prev_node=(newnodelist[-1] if len(newnodelist) else None))
+            nn = self.fix_node(
+                n,
+                prev_node=(newnodelist[-1] if len(newnodelist) else None),
+                next_node=(nodelist[j+1] if j+1<len(nodelist) else None)
+            )
             if nn is None:
                 newnodelist.append(n)
                 continue
@@ -245,6 +250,9 @@ class BaseFix:
 
 
     # utilities for subclasses
+    def node_to_latex(self, *args, **kwargs):
+        return self.lpp.node_to_latex(*args, **kwargs)
+
     def node_contents_to_latex(self, *args, **kwargs):
         return self.lpp.node_contents_to_latex(*args, **kwargs)
 

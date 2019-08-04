@@ -12,51 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 
-
-# node.comment does not contain first '%' comment char
-rx_lpp_pragma_n = re.compile(r'^%!lpp\s*(?P<instruction>.*?)\s*$', flags=re.DOTALL)
-
-class LppPragma:
-
-
-    def _get_lpp_pragma(self, n):
-        if n is not None and n.isNodeType(latexwalker.LatexCommentNode):
-            m = rx_lpp_pragma_n.match(n.comment)
-            if m:
-                return m.group('instruction')
-        return None
-
-
-    def fix_nodelist(self, nodelist, lpp):
-
-            nodelist = nx
-            latex = ''
-            j = 0
-            while j < len(nodelist):
-                n = nodelist[j]
-                # lpp pragma?
-                lpp_instruction = self._get_lpp_pragma(n)
-                if lpp_instruction is not None:
-                    if re.match(r'^skip\s*\{$', lpp_instruction): # start skipping nodes
-                        while j < len(nodelist):
-                            if self._get_lpp_pragma(nodelist[j]) == '}':
-                                j += 1
-                                break
-                            j += 1
-                        else: # not break
-                            raise ValueError("Can't find closing brace for '%%!lpp skip {'")
-                    continue
-
-                this_one = self.latexpp(n)
-                #logger.debug("processing node %r --> %r", n, this_one)
-                latex += this_one
-                j += 1
-
-            return latex
-
-
-
-
+from . import lpp_pragma
 
 
 
@@ -93,6 +49,13 @@ class LatexPreprocessor:
 
 
     def install_fix(self, fix, *, prepend=False):
+
+        # sanity check -- make sure custom fix classes don't forget to call
+        # their superclass constructor.
+        if not getattr(fix, '_basefix_constr_called', False):
+            raise RuntimeError("Fix class {}.{} does not call its superclass constructor"
+                               .format(fix.__class__.__module__, fix.__class__.__name__))
+
         if prepend:
             self.fixes.insert(fix, 0)
         else:
@@ -203,6 +166,10 @@ class LatexPreprocessor:
         lw = latexwalker.LatexWalker(s, latex_context=self.latex_context,
                                      tolerant_parsing=False)
         #lw.debug_nodes = True
+        
+        # add back-reference to latexwalker in all latex nodes, for convenience
+        lw.parsed_context.lpp_latex_walker = lw
+
         return lw
 
 
@@ -213,11 +180,19 @@ class LatexPreprocessor:
 
         newnodelist = list(nodelist)
 
+        #
+        # execute %%!lpp pragmas and do add_preamble if necessary.
+        #
+        for n in nodelist:
+            .....
+
+        #
+        # run all fixes
+        #
+
         for fix in self.fixes:
             logger.info("Running fix: %s", fix.fix_name())
             newnodelist = fix.preprocess(newnodelist)
-
-        #print("*** newnodelist =", newnodelist)
 
         return newnodelist
 
@@ -334,21 +309,41 @@ class LatexPreprocessor:
         self.output_files.append(fname)
 
     def copy_file(self, source, destfname=None):
+        r"""
+        Copy the file specified by `source` (absolute or relative to main document
+        file) to the output dir and rename it to `destfname`.  If `destfname` is
+        a path, it must be relative to inside the output directory.
+        """
         #
         # Copy the file `source` to the latexpp output directory.  If
         # `destfname` is not None, rename the file to `destfname`.
         #
         if destfname is not None:
             dest = os.path.join(self.output_dir, destfname)
+            destdn, destbn = os.path.split(destfname)
         else:
             dest = self.output_dir
             destfname = os.path.basename(source)
+            destdn, destbn = '', destfname
 
+        destdir = os.path.join(self.output_dir, destdn)
         logger.info("Copying file %s -> %s", source,
                     os.path.join(self.display_output_dir, destfname if destfname else ''))
+        self._do_ensure_destdir(destdir, destdn)
         self._do_copy_file(source, dest)
         
         self.register_output_file(destfname)
+
+    def _do_ensure_destdir(self, destdir, destdn):
+        if os.path.exists(destdir):
+            if not os.path.isdir(destdir):
+                raise ValueError(
+                    "Cannot create directory {}, file with the same name already exists"
+                    .format(destdn)
+                )
+        else:
+            os.makedirs(destdir)
+
 
     def _do_copy_file(self, source, dest):
         shutil.copy2(source, dest)

@@ -1,5 +1,5 @@
 
-from pylatexenc.latexwalker import LatexCommentNode
+from pylatexenc.latexwalker import LatexCommentNode, LatexMacroNode
 
 from latexpp.fixes import BaseFix
 
@@ -33,15 +33,24 @@ class RemoveComments(BaseFix):
        [TODO: FIX THIS. CHECK PREVIOUS NODE AND ADD A SINGLE SPACE IF NECESSARY]
     """
     def __init__(self, leave_percent=True):
+        super().__init__()
         self.leave_percent = leave_percent
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, prev_node=None, **kwargs):
 
         if n.isNodeType(LatexCommentNode):
             if self.leave_percent:
                 # sys.stderr.write("Ignoring comment: '%s'\n"% node.comment)
                 return "%"+n.comment_post_space
             else:
+                if prev_node is not None and prev_node.isNodeType(LatexMacroNode):
+                    if not prev_node.macro_post_space and \
+                       (not prev_node.nodeargd or not prev_node.nodeargd.argnlist
+                        or all((not a) for a in prev_node.nodeargd.argnlist)):
+                        # macro has neither post-space nor any arguments, so add
+                        # space to ensure LaTeX code stays valid
+                        prev_node.macro_post_space = ' '
+                    
                 return "" # remove entirely.
 
         return None

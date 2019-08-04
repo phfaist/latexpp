@@ -1,6 +1,8 @@
 import os
-import os.path
-import shutil
+import os.path as os_path # allow tests to monkey-patch this
+
+import logging
+logger = logging.getLogger(__name__)
 
 from pylatexenc.latexwalker import LatexMacroNode
 
@@ -38,12 +40,14 @@ class CopyAndRenameFigs(BaseFix):
 
     def __init__(self, fig_rename='fig-{fig_counter:02}{fig_ext}',
                  start_fig_counter=1):
+        super().__init__()
+
         # By default we start at Fig #1 because journals like separate files
         # with numbered figures starting at 1
         self.fig_counter = start_fig_counter
         self.fig_rename = fig_rename
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
 
         if n.isNodeType(LatexMacroNode) and n.macroname == 'includegraphics':
             # note, argspec is '[{'
@@ -54,7 +58,7 @@ class CopyAndRenameFigs(BaseFix):
             orig_fig_name = "".join(nn.latex_verbatim() for nn in n.nodeargd.argnlist[1].nodelist)
             ext = ''
             for e in exts:
-                if os.path.exists(orig_fig_name+e):
+                if os_path.exists(orig_fig_name+e):
                     orig_fig_name = orig_fig_name+e
                     ext = e
                     break
@@ -64,10 +68,10 @@ class CopyAndRenameFigs(BaseFix):
             
             if '.' in orig_fig_name:
                 orig_fig_basename, orig_fig_ext = orig_fig_name.rsplit('.', maxsplit=1)
-                orig_fig_basename = os.path.basename(orig_fig_basename)
+                orig_fig_basename = os_path.basename(orig_fig_basename)
                 orig_fig_ext = '.'+orig_fig_ext
             else:
-                orig_fig_basename, orig_fig_ext = os.path.basename(orig_fig_name), ''
+                orig_fig_basename, orig_fig_ext = os_path.basename(orig_fig_name), ''
 
             figoutname = self.fig_rename.format(
                 fig_counter=self.fig_counter,
@@ -80,7 +84,7 @@ class CopyAndRenameFigs(BaseFix):
             # increment fig counter
             self.fig_counter += 1
 
-            lpp.copy_file(orig_fig_name, figoutname)
+            self.lpp.copy_file(orig_fig_name, figoutname)
 
             return r'\includegraphics' + \
                 (n.nodeargd.argnlist[0].latex_verbatim() if n.nodeargd.argnlist[0] else '') + \

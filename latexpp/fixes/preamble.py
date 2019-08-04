@@ -11,6 +11,7 @@ class AddPreamble(BaseFix):
       - `preamble`: the additional code to include before ``\begin{document}``.
     """
     def __init__(self, preamble):
+        super().__init__()
         self.preamble = preamble
 
     def add_preamble(self, **kwargs):

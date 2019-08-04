@@ -85,15 +85,16 @@ class Subst(BaseFix):
     """
 
     def __init__(self, macros={}, environments={}):
+        super().__init__()
         self.helper = MacroSubstHelper(macros, environments)
 
     def specs(self, **kwargs):
         return dict(**self.helper.get_specs())
 
-    def fix_node(self, n, lpp, **kwargs):
+    def fix_node(self, n, **kwargs):
 
         c = self.helper.get_node_cfg(n)
         if c is not None:
-            return self.helper.eval_subst(c, n, lpp)
+            return self.helper.eval_subst(c, n, fix=self)
 
         return None

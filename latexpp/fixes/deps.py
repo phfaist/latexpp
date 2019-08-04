@@ -20,18 +20,15 @@ class CopyFiles(BaseFix):
     Arguments:
     
     - `files`: a list of files to include in the output directory.  The files
-      are not renamed.
-
-    .. warning::
-
-       Subdirectories are not honored.  TODO: fix this.
+      are not renamed and subdirectories are preserved.
     """
 
     def __init__(self, files=[]):
+        super().__init__()
         self.files = files
 
-    def initialize(self, lpp, **kwargs):
+    def initialize(self, **kwargs):
 
         for fn in self.files:
-            lpp.copy_file(fn)
+            self.lpp.copy_file(fn, fn)
 
