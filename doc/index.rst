@@ -6,6 +6,8 @@
 *latexpp* documentation
 =======================
 
+[*latexpp* version: |version|]
+
 .. toctree::
    :maxdepth: 1
    :caption: Contents:

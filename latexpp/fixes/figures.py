@@ -64,9 +64,10 @@ class CopyAndRenameFigs(BaseFix):
             
             if '.' in orig_fig_name:
                 orig_fig_basename, orig_fig_ext = orig_fig_name.rsplit('.', maxsplit=1)
+                orig_fig_basename = os.path.basename(orig_fig_basename)
                 orig_fig_ext = '.'+orig_fig_ext
             else:
-                orig_fig_basename, orig_fig_ext = orig_fig_name, ''
+                orig_fig_basename, orig_fig_ext = os.path.basename(orig_fig_name), ''
 
             figoutname = self.fig_rename.format(
                 fig_counter=self.fig_counter,
