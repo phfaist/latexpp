@@ -11,6 +11,9 @@ class EvalInput(BaseFix):
     r"""
     Evaluate ``\input`` and ``\include`` routines by replacing the corresponding
     instruction by the contents of the included file.
+
+    The contents of the included file is processed in the same way as the main
+    document.
     """
 
     def fix_node(self, n, lpp, **kwargs):

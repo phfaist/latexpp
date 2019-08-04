@@ -7,10 +7,15 @@
 =======================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
+   howtouse
+   lppconfig
    fixes
+   howitworks
+   customfix
+   api-latexpp
 
 
 Indices and tables

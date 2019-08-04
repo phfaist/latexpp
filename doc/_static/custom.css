@@ -1,0 +1,132 @@
+
+/*@import url('https://fonts.googleapis.com/css?family=Fira+Sans:400,400i,600,600i&display=swap&subset=latin-ext');*/
+@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Serif:400,400i,600,600i&display=swap&subset=latin-ext');
+@import url('https://fonts.googleapis.com/css?family=IBM+Plex+Mono:400,400i,600,600i&display=swap&subset=latin-ext');
+
+
+/* **************************************************************************
+   sidebar
+   ************************************************************************** */
+div.sphinxsidebar ul li.toctree-l1 {
+    margin-bottom: 0.5em;
+    list-style: url('data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0nMS4wJyBlbmNvZGluZz0nVVRGLTgnPz4KPCEtLSBUaGlzIGZpbGUgd2FzIGdlbmVyYXRlZCBieSBkdmlzdmdtIDIuMS4zIC0tPgo8c3ZnIGhlaWdodD0nNi45MjkyMXB0JyB2ZXJzaW9uPScxLjEnIHZpZXdCb3g9Jzc2LjcxMjMgNTUuODM1NCA3LjAxNTI5IDYuOTI5MjEnIHdpZHRoPSc3LjAxNTI5cHQnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZycgeG1sbnM6eGxpbms9J2h0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsnPgo8ZGVmcz4KPHBhdGggZD0nTTMuNTAwNDcgLTIuNDY3NTVMNS40NTE1NSAtMC4zMjk5NjNDNS40OTQ1OSAtMC4yODY5MjQgNS41Mzc2MyAtMC4yNTgyMzIgNS41OTUwMiAtMC4yNTgyMzJDNS43MjQxMyAtMC4yNTgyMzIgNS43MjQxMyAtMC4zNzMwMDEgNS43MjQxMyAtMC4zODczNDdDNS43MjQxMyAtMC40MzAzODYgNS42ODEwOSAtMC41MTY0NjMgNS42NTI0IC0wLjU1OTUwMkw0LjI0NjQ3IC0zLjAxMjdMNi44MTQ0NCAtNC4xNzQ3NEM2Ljk4NjYgLTQuMjQ2NDcgNy4wMTUyOSAtNC4yNjA4MiA3LjAxNTI5IC00LjM0NjlDNy4wMTUyOSAtNC40MTg2MyA2Ljk1NzkgLTQuNDc2MDEgNi44NzE4MyAtNC40NzYwMUwzLjk3MzkgLTMuODg3ODJMMy42NTgyOCAtNi42NTY2M0MzLjYyOTU5IC02Ljg1NzQ4IDMuNjI5NTkgLTYuOTI5MjEgMy41MTQ4MiAtNi45MjkyMUMzLjM4NTcgLTYuOTI5MjEgMy4zODU3IC02Ljg1NzQ4IDMuMzU3MDEgLTYuNjQyMjlMMy4wNDEzOSAtMy44ODc4MkwwLjE0MzQ2MiAtNC40NzYwMUMwLjA1NzM4NDggLTQuNDc2MDEgMCAtNC40MTg2MyAwIC00LjM0NjlDMCAtNC4yNjA4MiAwLjA3MTczMSAtNC4yMzIxMyAwLjE4NjUwMSAtNC4xNzQ3NEwyLjc2ODgyIC0zLjAxMjdMMS4zOTE1OCAtMC41ODgxOTRDMS4yOTExNiAtMC40MTYwNCAxLjI5MTE2IC0wLjQwMTY5MyAxLjI5MTE2IC0wLjM4NzM0N1MxLjI5MTE2IC0wLjI1ODIzMiAxLjQyMDI3IC0wLjI1ODIzMkMxLjQ0ODk3IC0wLjI1ODIzMiAxLjUwNjM1IC0wLjI1ODIzMiAxLjYzNTQ3IC0wLjQwMTY5M0wzLjUwMDQ3IC0yLjQ2NzU1WicgaWQ9J2cwLTYzJy8+CjwvZGVmcz4KPGcgaWQ9J3BhZ2UxJz4KPHVzZSB4PSc3Ni43MTIzJyB4bGluazpocmVmPScjZzAtNjMnIHk9JzYyLjc2NDYnLz4KPC9nPgo8L3N2Zz4=')
+}
+div.sphinxsidebar p.caption {
+    display: none;
+}
+
+div.sphinxsidebar h1.logo a {
+    /*display: block;*/
+    border: 0px none;
+    font-style: italic;
+    /*background-color: rgba(16, 90, 121, 0.11);*/
+    padding: 0px 5px;
+}
+
+
+
+/* **************************************************************************
+   headings
+   ************************************************************************** */
+div.body h1 {
+    font-size: 200%;
+}
+div.body h2 {
+    font-size: 160%;
+}
+
+
+
+/* **************************************************************************
+   body text settings
+   ************************************************************************** */
+p {
+    margin-bottom: 0.8em;
+}
+div.body li {
+    margin-bottom: 0.4em;
+    padding-left: 0.4em;
+}
+
+div.body ul {
+    
+}
+
+div.section {
+    margin-top: 2em;
+}
+div.section:first-child {
+    margin-top: 0em;
+}
+
+
+
+
+div.topic {
+    border: none;
+    background-color: transparent;
+}
+a.toc-backref {
+    color: inherit;
+    text-decoration: inherit;
+}
+
+
+
+/* **************************************************************************
+   code block settings
+   ************************************************************************** */
+div.body tt,
+div.body code,
+div.body a tt,
+div.body a code,
+div.body a:hover tt,
+div.body a:hover code,
+div.body tt.xref,
+div.body code.xref
+{
+    background-color: rgba(0,0,0,0.06);
+    border-bottom: inherit;
+}
+div.highlight {
+    background-color: transparent;
+}
+code {
+    padding: 1px;
+}
+pre {
+    padding: 7px 20px;
+}
+dl pre, blockquote pre, li pre {
+    margin-left: 0;
+    padding-left: 18px;
+}
+div.body dl dt code {
+    background-color: transparent;
+}
+
+
+/* **************************************************************************
+   lpp fix block
+   ************************************************************************** */
+
+dl.class {
+    background-color: rgb(240, 255, 220);
+    margin-bottom: 20px;
+    padding: 0px;
+    margin-top: 1.5em;
+}
+dl.class dt {
+    padding: 10px 10px;
+    background-color: rgb(224, 240, 203);
+}
+dl.class dd {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-right: 20px;
+    padding-left: 20px;
+    margin: 0px;
+}
+
+
+

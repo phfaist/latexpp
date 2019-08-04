@@ -1,6 +1,13 @@
 List of fixes
 -------------
 
+Here is a list of all "fixes" that you can apply to your latex document.
+
+.. contents:: Categories of Fixes:
+   :local:
+
+   
+
 General fixes
 ~~~~~~~~~~~~~
 
@@ -27,8 +34,11 @@ General fixes
 .. autoclass:: latexpp.fixes.archive.CreateArchive
 
 
-Remove package dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Expand package macros
+~~~~~~~~~~~~~~~~~~~~~
+
+These fix classes expand the definitions that are provided by a given package in
+order to remove the dependency of a document on that package.
 
 .. autoclass:: latexpp.fixes.pkg.cleveref.ApplyPoorMan
 

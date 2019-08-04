@@ -49,7 +49,34 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 #
 html_theme = 'alabaster'
 
+html_theme_options = {
+    # customization
+    'github_button': True,
+    'github_type': 'star',
+    'github_count': False,
+    'github_user': 'phfaist',
+    'github_repo': 'latexpp',
+    # appearance
+    'font_family': "'IBM Plex Serif', serif",
+    'font_size': "16px",
+    'head_font_family': "'IBM Plex Serif', serif",
+    'code_font_family': "'IBM Plex Mono', monospace",
+    'code_font_size': "0.9em",
+    # colors
+    'body_text': 'rgb(49, 54, 60)',
+    'link': 'rgb(16,90,121)',
+    'link_hover': 'rgb(147,2,28)',
+    'anchor': 'rgba(16,90,121,0.12)',
+    'anchor_hover_bg': 'rgba(109, 137, 149, 0.12)',
+    'anchor_hover_fg': 'rgb(109, 137, 149)',
+#    'gray_1': 'rgb(40,40,40)',
+#    'gray_2': 'rgba(0,0,0,0.06)', # color of code blocks --> pre_bg
+#    'gray_3': 'blue',
+    'pre_bg': 'rgba(0,0,0,0.06)',
+    'sidebar_text': 'rgb(40,40,50)',
+}
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = [ '_static' ]
