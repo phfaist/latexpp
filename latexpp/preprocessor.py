@@ -123,7 +123,11 @@ class LatexPreprocessor(object):
         with open(fname, 'r') as f:
             s = f.read()
 
-        outdata = self.execute_string(s)
+        try:
+            outdata = self.execute_string(s)
+        except latexwalker.LatexWalkerParseError as e:
+            e.input_source = 'file {}'.format(fname)
+            raise
 
         self.register_output_file(output_fname)
 

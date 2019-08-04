@@ -8,12 +8,13 @@ import logging
 
 import colorlog
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('latexpp.__main__')
 
 import yaml
 
 from . import __version__ as version_str
 
+from pylatexenc import latexwalker # catch latexwalker.LatexWalkerParseError
 
 _LPPCONFIG_DOC_URL = 'https://github.com/phfaist/latexpp/blob/master/README.rst'
 _LATEXPP_QUICKSTART_DOC_URL = 'https://github.com/phfaist/latexpp/blob/master/README.rst'
@@ -215,11 +216,18 @@ def main(argv=None):
 
         pp.install_fix(cls(**fixconfig.get('config', {})))
 
-    pp.initialize()
+    try:
 
-    pp.execute_main()
+        pp.initialize()
 
-    pp.finalize()
+        pp.execute_main()
+
+        pp.finalize()
+
+    except latexwalker.LatexWalkerParseError as e:
+        logger.error("Parse error while processing LaTeX document %s\n%s", fname, e)
+        sys.exit(1)
+
 
 
 def run_main():
