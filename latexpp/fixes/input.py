@@ -58,7 +58,10 @@ class EvalInput(BaseFix):
             if n.macroname == 'include':
                 res = r'\clearpage' + '\n'
 
-            res += infdata
+            # preprocess recursively contents
+
+            lw = self.lpp.make_latex_walker(infdata)
+            res += self.preprocess_latex( lw.get_latex_nodes()[0] )
 
             return res # replace the input node by the content of the input file
 

@@ -36,6 +36,9 @@ class Expand(BaseFix):
             else:
                 delims_pc = ('%s', '%s')
 
+            if n.nodeargd.contents_node is None:
+                return None
+
             delimchars = n.nodeargd.contents_node.delimiters
 
             if delimchars == ('{', '}'):

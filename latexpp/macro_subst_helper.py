@@ -4,6 +4,8 @@ logger = logging.getLogger(__name__)
 from pylatexenc.macrospec import MacroSpec, EnvironmentSpec, MacroStandardArgsParser
 from pylatexenc.latexwalker import LatexMacroNode, LatexEnvironmentNode
 
+from latexpp import fixes
+
 
 class MacroSubstHelper:
     def __init__(self,
@@ -72,6 +74,9 @@ class MacroSubstHelper:
         _, repl = self._cfg_argspec_repl(c)
             
         q = dict(self.context)
+
+        if n.nodeargd is None or n.nodeargd.argnlist is None:
+            raise fixes.DontFixThisNode
 
         q.update(dict(
                 (str(1+k), v)
