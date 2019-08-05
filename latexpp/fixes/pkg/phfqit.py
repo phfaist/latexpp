@@ -194,7 +194,7 @@ class ExpandQitObjects(BaseFix):
 
         if m['type'] == 'IdentProc':
 
-            nsizespec, nsysA, nsysB, narg = n.nodeargd.argnlist
+            nsizespec, nsysA, nsysB, narg = n.nodeargd.qitargnlist
             sym = m.get('sym', r'\mathrm{id}')
 
             subscript = ''
@@ -218,14 +218,14 @@ class ExpandQitObjects(BaseFix):
 
         if m['type'] == 'ee':
 
-            narg, = n.nodeargd.argnlist
+            narg, = n.nodeargd.qitargnlist
             sym = m.get('sym', r'e')
 
             return '{'+sym+'}^{' + self.preprocess_contents_latex(narg) + '}'
         
         if m['type'] == 'Hbase':
 
-            nsizespec, nstate, nepsilon, ntargetsys, ncondsys = n.nodeargd.argnlist
+            nsizespec, nstate, nepsilon, ntargetsys, ncondsys = n.nodeargd.qitargnlist
             sym = m.get('sym', self.HSym)
             sub = m.get('sub', None)
 
@@ -246,7 +246,7 @@ class ExpandQitObjects(BaseFix):
         
         if m['type'] == 'Hfnbase':
             
-            nsizespec, narg = n.nodeargd.argnlist
+            nsizespec, narg = n.nodeargd.qitargnlist
             sub = m.get('sub', None)
             sup = m.get('sup', None)
             sym = m.get('sym', self.HSym)
@@ -262,7 +262,7 @@ class ExpandQitObjects(BaseFix):
 
         if m['type'] == 'Dbase':
             
-            nepsilon, nsizespec, nstate, nrel = n.nodeargd.argnlist
+            nepsilon, nsizespec, nstate, nrel = n.nodeargd.qitargnlist
             sub = m.get('sub', None)
             sym = m.get('sym', self.DSym)
 
@@ -278,7 +278,7 @@ class ExpandQitObjects(BaseFix):
 
         if m['type'] == 'DD':
             
-            nsub, nsup, nsizespec, nstate, nrel = n.nodeargd.argnlist
+            nsub, nsup, nsizespec, nstate, nrel = n.nodeargd.qitargnlist
             sym = m.get('sym', self.DSym)
 
             text = '{' + sym + '}'
@@ -293,7 +293,7 @@ class ExpandQitObjects(BaseFix):
 
         if m['type'] == 'DCohbase':
 
-            nepsilon, nsizespec, nstate, nX, nXp, nGX, nGXp = n.nodeargd.argnlist
+            nepsilon, nsizespec, nstate, nX, nXp, nGX, nGXp = n.nodeargd.qitargnlist
             sym = m.get('sym', self.DCSym)
             process_arg_subscripts = m.get('process_arg_subscripts', False)
 
@@ -332,6 +332,9 @@ class ExpandQitObjects(BaseFix):
     def _delims(self, sizenode, opendelim, middelim, closedelim):
         if sizenode is None:
             return (opendelim, middelim, closedelim)
+        assert sizenode.isNodeType(latexwalker.LatexGroupNode) and \
+            len(sizenode.nodelist) == 1
+        sizenode = sizenode.nodelist[0]
         if sizenode.isNodeType(latexwalker.LatexCharsNode) and sizenode.chars == '*':
             return (r'\mathopen{}\left'+opendelim,
                     r'\mathclose{}\middle'+middelim+r'\mathopen{}',
@@ -614,12 +617,12 @@ class ExpandMacros(BaseFix):
                 # it's a delimiter macro!
                 #
                 
-                if n.nodeargd.argnlist[0] is not None:
+                if n.nodeargd.qitargnlist[0] is not None:
                     # with star
                     delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
                     delimsize = r'\middle'
-                elif n.nodeargd.argnlist[1] is not None:
-                    sizemacro = '\\'+n.nodeargd.argnlist[1].nodelist[0].macroname
+                elif n.nodeargd.qitargnlist[1] is not None:
+                    sizemacro = '\\'+n.nodeargd.qitargnlist[1].nodelist[0].macroname
                     delimsize = sizemacro
                     delims_pc = (sizemacro+r'l%s', sizemacro+r'r%s')
                 else:
@@ -690,8 +693,9 @@ def qitargspec_to_argspec(qitargspec):
 
 
 class PhfQitObjectParsedArgs(ParsedMacroArgs):
-    def __init__(self, qitargspec, argnlist, **kwargs):
+    def __init__(self, qitargspec, qitargnlist, argnlist, **kwargs):
         self.qitargspec = qitargspec
+        self.qitargnlist = qitargnlist
 
         argspec = qitargspec_to_argspec(self.qitargspec)
 
@@ -700,9 +704,9 @@ class PhfQitObjectParsedArgs(ParsedMacroArgs):
                          **kwargs)
         
     def __repr__(self):
-        return "{}(qitargspec={!r}, argnlist={!r})".format(self.__class__.__name__,
-                                                           self.qitargspec,
-                                                           self.argnlist)
+        return "{}(qitargspec={!r}, qitargnlist={!r})".format(self.__class__.__name__,
+                                                              self.qitargspec,
+                                                              self.qitargnlist)
 
 
 class PhfQitObjectArgsParser(MacroStandardArgsParser):
@@ -710,8 +714,8 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
     def __init__(self, qitargspec):
 
         self.qitargspec = qitargspec
-        argspec = qitargspec_to_argspec(self.qitargspec)
 
+        argspec = qitargspec_to_argspec(self.qitargspec)
         super().__init__(argspec=argspec)
 
     def parse_args(self, w, pos, parsing_context=None):
@@ -719,6 +723,7 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
         if parsing_context is None:
             parsing_context = latexwalker.ParsingContext()
 
+        qitargnlist = []
         argnlist = []
 
         p = pos
@@ -733,22 +738,26 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                 (node, np, nl) = w.get_latex_expression(p, strict_braces=False,
                                                         parsing_context=parsing_context)
                 p = np + nl
+                qitargnlist.append(node)
                 argnlist.append(node)
 
             elif argt == '[':
 
                 if self.optional_arg_no_space and w.s[p].isspace():
                     # don't try to read optional arg, we don't allow space
+                    qitargnlist.append(None)
                     argnlist.append(None)
                     continue
 
                 optarginfotuple = w.get_latex_maybe_optional_arg(p, parsing_context=parsing_context)
                 if optarginfotuple is None:
+                    qitargnlist.append(None)
                     argnlist.append(None)
                     continue
 
                 (node, np, nl) = optarginfotuple
                 p = np + nl
+                qitargnlist.append(node)
                 argnlist.append(node)
 
             elif argt == '*':
@@ -756,11 +765,12 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                 tok = w.get_token(p)
                 if tok.tok == 'char' and tok.arg == '*':
                     # has star
-                    argnlist.append(
-                        w.make_node(latexwalker.LatexCharsNode, chars='*', pos=tok.pos, len=tok.len)
-                    )
+                    node = w.make_node(latexwalker.LatexCharsNode, chars='*', pos=tok.pos, len=tok.len)
+                    qitargnlist.append(node)
+                    argnlist.append(node)
                     p = tok.pos + 1
                 else:
+                    qitargnlist.append(None)
                     argnlist.append(None)
 
             elif argt == '`':
@@ -769,28 +779,40 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
 
                 tok = w.get_token(p)
 
-                #print("*** READING OPTIONAL SIZE ARG ... tok=", repr(tok))
-                
                 if tok.tok in ('char', 'specials') and \
                    (tok.arg == '`' or getattr(tok.arg, 'specials_chars', None) == '`'):
                     # we have an optional size arg
+                    optpos = tok.pos
                     p = tok.pos+1
-
-                    #print("... YES")
 
                     tok = w.get_token(p)
 
                     # check for star
                     if tok.tok == 'char' and tok.arg == '*':
                         # has star
+                        thenode = w.make_node(latexwalker.LatexCharsNode,
+                                              chars='*', pos=tok.pos, len=tok.len)
+                        qitargnlist.append(thenode)
                         argnlist.append(
-                            w.make_node(latexwalker.LatexCharsNode, chars='*', pos=tok.pos, len=tok.len)
+                            w.make_node(
+                                latexwalker.LatexGroupNode,
+                                nodelist=[ thenode ],
+                                delimiters=('`', ''),
+                                pos=optpos,
+                                len=tok.pos+tok.len-optpos
+                            )
                         )
                         p = tok.pos + 1
                     elif tok.tok == 'macro':
+                        qitargnlist.append(thenode)
                         argnlist.append(
-                            w.make_node(latexwalker.LatexMacroNode, macroname=tok.arg, nodeargd=None,
-                                        pos=tok.pos, len=tok.len)
+                            w.make_node(
+                                latexwalker.LatexGroupNode,
+                                nodelist=[ thenode ],
+                                delimiters=('`', ''),
+                                pos=optpos,
+                                len=tok.pos+tok.len-optpos
+                            )
                         )
                         p = tok.pos+tok.len
                     else:
@@ -802,32 +824,45 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
 
                 else:
                     # optional size arg not present
+                    qitargnlist.append(None)
                     argnlist.append(None)
 
             elif argt == '(':
 
                 (argnode, ppos, plen) = w.get_latex_braced_group(p, brace_type='(',
                                                                  parsing_context=parsing_context)
+                qitargnlist.append( argnode )
                 argnlist.append( argnode )
                 p = ppos+plen
 
             elif argt in ('_', '^'):
                 
-                # optional size arg introduced by "_" or "^"
+                # optional argument introduced by "_" or "^"
 
                 tok = w.get_token(p)
 
-                # check for star
+                # check for intro char "_"/"^"
                 if tok.tok == 'char' and tok.arg == argt:
                     # has this argument, read expression:
+                    optpos = tok.pos
                     p = tok.pos+tok.len
                     (node, np, nl) = w.get_latex_expression(p, strict_braces=False,
                                                             parsing_context=parsing_context)
                     p = np + nl
-                    argnlist.append(node)
+                    qitargnlist.append( node )
+                    argnlist.append(
+                        w.make_node(
+                            latexwalker.LatexGroupNode,
+                            nodelist=[ node ],
+                            delimiters=(argt, ''),
+                            pos=optpos,
+                            len=np+nl-optpos
+                        )
+                    )
 
                 else:
 
+                    qitargnlist.append(None)
                     argnlist.append(None)
 
 
@@ -839,6 +874,7 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
         parsed = PhfQitObjectParsedArgs(
             qitargspec=self.qitargspec,
             argnlist=argnlist,
+            qitargnlist=qitargnlist,
         )
 
         return (parsed, pos, p-pos)

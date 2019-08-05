@@ -180,7 +180,7 @@ class LatexPreprocessor:
         with open(fname, 'r') as f:
             s = f.read()
 
-        outdata = self.execute_string(s, input_source='file {}'.format(fname))
+        outdata = self.execute_string(s, input_source='file ‘{}’'.format(fname))
 
         self.register_output_file(output_fname)
 
@@ -194,7 +194,7 @@ class LatexPreprocessor:
         try:
             (nodelist, pos, len_) = lw.get_latex_nodes(pos=pos)
         except latexwalker.LatexWalkerParseError as e:
-            if input_source:
+            if input_source and not e.input_source:
                 e.input_source = input_source
             raise
 

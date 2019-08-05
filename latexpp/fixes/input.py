@@ -52,18 +52,26 @@ class EvalInput(BaseFix):
 
             infdata = self._read_file_contents(infname)
 
-            res = ''
             # for \include, we need to issue \clearpage.  See
             # https://tex.stackexchange.com/a/32058/32188
             if n.macroname == 'include':
-                res = r'\clearpage' + '\n'
+                infdata = r'\clearpage' + '\n' + infdata
 
             # preprocess recursively contents
 
-            lw = self.lpp.make_latex_walker(infdata)
-            res += self.preprocess_latex( lw.get_latex_nodes()[0] )
+            try:
+                lw = self.lpp.make_latex_walker(infdata)
+            except latexwalker.LatexWalkerParseError as e:
+                if not e.input_source:
+                    e.input_source = 'file ‘{}’'.format(infname)
+                raise
+                
+            nodes = self.preprocess( lw.get_latex_nodes()[0] )
+            return nodes # replace the input node by the content of the input file
 
-            return res # replace the input node by the content of the input file
+            #lw = self.lpp.make_latex_walker(infdata)
+            #res = self.preprocess_latex( lw.get_latex_nodes()[0] )
+            #return res # replace the input node by the content of the input file
 
         return None
 
