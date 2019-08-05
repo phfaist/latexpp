@@ -66,7 +66,7 @@ class LatexPreprocessor:
         self.display_output_dir = output_dir.rstrip('/') + '/'
 
         if not os.path.isdir(self.output_dir):
-            os.makedirs(self.output_dir)
+            self._do_ensure_destdir(self.output_dir, self.display_output_dir)
 
         if len(os.listdir(self.output_dir)):
             # TODO: in the future, add prog option --clean-output-dir that
