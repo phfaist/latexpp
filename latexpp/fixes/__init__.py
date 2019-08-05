@@ -1,6 +1,15 @@
 
 from pylatexenc import latexwalker
 
+
+
+class DontFixThisNode(Exception):
+    r"""
+    Can be raised in :py:meth:`BaseFix.fix_node()` to indicate that the given
+    node doesn't have to be "fixed".
+    """
+    pass
+
 class BaseFix:
     r"""
     Base class for defining specific `latexpp` fixes.
@@ -61,47 +70,101 @@ class BaseFix:
         return None
 
 
-    def preprocess(self, nodelist, children_only=False):
+    def preprocess(self, nodelist):
         r"""
         Return a new node list that corresponds to the pre-processed version of
-        `nodelist`.  It's the `BaseFix`\ 's responsibility to recurse into
-        subnodes.
+        `nodelist`.
 
         Don't subclass this, rather, you should subclass
         :py:meth:`fix_nodelist()` or :py:meth:`fix_node()`.
         """
 
-        if not children_only:
-            newnodelist = self._call_fix_nodelist(nodelist)
+        newnodelist = self.fix_nodelist(nodelist)
 
-        # recurse into subnodes
+        # Only continue preprocessing children nodes if fix_nodelist() returned
+        # `None`.  The rule is that if fix_node() or fix_nodelist() return
+        # something non-None, they are responsible for calling
+        # preprocess_latex() or preprocess_children() on all child nodes.
+        if isinstance(newnodelist, list):
+            return newnodelist
+        if isinstance(newnodelist, str):
+            # re-parse with latexwalker
+            return self._parse_nodes(newnodelist)
+        if newnodelist is not None:
+            raise ValueError("{}.fix_nodelist() did not return a string or node list"
+                             .format(self.fix_name()))
 
-        for n in newnodelist:
+        # Continue processing with fix_node()
+        newnodelist = []
+        for j, n in enumerate(nodelist):
 
-            if n.isNodeType(latexwalker.LatexGroupNode):
-                n.nodelist = self.preprocess(n.nodelist)
+            if n is None:
+                continue
 
-            if n.isNodeType(latexwalker.LatexMacroNode):
-                if n.nodeargd is not None and n.nodeargd.argnlist is not None:
-                    for j in range(len(n.nodeargd.argnlist)):
-                        n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
+            # call fix_node()
+            try:
+                nn = self.fix_node(
+                    n,
+                    # newnodelist here (already preprocessed)
+                    prev_node=(newnodelist[-1] if len(newnodelist) else None),
+                    # nodelist here (not yet preprocessed)
+                    next_node=(nodelist[j+1] if j+1<len(nodelist) else None)
+                )
+            except DontFixThisNode:
+                nn = None
+            if nn is None:
+                # make sure child nodes are preprocessed.
+                self.preprocess_child_nodes(n)
+                newnodelist.append(n)
+                continue
 
-            if n.isNodeType(latexwalker.LatexEnvironmentNode):
-                if n.nodeargd is not None and n.nodeargd.argnlist is not None:
-                    for j in range(len(n.nodeargd.argnlist)):
-                        n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
+            if isinstance(nn, str):
+                # if it is a str then we need to re-parse output into nodes
+                nn = self._parse_nodes(nn)
+                # fall through case is list ->
+            if isinstance(nn, list):
+                # preprocess new replacement node list
+                newnodelist.extend(nn)
+                continue
 
-                n.nodelist = self.preprocess(n.nodelist)
-
-            if n.isNodeType(latexwalker.LatexSpecialsNode):
-                if n.nodeargd is not None and n.nodeargd.argnlist is not None:
-                    for j in range(len(n.nodeargd.argnlist)):
-                        n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
-
-            if n.isNodeType(latexwalker.LatexMathNode):
-                n.nodelist = self.preprocess(n.nodelist)
+            newnodelist.append(nn)
 
         return newnodelist
+
+
+    def preprocess_child_nodes(self, node):
+        r"""
+        Call `self.preprocess()` on all children of the given node `node` and
+        modifies the node attributes in place.
+
+        This method does not return anything interesting.
+        """
+
+        n = node
+
+        if n.isNodeType(latexwalker.LatexGroupNode):
+            n.nodelist = self.preprocess(n.nodelist)
+
+        if n.isNodeType(latexwalker.LatexMacroNode):
+            if n.nodeargd is not None and n.nodeargd.argnlist is not None:
+                for j in range(len(n.nodeargd.argnlist)):
+                    n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
+
+        if n.isNodeType(latexwalker.LatexEnvironmentNode):
+            if n.nodeargd is not None and n.nodeargd.argnlist is not None:
+                for j in range(len(n.nodeargd.argnlist)):
+                    n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
+
+            n.nodelist = self.preprocess(n.nodelist)
+
+        if n.isNodeType(latexwalker.LatexSpecialsNode):
+            if n.nodeargd is not None and n.nodeargd.argnlist is not None:
+                for j in range(len(n.nodeargd.argnlist)):
+                    n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
+
+        if n.isNodeType(latexwalker.LatexMathNode):
+            n.nodelist = self.preprocess(n.nodelist)
+
 
     def _parse_nodes(self, s):
         # returns a node list
@@ -113,20 +176,15 @@ class BaseFix:
                          s, e)
             raise
 
-    def _call_fix_nodelist(self, nodelist):
-        newnodelist = self.fix_nodelist(nodelist)
-        if newnodelist is None:
-            return nodelist
-        if isinstance(newnodelist, str):
-            return self._parse_nodes(newnodelist) # re-parse with latexwalker etc.
-        return newnodelist
-
     def _call_preprocess_argnode(self, node):
 
         if node is None:
             return None
 
-        newnode = self.fix_node(node, is_single_token_arg=True)
+        try:
+            newnode = self.fix_node(node, is_single_token_arg=True)
+        except DontFixThisNode:
+            newnode = None
         if newnode is None:
             newnode = node
 
@@ -140,19 +198,13 @@ class BaseFix:
 
         if isinstance(newnode, list):
             # run arguments also through our preprocessor:
-            nx = self.preprocess(nx, children_only=True)
-            return latexwalker.LatexGroupNode(
+            nx = self.preprocess(nx)
+            return node.parsed_context.lpp_latex_walker.make_node(
+                latexwalker.LatexGroupNode,
                 nodelist=newnode,
                 delimiters=('{', '}'),
-                parsed_context=latexwalker.ParsedContext(
-                    s=self.nodelist_to_latex(nx),
-                    latex_context=node.parsed_context.latex_context,
-                ),
-                pos=0,
-                len=len(thelatex)
             )
         return newnode
-
 
 
     def fix_nodelist(self, nodelist):
@@ -160,66 +212,50 @@ class BaseFix:
         This method is one of two methods responsible for implementing the node
         transformations for this fix class.
 
-        This method should not modify `nodelist` itself, rather, it should
-        return a representation of the transformed node list.
-
-        This method should return `None`, a node list, or a string.  A `None`
-        return value signals that no transformation is necessary.  If a node
-        list is returned, it is used as the transformed list.  If a string is
-        returned, it is parsed into a node list again and that node list is
-        used.
-
         In most cases, you should only override :py:meth:`fix_node()`.  In
         advanced cases where you need to act on the whole list globally (perhaps
         to detect specific sequences of nodes, etc.), then you need to
         reimplement :py:meth:`fix_nodelist()`.
+
+        You should *not* reimplement *both* :py:meth:`fix_nodelist()` and
+        :py:meth:`fix_node()`.
+
+        This method should not modify `nodelist` itself, rather, it should
+        return a representation of the transformed node list.
+
+        This method should return `None`, a node list, or a string.  A `None`
+        return value signals that no transformation is to be carried out at the
+        root level.  If a node list is returned, it is used as the transformed
+        list.  If a string is returned, it is parsed into a node list again and
+        that node list is used.
+
+        If this method returns `None`, then we will automatically call
+        :py:meth:`fix_node()` for each node of the nodelist and concatenate the
+        results into a new node list.
+
+        If this method returns a list or a string, it is also responsible for
+        recursing and preprocessing all relevant child nodes in that list or
+        string.  Use the methods :py:meth:`preprocess()`,
+        :py:meth:`preprocess_child_nodes()`, :py:meth:`preprocess_latex()`, and
+        :py:meth:`preprocess_contents_latex()` for that purpose.
         
-        By default, :py:meth:`fix_nodelist()` calls :py:meth:`fix_node()` for
-        each node of the nodelist and concatenates the results into a new node
-        list.  If you reimplement :py:meth:`fix_nodelist()`, make sure you call
-        the base implementation or you need to worry yourself about calling
-        :py:meth`fix_node()`.
-
-        There is (currently) exactly one situation where :py:meth:`fix_node()`
-        will is not called from :py:meth:`fix_nodelist()`.  This is when a
-        single token is found as a macro/environment/specials argument without
-        the token being wrapped in a LaTeX group.
+        By default, :py:meth:`fix_nodelist()` returns `None`.
         """
-        newnodelist = []
-        for j, n in enumerate(nodelist):
-            # call fix_node()
-            nn = self.fix_node(
-                n,
-                prev_node=(newnodelist[-1] if len(newnodelist) else None),
-                next_node=(nodelist[j+1] if j+1<len(nodelist) else None)
-            )
-            if nn is None:
-                newnodelist.append(n)
-                continue
-            if isinstance(nn, str):
-                # need to re-parse
-                newnodelist.extend(self._parse_nodes(nn))
-                continue
-            if isinstance(nn, list):
-                newnodelist.extend(nn)
-                continue
-            newnodelist.append(nn)
-
-        return newnodelist
+        return None
 
 
     def fix_node(self, node, *, is_single_token_arg=False, prev_node=None, next_node=None):
         r"""
         Transforms a given node to implement the fixes provided by this fix class.
 
-        In most cases, your fix class only needs to reimplement
+        In most cases, your fix class only needs to reimplement this method
         :py:meth:`fix_node()`.
 
         Subclasses should inspect `node` and return one of either:
 
-        - return `None`: If the node does not need to be transformed in any way.
-          In any case, child nodes will be visited and fixed by other calls to
-          :py:meth:`fix_node()`.
+        - return `None`: If the present `node` does not need to be transformed
+          in any way.  (In this case, this method does not need to inspect child
+          nodes, as they will be visited separately.)
 
         - return a string: The string is parsed into a node list, and the
           resulting nodes are used as a replacement of the original `node`.
@@ -227,9 +263,23 @@ class BaseFix:
         - return a node instance or a node list: The node(s) are used in the
           place of the original `node`.
 
+        If this method returns a valid replacement for the given `node`, i.e.,
+        anything that is not `None`, then *this method is responsible for
+        recursing into child nodes*.  This can be done by using the methods
+        :py:meth:`preprocess()`, :py:meth:`preprocess_child_nodes()`,
+        :py:meth:`preprocess_latex()`, and
+        :py:meth:`preprocess_contents_latex()` on the nodes that
+
+        If this method returns `None`, then child nodes will be preprocessed
+        automatically.
+
+        This method may raise :py:exc:`DontFixThisNode`, which has exactly the
+        same effect as returning `None`.
+
         With this method the nodes are considered one by one.  If you need to
         act globally on the full node list, you will have to override
-        :py:meth:`fix_nodelist()`.
+        :py:meth:`fix_nodelist()`.  You should not override *both*
+        :py:meth:`fix_nodelist()` and :py:meth:`fix_nodes()`.
 
         This method gets some keyword arguments that provide some contextual
         hints:
@@ -254,14 +304,96 @@ class BaseFix:
 
 
     # utilities for subclasses
-    def node_to_latex(self, *args, **kwargs):
-        return self.lpp.node_to_latex(*args, **kwargs)
+    def preprocess_latex(self, n):
+        r"""
+        Collects the latex representation of the given node(s) after having
+        recursivly preprocessed them with the present fix.
 
-    def nodelist_to_latex(self, nodelist):
-        return self.lpp.nodelist_to_latex(nodelist)
+        The argument `n` may be `None`, a single node instance, or a node list.
 
-    def node_contents_to_latex(self, *args, **kwargs):
-        return self.lpp.node_contents_to_latex(*args, **kwargs)
+        You may use this in your :py:meth:`fix_node()` implementations to ensure
+        that preprocessing acts recursively in your replacement strings.  For
+        instance::
 
-    def node_arglist_to_latex(self, *args, **kwargs):
-        return self.lpp.node_arglist_to_latex(*args, **kwargs)
+          # transform \begin{equation*} .. \end{equation*} -> \[ .. \]
+          class MyFix(fixes.BaseFix):
+            def fix_node(self, n, **kwargs):
+              if n.isNodeType(LatexEnvironmentNode) \
+                 and n.environmentname == 'equation*':
+                  # recursivly apply fixes to body:
+                  return r'\[' + self.preprocess_latex(n.nodelist) + r'\]'
+        """
+        if n is None:
+            return ''
+        if not isinstance(n, list):
+            n = [n]
+        n2 = self.preprocess(n)
+        return self.lpp.nodelist_to_latex(n2)
+
+    def preprocess_contents_latex(self, n):
+        r"""
+        Same as :py:meth:`preprocess_latex()`, except that if `n` is a group node,
+        then its contents is returned without the delimiters.  This is useful
+        for expanding macro arguments, for instance::
+
+          # transform \textbf{...} -> {\bfseries ...}
+          class MyFix(fixes.BaseFix):
+            def fix_node(self, n, **kwargs):
+              if n.isNodeType(LatexMacroNode) and n.macroname == 'textbf':
+                  # recursivly apply fixes to macro argument:
+                  return r'{\bfseries ' \
+                    + self.preprocess_contents_latex(self.node_get_arg(n, 0)) \
+                    + r'}'
+
+        Note that you can also use :py:meth:`preprocess_arg_latex()` which is
+        equivalent to ``self.preprocess_contents_latex(self.node_get_arg(n,
+        0))``.
+        """
+        if n is None:
+            return ''
+        if isinstance(n, list):
+            return self.preprocess_latex(n)
+        if n.isNodeType(latexwalker.LatexGroupNode):
+            return ''.join(self.preprocess_latex(nn) for nn in n.nodelist)
+        return self.preprocess_latex(n)
+
+    def node_get_arg(self, node, argn):
+        r"""
+        Return the node that corresponds to the `argn`-th argument (starting at
+        zero) of the given node.
+
+        If `node` is not a macro, environment, or specials node, an error is
+        raised to help detect bugs.
+
+        If `node` does not have an argument list (`node.nodeargd is None`), then
+        :py:exc:`DontFixThisNode` is raised.  This can happen if the bare macro
+        is given as a single token argument e.g. to another macro.  In these
+        cases you'll usually want to abort the fix; raising
+        :py:exc:`DontFixThisNode` is equivalent to returning `None` in
+        :py:meth:`fix_node()`.
+
+        If `node` has an argument list (`node.nodeargd.argnlist`) that does not
+        have enough arguments, then an error is raised to help detect bugs.
+        """
+        if not node.isNodeType(latexwalker.LatexMacroNode) and \
+           not node.isNodeType(latexwalker.LatexEnvironmentNode) and \
+           not node.isNodeType(latexwalker.LatexSpecialsNode):
+            raise RuntimeError("internal error: node_get_arg() can only be used on "
+                               "macro, environment, and specials nodes; not {!r}"
+                               .format(node))
+        if node.nodeargd is None or node.nodeargd.argnlist is None:
+            raise DontFixThisNode
+
+        if argn >= len(node.nodeargd.argnlist):
+            # not enough arguments
+            raise RuntimeError("internal error: not enough arguments for node_get_arg({}): {!r}"
+                               .format(argn, node))
+        
+        return node.nodeargd.argnlist[argn]
+
+
+    def preprocess_arg_latex(self, n, argn):
+        r"""
+        Same as ``self.preprocess_contents_latex(self.node_get_arg(n, argn))
+        """
+        return self.preprocess_contents_latex(self.node_get_arg(n, argn))

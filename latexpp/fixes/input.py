@@ -33,10 +33,10 @@ class EvalInput(BaseFix):
         
             if not n.nodeargd.argnlist:
                 logger.warning(r"Invalid \input/\include directive: ‘%s’, skipping.",
-                               n.latex_verbatim())
+                               n.to_latex())
                 return None
 
-            infname = self.node_contents_to_latex(n.nodeargd.argnlist[0])
+            infname = self.preprocess_arg_latex(n, 0)
 
             ext = ''
             for e in exts:
@@ -82,10 +82,10 @@ class CopyInputDeps(BaseFix):
         
             if not n.nodeargd.argnlist:
                 logger.warning(r"Invalid \input/\include directive: ‘%s’, skipping.",
-                               n.latex_verbatim())
+                               n.to_latex())
                 return None
 
-            infname = self.node_contents_to_latex(n.nodeargd.argnlist[0])
+            infname = self.preprocess_arg_latex(n, 0)
 
             ext = ''
             for e in exts:

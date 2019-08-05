@@ -5,6 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from pylatexenc.latexwalker import LatexMacroNode
+#from pylatexenc.latexencode import unicode_to_latex
 
 from latexpp.fixes import BaseFix
 
@@ -54,9 +55,7 @@ class CopyAndRenameFigs(BaseFix):
             # note, argspec is '[{'
 
             # find file and copy it
-
-            # arg is a group necessarily (unlikely to have single-char file name...)
-            orig_fig_name = "".join(nn.latex_verbatim() for nn in n.nodeargd.argnlist[1].nodelist)
+            orig_fig_name = self.preprocess_arg_latex(n, 1)
             ext = ''
             for e in exts:
                 if os_path.exists(orig_fig_name+e):
@@ -87,9 +86,12 @@ class CopyAndRenameFigs(BaseFix):
 
             self.lpp.copy_file(orig_fig_name, figoutname)
 
-            return r'\includegraphics' + \
-                (n.nodeargd.argnlist[0].latex_verbatim() if n.nodeargd.argnlist[0] else '') + \
+            # don't use unicode_to_latex(figoutname) because actually we would
+            # like to keep the underscores as is, \includegraphics handles it I
+            # think
+            return r'\includegraphics' + self.preprocess_latex(self.node_get_arg(n, 0)) + \
                 '{' + figoutname + '}'
+        
 
         return None
 

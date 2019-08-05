@@ -124,11 +124,11 @@ class ApplyAliases(BaseFix):
             if n.macroname == self.bibaliascmd:
                 if not n.nodeargd or not n.nodeargd.argnlist or len(n.nodeargd.argnlist) != 2:
                     logger.warning(r"No arguments or invalid arguments to \bibalias command: %s",
-                                   self.node_to_latex(n))
+                                   n.to_latex())
                     return None
 
-                alias = self.node_contents_to_latex(n.nodeargd.argnlist[0]).strip()
-                target = self.node_contents_to_latex(n.nodeargd.argnlist[1]).strip()
+                alias = self.preprocess_arg_latex(n, 0).strip()
+                target = self.preprocess_arg_latex(n, 1).strip()
                 logger.debug("Defined bibalias %s -> %s", alias, target)
                 self._bibaliases[alias] = target
                 self._update_bibaliases()
@@ -136,19 +136,17 @@ class ApplyAliases(BaseFix):
 
             if n.macroname in self.cite_macros:
                 if n.nodeargd is None or n.nodeargd.argspec is None or n.nodeargd.argnlist is None:
-                    logger.warning(r"Ignoring invalid citation command: %s", n.latex_verbatim())
+                    logger.warning(r"Ignoring invalid citation command: %s", n.to_latex())
                     return None
 
                 citargno = n.nodeargd.argspec.find('{')
                 ncitarg = n.nodeargd.argnlist[citargno]
-                citargnew = self._replace_aliases( self.node_contents_to_latex(ncitarg) )
+                citargnew = self._replace_aliases( self.preprocess_contents_latex(ncitarg) )
 
                 s = '\\'+n.macroname \
-                    + self.node_arglist_to_latex(n.nodeargd.argspec[:citargno],
-                                                 n.nodeargd.argnlist[:citargno]) \
+                    + ''.join(self.preprocess_latex(n.nodeargd.argnlist[:citargno])) \
                     + '{'+citargnew+'}' \
-                    + self.node_arglist_to_latex(n.nodeargd.argspec[citargno+1:],
-                                                 n.nodeargd.argnlist[citargno+1:])
+                    + ''.join(self.preprocess_latex(n.nodeargd.argnlist[citargno+1:]))
 
                 #print("*** replaced in cite cmd: ", s)
 

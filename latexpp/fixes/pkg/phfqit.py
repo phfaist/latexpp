@@ -200,9 +200,9 @@ class ExpandQitObjects(BaseFix):
             subscript = ''
             A, B = '', ''
             if nsysA is not None:
-                A = self.node_contents_to_latex(nsysA)
+                A = self.preprocess_contents_latex(nsysA)
             if nsysB is not None:
-                B = self.node_contents_to_latex(nsysB)
+                B = self.preprocess_contents_latex(nsysB)
             if A:
                 if B:
                     subscript = A + r'\to ' + B
@@ -213,7 +213,7 @@ class ExpandQitObjects(BaseFix):
             if subscript:
                 text += '_{' + subscript + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
-            text += od + self.node_contents_to_latex(narg) + cd
+            text += od + self.preprocess_contents_latex(narg) + cd
             return text
 
         if m['type'] == 'ee':
@@ -221,7 +221,7 @@ class ExpandQitObjects(BaseFix):
             narg, = n.nodeargd.argnlist
             sym = m.get('sym', r'e')
 
-            return '{'+sym+'}^{' + self.node_contents_to_latex(narg) + '}'
+            return '{'+sym+'}^{' + self.preprocess_contents_latex(narg) + '}'
         
         if m['type'] == 'Hbase':
 
@@ -233,15 +233,15 @@ class ExpandQitObjects(BaseFix):
             if sub:
                 text += '_{' + sub + '}'
             if nepsilon is not None:
-                text += '^{' + self.node_contents_to_latex(nepsilon) + '}'
+                text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
             text += od
-            text += self.node_contents_to_latex(ntargetsys)
+            text += self.preprocess_contents_latex(ntargetsys)
             if ncondsys is not None:
-                text += r'\,' + md + r'\,' + self.node_contents_to_latex(ncondsys)
+                text += r'\,' + md + r'\,' + self.preprocess_contents_latex(ncondsys)
             text += cd
             if nstate is not None:
-                text += r'_{' + self.node_contents_to_latex(nstate) + '}'
+                text += r'_{' + self.preprocess_contents_latex(nstate) + '}'
             return text
         
         if m['type'] == 'Hfnbase':
@@ -257,7 +257,7 @@ class ExpandQitObjects(BaseFix):
             if sup:
                 text += '^{' + sup + '}'
             (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
-            text += od + self.node_contents_to_latex(narg) + cd
+            text += od + self.preprocess_contents_latex(narg) + cd
             return text
 
         if m['type'] == 'Dbase':
@@ -270,10 +270,10 @@ class ExpandQitObjects(BaseFix):
             if sub:
                 text += '_{' + sub + '}'
             if nepsilon is not None:
-                text += '^{' + self.node_contents_to_latex(nepsilon) + '}'
+                text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
-            text += od + self.node_contents_to_latex(nstate) + r'\,' + md + r'\,' \
-                + self.node_contents_to_latex(nrel) + cd
+            text += od + self.preprocess_contents_latex(nstate) + r'\,' + md + r'\,' \
+                + self.preprocess_contents_latex(nrel) + cd
             return text
 
         if m['type'] == 'DD':
@@ -283,12 +283,12 @@ class ExpandQitObjects(BaseFix):
 
             text = '{' + sym + '}'
             if nsub is not None:
-                text += '_{' + self.node_contents_to_latex(nsub) + '}'
+                text += '_{' + self.preprocess_contents_latex(nsub) + '}'
             if nsup is not None:
-                text += '^{' + self.node_contents_to_latex(nsup) + '}'
+                text += '^{' + self.preprocess_contents_latex(nsup) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
-            text += od + self.node_contents_to_latex(nstate) + r'\,' + md + r'\,' \
-                + self.node_contents_to_latex(nrel) + cd
+            text += od + self.preprocess_contents_latex(nstate) + r'\,' + md + r'\,' \
+                + self.preprocess_contents_latex(nrel) + cd
             return text
 
         if m['type'] == 'DCohbase':
@@ -299,8 +299,8 @@ class ExpandQitObjects(BaseFix):
 
             text = '{' + sym + '}'
 
-            tX = self.node_contents_to_latex(nX)
-            tXp = self.node_contents_to_latex(nXp)
+            tX = self.preprocess_contents_latex(nX)
+            tXp = self.preprocess_contents_latex(nXp)
             if tX and tXp:
                 text += '_{' + tX + r'\to ' + tXp + '}'
             elif tX:
@@ -309,21 +309,21 @@ class ExpandQitObjects(BaseFix):
                 text += '_{' + tXp + '}'
 
             if nepsilon is not None:
-                text += '^{' + self.node_contents_to_latex(nepsilon) + '}'
+                text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
             if nstate.isNodeType(latexwalker.LatexGroupNode) and \
                len(nstate.nodelist) and nstate.nodelist[0].isNodeType(latexwalker.LatexCharsNode) and \
                nstate.nodelist[0].chars.lstrip().startswith('*'):
-                statelatex = self.node_contents_to_latex(nstate).lstrip(' \t*') # remove '*'
+                statelatex = self.preprocess_contents_latex(nstate).lstrip(' \t*') # remove '*'
             else:
                 if process_arg_subscripts:
-                    statelatex = self.node_contents_to_latex(nstate) + '_{' \
+                    statelatex = self.preprocess_contents_latex(nstate) + '_{' \
                         + tX + r'\to ' + tXp + '}'
                 else:
-                    statelatex = self.node_contents_to_latex(nstate) + '_{' + tXp \
+                    statelatex = self.preprocess_contents_latex(nstate) + '_{' + tXp \
                         + 'R_{' + tX + '}}'
-            text += od + statelatex + r'\,' + md + r'\,' + self.node_contents_to_latex(nGX) + r',\,' \
-                + self.node_contents_to_latex(nGXp) + cd
+            text += od + statelatex + r'\,' + md + r'\,' + self.preprocess_contents_latex(nGX) + r',\,' \
+                + self.preprocess_contents_latex(nGXp) + cd
             return text
 
         raise ValueError("Unknown phfqit macro type: {!r}".format(m))
@@ -640,12 +640,19 @@ class ExpandMacros(BaseFix):
                 context = dict(open_delim=delims_pc[0]%delimchars[0],
                                delimsize=delimsize,
                                close_delim=delims_pc[1]%delimchars[1])
-                return self.substitution_helper.eval_subst(c, n,
-                                                           fix=self,
-                                                           argoffset=2,
-                                                           context=context)
+                return self.substitution_helper.eval_subst(
+                    c,
+                    n,
+                    node_contents_latex=self.preprocess_contents_latex,
+                    argoffset=2,
+                    context=context
+                )
 
-            return self.substitution_helper.eval_subst(c, n, fix=self)
+            return self.substitution_helper.eval_subst(
+                c,
+                n,
+                node_contents_latex=self.preprocess_contents_latex
+            )
                 
 
         return None

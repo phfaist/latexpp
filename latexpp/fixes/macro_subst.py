@@ -95,6 +95,7 @@ class Subst(BaseFix):
 
         c = self.helper.get_node_cfg(n)
         if c is not None:
-            return self.helper.eval_subst(c, n, fix=self)
+            return self.helper.eval_subst(c, n,
+                                          node_contents_latex=self.preprocess_contents_latex)
 
         return None

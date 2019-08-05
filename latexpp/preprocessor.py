@@ -2,6 +2,7 @@ import os
 import os.path
 import shutil
 import re
+import functools
 
 import logging
 
@@ -13,6 +14,40 @@ logger = logging.getLogger(__name__)
 
 
 from . import lpp_pragma
+
+
+
+def _no_latex_verbatim(*args, **kwargs):
+    raise RuntimeError("Cannot use latex_verbatim() because the nodes might change.")
+
+def _to_latex(lpp, n):
+    return lpp.node_to_latex(n)
+
+
+class _LPPLatexWalker(latexwalker.LatexWalker):
+    def __init__(self, *args, **kwargs):
+        self.lpp = kwargs.pop('lpp')
+        super().__init__(*args, **kwargs)
+
+        # for severe debugging
+        #self.debug_nodes = True
+        
+        # add back-reference to latexwalker in all latex nodes, for convenience
+        self.parsed_context.lpp_latex_walker = self
+
+
+    def make_node(self, *args, **kwargs):
+        node = super().make_node(*args, **kwargs)
+
+        # forbid method latex_verbatim()
+        node.latex_verbatim = _no_latex_verbatim
+
+        # add method to_latex() that reconstructs the latex dynamically from the
+        # node structure
+        node.to_latex = functools.partial(_to_latex, self.lpp, node)
+
+        return node
+
 
 
 
@@ -166,13 +201,9 @@ class LatexPreprocessor:
         return ''.join(self.node_to_latex(n) for n in newnodelist)
 
     def make_latex_walker(self, s):
-        lw = latexwalker.LatexWalker(s, latex_context=self.latex_context,
-                                     tolerant_parsing=False)
-        #lw.debug_nodes = True
-        
-        # add back-reference to latexwalker in all latex nodes, for convenience
-        lw.parsed_context.lpp_latex_walker = lw
-
+        lw = _LPPLatexWalker(s, latex_context=self.latex_context,
+                             tolerant_parsing=False,
+                             lpp=self)
         return lw
 
 
@@ -285,43 +316,15 @@ class LatexPreprocessor:
             raise ValueError("Unknown node type: {}".format(n.__class__.__name__))
 
 
-
     def node_contents_to_latex(self, node):
+        if node is None:
+            return ''
+        if isinstance(node, list):
+            return self.nodelist_to_latex(node)
         if node.isNodeType(latexwalker.LatexGroupNode):
-            return ''.join(self.node_to_latex(n) for n in node.nodelist)
+            return self.nodelist_to_latex(node.nodelist)
         return self.node_to_latex(node)
 
-    def node_arglist_to_latex(self, argspec, argnlist):
-        return ''.join( (self.node_to_latex(n) if n else '') for n in argnlist )
-
-
-    def DO_THIS_SOMEWHERE(self, n):
-        #
-        # Special treatment for \begin{document}.  See if we have any preamble
-        # definitions to add, and add them right before.
-        #
-        if n.isNodeType(latexwalker.LatexEnvironmentNode) and \
-           n.environmentname == 'document' and \
-           not getattr(n, '_latexpp_document_env_node_processed', False):
-           # find preamble required by all fixes
-           preamble_lines = []
-           for fix in self.fixes:
-               preamble_lines.append(fix.add_preamble())
-           n._latexpp_document_env_node_processed = True
-           if preamble_lines:
-               preamble_text = "\n%%%\n" + "\n".join(preamble_lines)+"\n%%%\n"
-           else:
-               preamble_text = ""
-           return preamble_text + self.latexpp(n)
-
-        #
-        # *** Apply fixes to this node ***
-        #
-        for fix in self.fixes:
-            s = fix.fix_node(n, lpp=self)
-            if s is not None:
-                return s
-        return
 
     
     #

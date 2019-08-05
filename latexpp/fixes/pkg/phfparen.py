@@ -43,7 +43,7 @@ class Expand(BaseFix):
                 delimchars = (r'\{', r'\}')
 
             return delims_pc[0]%delimchars[0] \
-                + self.nodelist_to_latex(n.nodeargd.contents_node.nodelist) \
+                + self.preprocess_latex(n.nodeargd.contents_node.nodelist) \
                 + delims_pc[1]%delimchars[1]
 
         return None

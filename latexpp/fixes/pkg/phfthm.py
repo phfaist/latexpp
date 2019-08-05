@@ -47,13 +47,13 @@ class Expand(BaseFix):
             proofenv = self.proofenvs[n.environmentname]
             if n.nodeargd.argnlist[0] is not None: # optional argument to proof
                 if n.nodeargd.argnlist[0].isNodeType(latexwalker.LatexGroupNode):
-                    optargstr = self.nodelist_to_latex(n.nodeargd.argnlist[0].nodelist).strip()
+                    optargstr = self.preprocess_latex(n.nodeargd.argnlist[0].nodelist).strip()
                     if optargstr.startswith('*'):
                         # have \begin{proof}[*thm:label] ... \end{proof}
                         # replace with \begin{proof}[Proof of <ref>] ... \end{proof}
                         reflbl = optargstr[1:]
                         return r'\begin{%s}['%(proofenv) \
                             + self.proof_of_name%(self.ref_type%(reflbl)) + ']' \
-                            + self.nodelist_to_latex(n.nodelist) + r'\end{%s}'%(proofenv)
+                            + self.preprocess_latex(n.nodelist) + r'\end{%s}'%(proofenv)
 
         return None

@@ -18,7 +18,7 @@ def node_get_usepackage(n, fix):
     if n.isNodeType(LatexMacroNode) and n.macroname == 'usepackage' and \
        n.nodeargd is not None and n.nodeargd.argnlist is not None:
         # usepackage has signature '[{'
-        return fix.node_contents_to_latex(n.nodeargd.argnlist[1]).strip()
+        return fix.preprocess_arg_latex(n, 1).strip()
 
     return None
 
@@ -46,7 +46,7 @@ class RemovePkgs(BaseFix):
 
         pkgname = node_get_usepackage(n, self)
         if pkgname is not None and pkgname in self.pkglist:
-            logger.debug(r"Removing instruction ‘%s’", n.latex_verbatim())
+            logger.debug(r"Removing instruction ‘%s’", n.to_latex())
             return [] # kill entire node
 
         return None

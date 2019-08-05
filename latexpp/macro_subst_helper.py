@@ -62,7 +62,7 @@ class MacroSubstHelper:
             return self.get_environment_cfg(n.environmentname)
 
 
-    def eval_subst(self, c, n, *, fix, argoffset=0, context={}):
+    def eval_subst(self, c, n, *, node_contents_latex, argoffset=0, context={}):
         """
         If `argoffset` is nonzero, then the first `argoffset` arguments are skipped
         and the arguments `argoffset+1, argoffset+2, ...` are exposed to the
@@ -76,7 +76,7 @@ class MacroSubstHelper:
         q.update(dict(
                 (str(1+k), v)
                 for k, v in enumerate(
-                        fix.node_contents_to_latex(n) if n is not None else ''
+                        node_contents_latex(n) if n is not None else ''
                         for n in n.nodeargd.argnlist[argoffset:]
                 )
             ))
@@ -85,10 +85,10 @@ class MacroSubstHelper:
             q.update(macroname=n.macroname)
         if n.isNodeType(LatexEnvironmentNode):
             q.update(environmentname=n.environmentname,
-                     body=''.join(fix.node_to_latex(nn) for nn in n.nodelist))
+                     body=node_contents_latex(n.nodelist))
         
         q.update(context)
 
         text = repl % q
-        #logger.debug("Performing substitution %s -> %s", n.latex_verbatim(), text)
+        #logger.debug("Performing substitution %s -> %s", n.to_latex(), text)
         return text

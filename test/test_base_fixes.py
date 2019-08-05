@@ -12,7 +12,11 @@ from latexpp import fixes
 
 class TestBaseFix(unittest.TestCase):
 
-    def test_fix_nodelist(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.maxDiff = None
+
+    def test_preprocess_00(self):
         
         class MyFix(fixes.BaseFix):
             def fix_node(self, n, **kwargs):
@@ -36,11 +40,11 @@ Also: {\itshape some italic text}."""
         myfix = MyFix()
 
         testnodelist = nodelist[0:1]+nodelist[2:4] # not \testmacro, all fix_node()'s return None
-        newnodes = myfix.fix_nodelist(testnodelist)
+        newnodes = myfix.preprocess(testnodelist)
         self.assertEqual(newnodes, testnodelist)
 
         testnodelist = nodelist[0:3] # with \testmacro
-        newnodes = myfix.fix_nodelist(testnodelist)
+        newnodes = myfix.preprocess(testnodelist)
         self.assertEqual(
             newnodes,
             testnodelist[0:1] + [
@@ -51,7 +55,7 @@ Also: {\itshape some italic text}."""
         )
 
 
-    def test_fix_nodelist(self):
+    def test_preprocess_00b(self):
         
         class MyFix(fixes.BaseFix):
             def fix_node(self, n, **kwargs):
@@ -75,7 +79,7 @@ Also: {\itshape some italic text}."""
         lw = lpp.make_latex_walker(latex)
         nodelist = lw.get_latex_nodes()[0]
 
-        newnodelist = myfix.fix_nodelist(nodelist[0:3])
+        newnodelist = myfix.preprocess(nodelist[0:3])
         self.assertEqual( (newnodelist[0], newnodelist[3]), (nodelist[0], nodelist[2]) )
         self.assertEqual(
             (newnodelist[1].macroname, newnodelist[1].nodeargd.argnlist, newnodelist[1].macro_post_space,
@@ -216,6 +220,82 @@ Also: {\itshape some italic text}."""
         )
 
 
+    def test_preprocess_recursively(self):
+        
+        class MyFix(fixes.BaseFix):
+            def fix_node(self, n, **kwargs):
+                if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'textbf':
+                    if n.nodeargd is None or not n.nodeargd.argnlist or not n.nodeargd.argnlist[0]:
+                        return None
+                    return r'\myboldtext {' + self.preprocess_contents_latex(n.nodeargd.argnlist[0]) + '}'
+                if n.isNodeType(latexwalker.LatexEnvironmentNode) and n.environmentname == 'enumerate':
+                    if n.nodeargd is None or not n.nodeargd.argnlist or not n.nodeargd.argnlist[0]:
+                        return r'\mystuff{' + self.preprocess_contents_latex(n.nodelist) + '}'
+                    return r'\mystuff[' + self.preprocess_arg_latex(n, 0) \
+                        + ']{' + self.preprocess_latex(n.nodelist) + '}'
+                return None
+
+        latex = r"""
+\begin{enumerate}[\textbf{recursive} replacement]text text\end{enumerate}"""
+        lpp = helpers.MockLPP()
+        myfix = MyFix()
+        lpp.install_fix( myfix )
+        lw = lpp.make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+        newnodelist = myfix.preprocess(nodelist)
+        newlatex = lpp.nodelist_to_latex(newnodelist)
+        self.assertEqual(
+            newlatex,
+            r"""
+\mystuff[\myboldtext {recursive} replacement]{text text}"""
+        )        
+        
+
+    def test_preprocess_recursively_2(self):
+        
+        class MyFix(fixes.BaseFix):
+            def fix_node(self, n, **kwargs):
+                if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'textbf':
+                    if n.nodeargd is None or not n.nodeargd.argnlist or not n.nodeargd.argnlist[0]:
+                        return None
+                    return r'\myboldtext {' + self.preprocess_arg_latex(n, 0) + '}'
+                if n.isNodeType(latexwalker.LatexEnvironmentNode) and n.environmentname == 'enumerate':
+                    if n.nodeargd is None or not n.nodeargd.argnlist or not n.nodeargd.argnlist[0]:
+                        return r'\mystuff{' + self.preprocess_latex(n.nodelist) + '}'
+                    return r'\mystuff[' + self.preprocess_arg_latex(n, 0) \
+                        + ']{' + self.preprocess_latex(n.nodelist) + '}'
+                return None
+
+        latex = r"""
+\begin{enumerate}
+\item Some \textbf{BOLD \textbf{text} AND MORE} and more.
+\item And a sublist:
+  \begin{enumerate}[\textbf{recursive} replacement]
+  \item[\textbf{in \textbf{macro} optional argument}]
+  \end{enumerate}
+\item And in math mode $a\textbf{v} = \textbf{w+\textbf{z}+x}$
+\end{enumerate}
+"""
+        lpp = helpers.MockLPP()
+        myfix = MyFix()
+        lpp.install_fix( myfix )
+        lw = lpp.make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+        newnodelist = myfix.preprocess(nodelist)
+        newlatex = lpp.nodelist_to_latex(newnodelist)
+        self.assertEqual(
+            newlatex,
+            r"""
+\mystuff{
+\item Some \myboldtext {BOLD \myboldtext {text} AND MORE} and more.
+\item And a sublist:
+  \mystuff[\myboldtext {recursive} replacement]{
+  \item[\myboldtext {in \myboldtext {macro} optional argument}]
+  }
+\item And in math mode $a\myboldtext {v} = \myboldtext {w+\myboldtext {z}+x}$
+}
+"""
+        )
 
 
 if __name__ == '__main__':
