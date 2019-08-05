@@ -19,8 +19,7 @@ information.  The `pylatexenc` library has a list of some known macros and
 environments, and knows how to parse their arguments.  Some fixes in `latexpp`
 add their own macro and environment definitions.
 
-Once the latex document is parsed into the node structure, then the nodes are
-traversed recursively including macro arguments and environment contents.  For
-each node, we query all the fixes in the specified order to see if that return a
-latex representation of the given node.  If no fix is found, then the original
-latex representation of the node is retained.
+Once the latex document is parsed into the node structure, then the fix classes
+are given a chance one by one to traverse the node structure and make the
+necessary fixes.  After all the fixes have been applied, the resulting structure
+is written to the output file as latex code.

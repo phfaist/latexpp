@@ -95,7 +95,5 @@ class TestDocCases(unittest.TestCase, DocCaseTester):
 
 
 
-
-
 if __name__ == '__main__':
     helpers.test_main()
