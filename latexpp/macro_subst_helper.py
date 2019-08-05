@@ -95,5 +95,5 @@ class MacroSubstHelper:
         q.update(context)
 
         text = repl % q
-        #logger.debug("Performing substitution %s -> %s", n.to_latex(), text)
+        print("*** Performing substitution {} -> {}".format(n.to_latex(), text))
         return text

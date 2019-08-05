@@ -28,6 +28,12 @@ class Expand(BaseFix):
     def fix_node(self, n, **kwargs):
 
         if n.isNodeType(latexwalker.LatexSpecialsNode) and n.specials_chars == '`':
+
+            #print("*** `specials-paren node: ", n)
+            if not n.nodeargd.in_math_mode:
+                # not in math mode, leave as is
+                return None
+
             if n.nodeargd.has_star:
                 delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
             elif n.nodeargd.size_arg_node is not None:
@@ -37,7 +43,9 @@ class Expand(BaseFix):
                 delims_pc = ('%s', '%s')
 
             if n.nodeargd.contents_node is None:
-                return None
+                # this is normal, happens for ` not in math mode
+                raise ValueError("`(special) construct does not have contents_node: {!r}"
+                                 .format(n.to_latex()))
 
             delimchars = n.nodeargd.contents_node.delimiters
 
@@ -60,39 +68,54 @@ class Expand(BaseFix):
 #       `*(...)  ...
 
 class PhfParenSpecialsParsedArgs(ParsedMacroArgs):
-    def __init__(self, in_math_mode, star_node, size_arg_node, contents_node, **kwargs):
-        self.in_math_mode = in_math_mode
+    def __init__(self, check_math_mode_node, star_node, size_arg_node, contents_node, **kwargs):
+        self.check_math_mode_node = check_math_mode_node
+        self.in_math_mode = check_math_mode_node is not None
         self.has_star = star_node is not None
         self.star_node = star_node # or None
         self.size_arg_node = size_arg_node # or None
         self.contents_node = contents_node
 
         argnlist = [
+            self.check_math_mode_node, # simulate additional macro to remember
+                                       # that we had originally detected math
+                                       # mode
             self.star_node,
             self.size_arg_node,
             self.contents_node
         ]
 
-        super(PhfParenSpecialsParsedArgs, self).__init__(argspec='*[{',
+        super(PhfParenSpecialsParsedArgs, self).__init__(argspec='[*[{',
                                                          argnlist=argnlist,
                                                          **kwargs)
         
 
 class PhfParenSpecialsArgsParser(MacroStandardArgsParser):
     def __init__(self):
-        super(PhfParenSpecialsArgsParser, self).__init__(argspec='*[{')
+        super(PhfParenSpecialsArgsParser, self).__init__(argspec='[*[{')
 
     def parse_args(self, w, pos, parsing_context=None):
 
         if parsing_context is None:
             parsing_context = latexwalker.ParsingContext()
 
-        if not parsing_context.in_math_mode:
-            return (PhfParenSpecialsParsedArgs(False, None, None, None), pos, 0)
+        # check for magic token that tells us that we are in fact, in math mode.
+        # Needed for repeated text->nodes->text->nodes->... conversion where the
+        # 'in_math_mode' of the parsing_context is not reliable when we are
+        # parsing an inner snippet
+        p = pos
+        tok = w.get_token(p)
+        force_math_mode = False
+        if tok.tok == 'macro' and tok.arg == 'phfparenInMathMode':
+            force_math_mode = True
+            p = tok.pos + tok.len
+
+        if not force_math_mode and not parsing_context.in_math_mode:
+            logger.debug("Ignoring '`' not in math mode: line %d, col %d",
+                         *w.pos_to_lineno_colno(pos))
+            return (PhfParenSpecialsParsedArgs(None, None, None, None), pos, 0)
 
         #logger.debug("*** reading specials args at pos=%d", pos)
-
-        p = pos
 
         include_brace_chars = [('[', ']'), ('(', ')'), ('<', '>')]
 
@@ -133,6 +156,12 @@ class PhfParenSpecialsArgsParser(MacroStandardArgsParser):
 
         #logger.debug("*** got phfparen args: %r, %r, %r", star_node, size_arg_node, contents_node)
 
-        return (PhfParenSpecialsParsedArgs(True, star_node, size_arg_node, contents_node),
+        check_math_mode_node = w.make_node(latexwalker.LatexMacroNode,
+                                           macroname='phfparenInMathMode',
+                                           nodeargd=None,
+                                           pos=pos,len=0)
+
+        return (PhfParenSpecialsParsedArgs(check_math_mode_node, star_node,
+                                           size_arg_node, contents_node),
                 pos, apos+alen-pos)
         

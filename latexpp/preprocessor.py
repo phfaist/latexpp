@@ -276,7 +276,9 @@ class LatexPreprocessor:
 
 
     def nodelist_to_latex(self, nodelist):
-        return ''.join(self.node_to_latex(n) if n else '' for n in nodelist)
+        result = ''.join(self.node_to_latex(n) if n else '' for n in nodelist)
+        #print("*** result(",len(nodelist),") = ", result)
+        return result
 
     def node_to_latex(self, n):
 

@@ -170,7 +170,8 @@ class BaseFix:
         # returns a node list
         try:
             lw = self.lpp.make_latex_walker(s)
-            return lw.get_latex_nodes()[0]
+            nodes = lw.get_latex_nodes()[0]
+            return nodes
         except latexwalker.LatexWalkerParseError as e:
             logger.error("Internal error: can't re-parse preprocessed latex:\n%r\n%s",
                          s, e)
@@ -327,7 +328,9 @@ class BaseFix:
             return ''
         if not isinstance(n, list):
             n = [n]
+        #print("*** need to preprocess ", n)
         n2 = self.preprocess(n)
+        #print("*** --> ", n2)
         return self.lpp.nodelist_to_latex(n2)
 
     def preprocess_contents_latex(self, n):
