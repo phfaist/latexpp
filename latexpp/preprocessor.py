@@ -68,10 +68,7 @@ class LatexPreprocessor:
         if not os.path.isdir(self.output_dir):
             self._do_ensure_destdir(self.output_dir, self.display_output_dir)
 
-        if len(os.listdir(self.output_dir)):
-            # TODO: in the future, add prog option --clean-output-dir that
-            # removes all before outputting...
-            logger.warning("Output directory %s is not empty", self.display_output_dir)
+        self._warn_if_output_dir_nonempty()
 
         self.latex_context = latexwalker.get_default_latex_context_db()
         self.latex_context.add_context_category('latexpp-categories-marker-end', macros=[], prepend=True)
@@ -85,6 +82,11 @@ class LatexPreprocessor:
         self.add_preamble_comment_start = '\n%%%\n'
         self.add_preamble_comment_end = '\n%%%\n'
 
+    def _warn_if_output_dir_nonempty(self):
+        if len(os.listdir(self.output_dir)):
+            # Maybe in the future we'll add prog option --clean-output-dir that
+            # removes all before outputting...
+            logger.warning("Output directory %s is not empty", self.display_output_dir)
 
     def install_fix(self, fix, *, prepend=False):
 
