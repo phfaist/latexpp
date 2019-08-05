@@ -332,9 +332,9 @@ class ExpandQitObjects(BaseFix):
     def _delims(self, sizenode, opendelim, middelim, closedelim):
         if sizenode is None:
             return (opendelim, middelim, closedelim)
-        assert sizenode.isNodeType(latexwalker.LatexGroupNode) and \
-            len(sizenode.nodelist) == 1
-        sizenode = sizenode.nodelist[0]
+        if sizenode.isNodeType(latexwalker.LatexGroupNode):
+            assert( len(sizenode.nodelist) == 1 )
+            sizenode = sizenode.nodelist[0]
         if sizenode.isNodeType(latexwalker.LatexCharsNode) and sizenode.chars == '*':
             return (r'\mathopen{}\left'+opendelim,
                     r'\mathclose{}\middle'+middelim+r'\mathopen{}',
@@ -804,6 +804,11 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                         )
                         p = tok.pos + 1
                     elif tok.tok == 'macro':
+                        thenode = w.make_node(latexwalker.LatexMacroNode,
+                                              macroname=tok.arg,
+                                              nodeargd=None,
+                                              pos=tok.pos, len=tok.len)
+
                         qitargnlist.append(thenode)
                         argnlist.append(
                             w.make_node(
