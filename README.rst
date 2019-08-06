@@ -46,6 +46,9 @@ Sample ``lppconfig.yml``:
   # modified
   output_dir: 'latexpp_output'
   
+  # main document file name in the output directory
+  output_fname: 'paper.tex'
+
   # specify list of fixes to apply, in the given order
   fixes:
 
