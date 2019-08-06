@@ -718,10 +718,10 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
         argspec = qitargspec_to_argspec(self.qitargspec)
         super().__init__(argspec=argspec)
 
-    def parse_args(self, w, pos, parsing_context=None):
+    def parse_args(self, w, pos, parsing_state=None):
 
-        if parsing_context is None:
-            parsing_context = latexwalker.ParsingContext()
+        if parsing_state is None:
+            parsing_state = w.make_parsing_state()
 
         qitargnlist = []
         argnlist = []
@@ -736,7 +736,7 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
 
             if argt == '{':
                 (node, np, nl) = w.get_latex_expression(p, strict_braces=False,
-                                                        parsing_context=parsing_context)
+                                                        parsing_state=parsing_state)
                 p = np + nl
                 qitargnlist.append(node)
                 argnlist.append(node)
@@ -749,7 +749,7 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                     argnlist.append(None)
                     continue
 
-                optarginfotuple = w.get_latex_maybe_optional_arg(p, parsing_context=parsing_context)
+                optarginfotuple = w.get_latex_maybe_optional_arg(p, parsing_state=parsing_state)
                 if optarginfotuple is None:
                     qitargnlist.append(None)
                     argnlist.append(None)
@@ -765,7 +765,9 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                 tok = w.get_token(p)
                 if tok.tok == 'char' and tok.arg == '*':
                     # has star
-                    node = w.make_node(latexwalker.LatexCharsNode, chars='*', pos=tok.pos, len=tok.len)
+                    node = w.make_node(latexwalker.LatexCharsNode,
+                                       parsing_state=parsing_state,
+                                       chars='*', pos=tok.pos, len=tok.len)
                     qitargnlist.append(node)
                     argnlist.append(node)
                     p = tok.pos + 1
@@ -791,11 +793,13 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                     if tok.tok == 'char' and tok.arg == '*':
                         # has star
                         thenode = w.make_node(latexwalker.LatexCharsNode,
+                                              parsing_state=parsing_state,
                                               chars='*', pos=tok.pos, len=tok.len)
                         qitargnlist.append(thenode)
                         argnlist.append(
                             w.make_node(
                                 latexwalker.LatexGroupNode,
+                                parsing_state=parsing_state,
                                 nodelist=[ thenode ],
                                 delimiters=('`', ''),
                                 pos=optpos,
@@ -805,6 +809,7 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                         p = tok.pos + 1
                     elif tok.tok == 'macro':
                         thenode = w.make_node(latexwalker.LatexMacroNode,
+                                              parsing_state=parsing_state,
                                               macroname=tok.arg,
                                               nodeargd=None,
                                               pos=tok.pos, len=tok.len)
@@ -813,6 +818,7 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                         argnlist.append(
                             w.make_node(
                                 latexwalker.LatexGroupNode,
+                                parsing_state=parsing_state,
                                 nodelist=[ thenode ],
                                 delimiters=('`', ''),
                                 pos=optpos,
@@ -835,7 +841,7 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
             elif argt == '(':
 
                 (argnode, ppos, plen) = w.get_latex_braced_group(p, brace_type='(',
-                                                                 parsing_context=parsing_context)
+                                                                 parsing_state=parsing_state)
                 qitargnlist.append( argnode )
                 argnlist.append( argnode )
                 p = ppos+plen
@@ -852,12 +858,13 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                     optpos = tok.pos
                     p = tok.pos+tok.len
                     (node, np, nl) = w.get_latex_expression(p, strict_braces=False,
-                                                            parsing_context=parsing_context)
+                                                            parsing_state=parsing_state)
                     p = np + nl
                     qitargnlist.append( node )
                     argnlist.append(
                         w.make_node(
                             latexwalker.LatexGroupNode,
+                            parsing_state=parsing_state,
                             nodelist=[ node ],
                             delimiters=(argt, ''),
                             pos=optpos,

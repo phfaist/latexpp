@@ -89,7 +89,10 @@ class BaseFix:
             return newnodelist
         if isinstance(newnodelist, str):
             # re-parse with latexwalker
-            return self._parse_nodes(newnodelist)
+            ps = None
+            if nodelist:
+                ps = nodelist[0].parsing_state
+            return self._parse_nodes(newnodelist, parsing_state=ps)
         if newnodelist is not None:
             raise ValueError("{}.fix_nodelist() did not return a string or node list"
                              .format(self.fix_name()))
@@ -120,7 +123,7 @@ class BaseFix:
 
             if isinstance(nn, str):
                 # if it is a str then we need to re-parse output into nodes
-                nn = self._parse_nodes(nn)
+                nn = self._parse_nodes(nn, parsing_state=n.parsing_state)
                 # fall through case is list ->
             if isinstance(nn, list):
                 # preprocess new replacement node list
@@ -166,11 +169,13 @@ class BaseFix:
             n.nodelist = self.preprocess(n.nodelist)
 
 
-    def _parse_nodes(self, s):
+    def _parse_nodes(self, s, parsing_state):
         # returns a node list
         try:
             lw = self.lpp.make_latex_walker(s)
-            nodes = lw.get_latex_nodes()[0]
+            nodes, _, _ = lw.get_latex_nodes(
+                parsing_state=lw.make_parsing_state(**parsing_state.get_fields())
+            )
             return nodes
         except latexwalker.LatexWalkerParseError as e:
             logger.error("Internal error: can't re-parse preprocessed latex:\n%r\n%s",
@@ -194,16 +199,17 @@ class BaseFix:
             return newnode
 
         if isinstance(newnode, str):
-            newnode = self._parse_nodes(newnode) # re-parse with latexwalker etc.
+            newnode = self._parse_nodes(newnode, node.parsing_state) # re-parse with latexwalker etc.
             # fall through to list case ->
 
         if isinstance(newnode, list):
             # run arguments also through our preprocessor:
             nx = self.preprocess(nx)
-            return node.parsed_context.lpp_latex_walker.make_node(
+            return node.parsing_state.lpp_latex_walker.make_node(
                 latexwalker.LatexGroupNode,
                 nodelist=newnode,
                 delimiters=('{', '}'),
+                parsing_state=node.parsing_state,
             )
         return newnode
 

@@ -24,6 +24,11 @@ def _no_latex_verbatim(*args, **kwargs):
 def _to_latex(lpp, n):
     return lpp.node_to_latex(n)
 
+class _LPPParsingState(latexwalker.ParsingState):
+    def __init__(self, lpp_latex_walker, **kwargs):
+        super().__init__(**kwargs)
+        self.lpp_latex_walker = lpp_latex_walker
+        self._fields = tuple(list(self._fields)+['lpp_latex_walker'])
 
 class _LPPLatexWalker(latexwalker.LatexWalker):
     def __init__(self, *args, **kwargs):
@@ -34,7 +39,10 @@ class _LPPLatexWalker(latexwalker.LatexWalker):
         #self.debug_nodes = True
         
         # add back-reference to latexwalker in all latex nodes, for convenience
-        self.parsed_context.lpp_latex_walker = self
+        self.default_parsing_state = _LPPParsingState(
+            lpp_latex_walker=self,
+            **self.default_parsing_state.get_fields()
+        )
 
 
     def make_node(self, *args, **kwargs):
@@ -90,6 +98,8 @@ class LatexPreprocessor:
         self.initialized = False
         
         self.output_files = []
+        
+        self.omit_processed_by = False
 
         self.add_preamble_comment_start = '\n%%%\n'
         self.add_preamble_comment_end = '\n%%%\n'
@@ -184,10 +194,11 @@ class LatexPreprocessor:
 
 
     def execute_main(self):
-        self.execute_file(self.main_doc_fname, output_fname=self.main_doc_output_fname)
+        self.execute_file(self.main_doc_fname,
+                          output_fname=self.main_doc_output_fname)
 
 
-    def execute_file(self, fname, *, output_fname):
+    def execute_file(self, fname, *, output_fname, omit_processed_by=False):
 
         with open(fname, 'r') as f:
             s = f.read()
@@ -200,6 +211,9 @@ class LatexPreprocessor:
             f.write(outdata)
 
     def execute_string(self, s, *, pos=0, input_source=None, omit_processed_by=False):
+
+        if self.omit_processed_by:
+            omit_processed_by = True
 
         lw = self.make_latex_walker(s)
         

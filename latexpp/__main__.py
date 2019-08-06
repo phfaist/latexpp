@@ -122,7 +122,7 @@ class NewLppconfigTemplate(argparse.Action):
         sys.exit(0)
 
 
-def main(argv=None):
+def main(argv=None, omit_processed_by=False):
     if argv is None:
         argv = sys.argv[1:]
 
@@ -207,6 +207,10 @@ def main(argv=None):
         main_doc_fname=fname,
         main_doc_output_fname=output_fname
     )
+
+    # for tests
+    if omit_processed_by:
+        pp.omit_processed_by = omit_processed_by
 
     for fixconfig in lppconfig['fixes']:
         if isinstance(fixconfig, str):

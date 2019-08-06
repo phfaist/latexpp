@@ -56,7 +56,7 @@ class DocCaseTester:
             cwd = os.getcwd()
             try:
                 os.chdir(os.path.join(tmpdir, casename))
-                mainmodule.main([])
+                mainmodule.main([], omit_processed_by=True)
             finally:
                 os.chdir(cwd)
                 

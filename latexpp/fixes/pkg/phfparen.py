@@ -94,15 +94,17 @@ class PhfParenSpecialsArgsParser(MacroStandardArgsParser):
     def __init__(self):
         super(PhfParenSpecialsArgsParser, self).__init__(argspec='[*[{')
 
-    def parse_args(self, w, pos, parsing_context=None):
+    def parse_args(self, w, pos, parsing_state=None):
 
-        if parsing_context is None:
-            parsing_context = latexwalker.ParsingContext()
+        if parsing_state is None:
+            parsing_state = w.make_parsing_state()
 
         # check for magic token that tells us that we are in fact, in math mode.
         # Needed for repeated text->nodes->text->nodes->... conversion where the
-        # 'in_math_mode' of the parsing_context is not reliable when we are
+        # 'in_math_mode' of the parsing_state is not reliable when we are
         # parsing an inner snippet
+        #
+        # ### UPDATE IN PYLATEXENC: This should no longer be needed
         p = pos
         tok = w.get_token(p)
         force_math_mode = False
@@ -110,7 +112,7 @@ class PhfParenSpecialsArgsParser(MacroStandardArgsParser):
             force_math_mode = True
             p = tok.pos + tok.len
 
-        if not force_math_mode and not parsing_context.in_math_mode:
+        if not force_math_mode and not parsing_state.in_math_mode:
             logger.debug("Ignoring '`' not in math mode: line %d, col %d",
                          *w.pos_to_lineno_colno(pos))
             return (PhfParenSpecialsParsedArgs(None, None, None, None), pos, 0)
@@ -123,7 +125,9 @@ class PhfParenSpecialsArgsParser(MacroStandardArgsParser):
         tok = w.get_token(p, include_brace_chars=include_brace_chars)
         if tok.tok == 'char' and tok.arg.lstrip().startswith('*'):
             # has star
-            star_node = w.make_node(latexwalker.LatexCharsNode, chars='*', pos=tok.pos, len=tok.len)
+            star_node = w.make_node(latexwalker.LatexCharsNode,
+                                    parsing_state=parsing_state,
+                                    chars='*', pos=tok.pos, len=tok.len)
             p = tok.pos + 1
             tok = w.get_token(p, include_brace_chars=include_brace_chars) # prepare next token
         else:
@@ -133,7 +137,9 @@ class PhfParenSpecialsArgsParser(MacroStandardArgsParser):
         #tok = w.get_token(p, include_brace_chars=include_brace_chars) # already in tok
         if tok.tok == 'macro':
             # has size macro
-            size_arg_node = w.make_node(latexwalker.LatexMacroNode, macroname=tok.arg, nodeargd=None,
+            size_arg_node = w.make_node(latexwalker.LatexMacroNode,
+                                        parsing_state=parsing_state,
+                                        macroname=tok.arg, nodeargd=None,
                                         pos=tok.pos, len=tok.len)
             p = tok.pos+tok.len
             tok = w.get_token(p, include_brace_chars=include_brace_chars) # prepare next token
@@ -152,11 +158,12 @@ class PhfParenSpecialsArgsParser(MacroStandardArgsParser):
                 )
 
         (contents_node, apos, alen) = w.get_latex_braced_group(tok.pos, brace_type=tok.arg,
-                                                               parsing_context=parsing_context)
+                                                               parsing_state=parsing_state)
 
         #logger.debug("*** got phfparen args: %r, %r, %r", star_node, size_arg_node, contents_node)
 
         check_math_mode_node = w.make_node(latexwalker.LatexMacroNode,
+                                           parsing_state=parsing_state,
                                            macroname='phfparenInMathMode',
                                            nodeargd=None,
                                            pos=pos,len=0)

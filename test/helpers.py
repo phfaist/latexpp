@@ -20,12 +20,14 @@ class MockLPP(preprocessor.LatexPreprocessor):
         self.copied_files = []
         self.wrote_executed_files = {}
 
+        self.omit_processed_by = True
+
     def _warn_if_output_dir_nonempty(self):
         pass
 
     def execute(self, latex):
         self.initialize()
-        s = self.execute_string(latex, input_source='[test string]')
+        s = self.execute_string(latex, input_source='[test string]', omit_processed_by=True)
         self.finalize()
         return s
 

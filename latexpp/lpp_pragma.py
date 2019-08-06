@@ -39,7 +39,7 @@ def do_pragmas(nodelist, lpp):
                         raise ValueError(
                             "Cannot find closing ‘%%!lpp }’ to match %%!lpp {} on line {}, col {}"
                             .format(instruction,
-                                    *nodelist[j].parsed_context.lpp_latex_walker
+                                    *nodelist[j].parsing_state.lpp_latex_walker
                                     .pos_to_lineno_colno(nodelist[j].pos))
                         )
                     # j still points on '}' comment node, pass j+1 like a python range
