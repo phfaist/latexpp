@@ -41,8 +41,8 @@ def setup_logging(level):
 _lppconfig_template = r"""
 # latexpp config file template.  https://github.com/phfaist/latexpp
 #
-# This is YAML syntax -- google "YAML tutorial" to get a quick intro.  Careful
-# with spaces, correct indentation is important.
+# This is YAML syntax -- google "YAML tutorial" to get a quick intro.  Be
+# careful with spaces, correct indentation is important.
 
 # the master LaTeX document -- this file will not be modified, all output will
 # be produced in the output_dir
