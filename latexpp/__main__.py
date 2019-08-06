@@ -39,7 +39,7 @@ def setup_logging(level):
 
 
 _lppconfig_template = r"""
-# latexpp config file template.
+# latexpp config file template.  https://github.com/phfaist/latexpp
 #
 # This is YAML syntax -- google "YAML tutorial" to get a quick intro.  Careful
 # with spaces, correct indentation is important.
