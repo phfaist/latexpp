@@ -3,6 +3,7 @@ import os.path
 import shutil
 import re
 import functools
+import datetime
 
 import logging
 
@@ -49,6 +50,17 @@ class _LPPLatexWalker(latexwalker.LatexWalker):
         return node
 
 
+
+def get_datetime_now_tzaware():
+    utc_dt = datetime.datetime.now(datetime.timezone.utc)
+    return utc_dt.astimezone()
+
+
+
+_PROCESSED_BY_HEADING = r"""
+% Automatically processed by latexpp on {today}
+% See https://github.com/phfaist/latexpp
+""".lstrip()
 
 
 class LatexPreprocessor:
@@ -187,7 +199,7 @@ class LatexPreprocessor:
         with open(os.path.join(self.output_dir, output_fname), 'w') as f:
             f.write(outdata)
 
-    def execute_string(self, s, *, pos=0, input_source=None):
+    def execute_string(self, s, *, pos=0, input_source=None, omit_processed_by=False):
 
         lw = self.make_latex_walker(s)
         
@@ -200,7 +212,17 @@ class LatexPreprocessor:
 
         newnodelist = self.preprocess(nodelist)
 
-        return ''.join(self.node_to_latex(n) for n in newnodelist)
+        newstr = ''.join(self.node_to_latex(n) for n in newnodelist)
+        
+        if not omit_processed_by:
+            return (
+                _PROCESSED_BY_HEADING.format(
+                    today=get_datetime_now_tzaware().strftime("%a, %d-%b-%Y %H:%M:%S %Z%z")
+                )
+                + newstr
+            )
+
+        return newstr
 
     def make_latex_walker(self, s):
         lw = _LPPLatexWalker(s, latex_context=self.latex_context,
