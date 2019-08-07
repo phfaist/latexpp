@@ -3,3 +3,6 @@ pylatexenc >= 2.0a0
 
 # colorlog for pretty logging
 colorlog
+
+# PyYAML for reading our YAML config file
+PyYAML
