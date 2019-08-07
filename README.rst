@@ -5,6 +5,13 @@ Latex preprocessor — apply macro definitions, remove comments, and more
 
 *Disclaimer: latexpp is still at an experimental development stage.*
 
+.. image:: https://img.shields.io/github/license/phfaist/latexpp.svg?style=flat
+   :target: https://github.com/phfaist/latexpp/blob/master/LICENSE.txt
+
+.. image:: https://img.shields.io/travis/phfaist/latexpp.svg?style=flat
+   :target: https://travis-ci.org/phfaist/latexpp
+   
+
 Installation
 ------------
 
