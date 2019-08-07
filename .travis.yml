@@ -11,8 +11,9 @@ python:
 
 # install dependencies
 before_install:
-  - 'git clone https://github.com/phfaist/pylatexenc.git --depth=0'
-  - '(cd pylatexenc && python setup.py sdist && python -m pip dist/pylatexenc-*.tar.gz)'
+  - 'git clone https://github.com/phfaist/pylatexenc.git --depth=1'
+  - '(cd pylatexenc && python setup.py sdist)'
+  - 'python -m pip install pylatexenc/dist/pylatexenc-*.tar.gz'
 
 # command to run tests
 script:
