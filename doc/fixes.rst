@@ -3,33 +3,74 @@ List of fixes
 
 Here is a list of all "fixes" that you can apply to your latex document.
 
+Each class corresponds to a fix that you can list in your ``fixes:`` section of
+your ``lppconfig.yml`` file.  See :ref:`howtouse` and :ref:`lppconfig`.
+
+Arguments indicated in parentheses are provided by corresponding YAML keys in
+the ``lppconfig.yml`` config file.  For instance, the instruction
+
+.. code-block:: yaml
+
+   fixes:
+     ...
+     - name: 'latexpp.fixes.figures.CopyAndRenameFigs'
+       config:
+         # template name for figure output file name
+         fig_rename: '{fig_counter:02}-{orig_fig_basename}{fig_ext}'
+         # start at figure # 11
+         start_fig_counter: 11
+     ...
+
+translates to the fix instantiation (python class)::
+
+  latexpp.fixes.figures.CopyAndRenameFigs(
+      fig_rename="{fig_counter:02}-{orig_fig_basename}{fig_ext}",
+      start_fig_counter=11
+  )
+
+
 .. contents:: Categories of Fixes:
    :local:
 
    
 
-General fixes
-~~~~~~~~~~~~~
+General fixes — document contents & formatting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: latexpp.fixes.preamble.AddPreamble
+.. autoclass:: latexpp.fixes.input.EvalInput
 
 .. autoclass:: latexpp.fixes.comments.RemoveComments
+
+.. autoclass:: latexpp.fixes.macro_subst.Subst
+
+General fixes — used packages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.usepackage.RemovePkgs
 
 .. autoclass:: latexpp.fixes.usepackage.CopyLocalPkgs
 
+General fixes — preamble definitions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: latexpp.fixes.preamble.AddPreamble
+
 .. autoclass:: latexpp.fixes.deps.CopyFiles
+
+General fixes — figures
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.figures.CopyAndRenameFigs
 
-.. autoclass:: latexpp.fixes.input.EvalInput
+General fixes — bibliography
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.bib.CopyAndInputBbl
 
 .. autoclass:: latexpp.fixes.bib.ApplyAliases
 
-.. autoclass:: latexpp.fixes.macro_subst.Subst
+General fixes — create archive with all files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.archive.CreateArchive
 

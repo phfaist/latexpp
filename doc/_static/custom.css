@@ -71,6 +71,10 @@ a.toc-backref {
     text-decoration: inherit;
 }
 
+div.admonition, div.note {
+    border: 1px solid rgba(50,50,50,0.15);
+    background-color: rgba(50,50,50,0.08);
+}
 
 
 /* **************************************************************************

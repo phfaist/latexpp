@@ -1,3 +1,5 @@
+.. _lppconfig:
+
 The ``lppconfig.yml`` configuration file
 ----------------------------------------
 
