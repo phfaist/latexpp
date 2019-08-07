@@ -9,7 +9,7 @@ python:
   - "3.6"
 
 
-# install dependencies
+# install dependencies -- beta version of pylatexenc not on pip
 before_install:
   - 'git clone https://github.com/phfaist/pylatexenc.git --depth=1'
   - '(cd pylatexenc && python setup.py sdist)'
