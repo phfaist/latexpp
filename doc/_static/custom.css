@@ -110,17 +110,17 @@ div.body dl dt code {
    lpp fix block
    ************************************************************************** */
 
-dl.class {
+#list-of-fixes dl.class {
     background-color: rgb(240, 255, 220);
     margin-bottom: 20px;
     padding: 0px;
     margin-top: 1.5em;
 }
-dl.class dt {
+#list-of-fixes dl.class dt {
     padding: 10px 10px;
     background-color: rgb(224, 240, 203);
 }
-dl.class dd {
+#list-of-fixes dl.class dd {
     padding-top: 10px;
     padding-bottom: 10px;
     padding-right: 20px;

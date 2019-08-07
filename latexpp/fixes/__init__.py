@@ -1,3 +1,6 @@
+r"""
+Module that provides the base class for a *latexpp* fix.
+"""
 
 from pylatexenc import latexwalker
 
@@ -17,7 +20,8 @@ class BaseFix:
     A `fix` should be defined by defining a subclass of this class and
     overriding the methods that will allow to transform nodes.
 
-    See :ref:`customfix` for an introduction to writing a custom fix class.
+    See :ref:`customfix` for a tutorial and reference on writing a custom fix
+    class.
 
     The methods you should consider overriding are:
 
@@ -314,7 +318,7 @@ class BaseFix:
     def preprocess_latex(self, n):
         r"""
         Collects the latex representation of the given node(s) after having
-        recursivly preprocessed them with the present fix.
+        recursively preprocessed them with the present fix.
 
         The argument `n` may be `None`, a single node instance, or a node list.
 
@@ -327,7 +331,7 @@ class BaseFix:
             def fix_node(self, n, **kwargs):
               if n.isNodeType(LatexEnvironmentNode) \
                  and n.environmentname == 'equation*':
-                  # recursivly apply fixes to body:
+                  # recursively apply fixes to body:
                   return r'\[' + self.preprocess_latex(n.nodelist) + r'\]'
         """
         if n is None:
@@ -349,10 +353,15 @@ class BaseFix:
           class MyFix(fixes.BaseFix):
             def fix_node(self, n, **kwargs):
               if n.isNodeType(LatexMacroNode) and n.macroname == 'textbf':
-                  # recursivly apply fixes to macro argument:
+                  # recursively apply fixes to macro argument:
+                  arg_node = self.node_get_arg(n, 0)
                   return r'{\bfseries ' \
-                    + self.preprocess_contents_latex(self.node_get_arg(n, 0)) \
+                    + self.preprocess_contents_latex(arg_node) \
                     + r'}'
+
+        Had we used :py:func:`self.preprocess_latex()` instead, we would have
+        obtained the replacement string ``{\bfseries {...}}`` with an extra pair
+        of inner braces.
 
         Note that you can also use :py:meth:`preprocess_arg_latex()` which is
         equivalent to ``self.preprocess_contents_latex(self.node_get_arg(n,
@@ -403,6 +412,6 @@ class BaseFix:
 
     def preprocess_arg_latex(self, n, argn):
         r"""
-        Same as ``self.preprocess_contents_latex(self.node_get_arg(n, argn))
+        Same as ``self.preprocess_contents_latex(self.node_get_arg(n, argn))``.
         """
         return self.preprocess_contents_latex(self.node_get_arg(n, argn))

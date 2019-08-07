@@ -1,3 +1,33 @@
+# The MIT License (MIT)
+#
+# Copyright (c) 2019 Philippe Faist
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+
+
+r"""
+Module that provides a helper for writing fixes that perform macro
+substitutions with custom replacement strings.
+"""
+
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -8,6 +38,12 @@ from latexpp import fixes
 
 
 class MacroSubstHelper:
+    r"""
+    Helper class that provides common functionality for fixes that replace
+    certain macro invocations by a custom replacement string.
+
+    TODO: Document me. ....
+    """
     def __init__(self,
                  macros={},
                  environments={},
@@ -66,9 +102,27 @@ class MacroSubstHelper:
 
     def eval_subst(self, c, n, *, node_contents_latex, argoffset=0, context={}):
         """
+        Return the replacement string for the given node `n`, where the
+        macro/environment config (argspec/repl) is provided in `c` (return value
+        of `get_node_cfg()`).
+
+        You need to specify as `node_contents_latex` a callable that will be
+        used to transform child nodes (argument nodes) to LaTeX code.  If you're
+        calling this from a fix class (:py:class:`latexpp.fixes.BaseFix`
+        subclass) then you should most probably specify
+        ``node_contents_latex=self.preprocess_contents_latex`` here.
+
         If `argoffset` is nonzero, then the first `argoffset` arguments are skipped
         and the arguments `argoffset+1, argoffset+2, ...` are exposed to the
         replacement string as `%(1)s, %(2)s, ...`.
+
+        You can specify a dictionary `context` of additional key/value
+        replacement strings in the formatting of the `repl` string.  For
+        instance, if ``context={'delimsize': r'\big'}``, then ``%(delimsize)s``
+        in the replacement string `repl` is expanded to ``\big``.  This is all
+        in addition to the argument placeholders ``%(1)s`` etc., to the
+        environment body ``%(body)s``, and to
+        ``%(macroname)s``/``%(environmentname)s``.
         """
 
         _, repl = self._cfg_argspec_repl(c)

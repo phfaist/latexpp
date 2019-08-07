@@ -1,3 +1,7 @@
+r"""
+This module provides the main preprocessor engine.
+"""
+
 import os
 import os.path
 import shutil
