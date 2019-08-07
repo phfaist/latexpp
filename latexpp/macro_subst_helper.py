@@ -59,6 +59,9 @@ class MacroSubstHelper:
         self.context = context # additional fields provided to repl text
 
     def get_specs(self):
+        r"""
+        Return the specs that we need to declare to the latex walker
+        """
         return dict(
             macros=[
                 MacroSpec(m, args_parser=self.args_parser_class(
@@ -80,24 +83,50 @@ class MacroSubstHelper:
         return meinfo.get(self.argspecfldname, ''), meinfo.get('repl', '')
 
     def get_macro_cfg(self, macroname):
+        r"""
+        Return the config associated with the macro named `macroname`, or `None`.
+
+        You can use this function to test whether a given macro can be
+        handled by us, testing the return value for non-`None` and using the
+        return value directly as the relevant config for
+        :py:meth:`eval_subst()`.
+        """
         if macroname not in self.macros:
             return None
         return dict(zip([self.argspecfldname, 'repl'],
                         self._cfg_argspec_repl(self.macros[macroname])))
 
     def get_environment_cfg(self, environmentname):
+        r"""
+        Return the config associated with the environment named `environmentname`,
+        or `None`.
+
+        You can use this function to test whether a given environment can be
+        handled by us, testing the return value for non-`None` and using the
+        return value directly as the relevant config for
+        :py:meth:`eval_subst()`.
+        """
         if environmentname not in self.environments:
             return None
         return dict(zip([self.argspecfldname, 'repl'],
                         self._cfg_argspec_repl(self.environments[environmentname])))
 
     def get_node_cfg(self, n):
+        r"""
+        Return the config associated with the macro/environment of the given node
+        `n`, or `None`.
+
+        You can use this function to test whether a given node can be handled by
+        us, testing the return value for non-`None` and using the return value
+        directly as the relevant config for :py:meth:`eval_subst()`.
+        """
         if n is None:
             return None
         if n.isNodeType(LatexMacroNode):
             return self.get_macro_cfg(n.macroname)
         if n.isNodeType(LatexEnvironmentNode):
             return self.get_environment_cfg(n.environmentname)
+        return None
 
 
     def eval_subst(self, c, n, *, node_contents_latex, argoffset=0, context={}):

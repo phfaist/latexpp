@@ -9,7 +9,7 @@ from pylatexenc import latexwalker
 class DontFixThisNode(Exception):
     r"""
     Can be raised in :py:meth:`BaseFix.fix_node()` to indicate that the given
-    node doesn't have to be "fixed".
+    node should not be "fixed".
     """
     pass
 
