@@ -1,0 +1,15 @@
+#
+# Travis CI config file
+#
+
+language: python
+
+python:
+  - "2.7"
+  - "3.4"
+  - "3.6"
+
+# command to run tests
+script:
+  - PYTHONPATH=. pytest
+
