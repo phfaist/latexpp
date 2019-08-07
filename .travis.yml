@@ -14,6 +14,7 @@ before_install:
   - 'git clone https://github.com/phfaist/pylatexenc.git --depth=1'
   - '(cd pylatexenc && python setup.py sdist)'
   - 'python -m pip install pylatexenc/dist/pylatexenc-*.tar.gz'
+  - 'rm -rf pylatexenc'
 
 # command to run tests
 script:
