@@ -8,7 +8,7 @@ from latexpp.fixes import BaseFix
 
 class Subst(BaseFix):
     r"""
-    Define custom macros and environments that will be replaced by associated
+    Define macros and environments that will be replaced by corresponding custom
     LaTeX code.
 
     Arguments:
