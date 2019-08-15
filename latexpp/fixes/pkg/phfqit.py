@@ -16,7 +16,7 @@ from latexpp.fixes import BaseFix
 # parse entropy macros etc.
 
 
-_qitobjdefs = yaml.safe_load("""
+_qitobjdefs = yaml.safe_load(r"""
 stdset:
   HH:
     type: Hbase
