@@ -207,11 +207,12 @@ class BaseFix:
             # fall through to list case ->
 
         if isinstance(newnode, list):
+            nx = newnode
             # run arguments also through our preprocessor:
             nx = self.preprocess(nx)
             return node.parsing_state.lpp_latex_walker.make_node(
                 latexwalker.LatexGroupNode,
-                nodelist=newnode,
+                nodelist=nx,
                 delimiters=('{', '}'),
                 parsing_state=node.parsing_state,
             )
