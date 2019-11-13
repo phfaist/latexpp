@@ -2,7 +2,6 @@ import os
 import os.path
 import re
 import sys
-import importlib
 import argparse
 import logging
 
@@ -28,7 +27,7 @@ def setup_logging(level):
     handler = colorlog.StreamHandler()
     handler.setFormatter(colorlog.TTYColoredFormatter(
         stream=sys.stderr,
-        fmt='%(log_color)s%(levelname)-8s: %(message)s  [%(name)s]'
+        fmt='%(log_color)s%(levelname)-8s: %(message)s' #'  [%(name)s]'
     ))
 
     root = colorlog.getLogger()
@@ -39,53 +38,54 @@ def setup_logging(level):
 
 
 _lppconfig_template = r"""
-# latexpp config file template.  https://github.com/phfaist/latexpp
+# latexpp config for MyDocument.tex
 #
-# This is YAML syntax -- google "YAML tutorial" to get a quick intro.  Be
-# careful with spaces, correct indentation is important.
+# This is YAML syntax -- google "YAML tutorial" to get a quick intro.
+# Be careful with spaces since indentation is important.
 
-# the master LaTeX document -- this file will not be modified, all output will
-# be produced in the output_dir
+# the master LaTeX document -- this file will not be modified, all
+# output will be produced in the output_dir
 fname: 'MyDocument.tex'
 
-# output file(s) will be created in this directory, originals will not be
-# modified
+# output file(s) will be created in this directory, originals will
+# not be modified
 output_dir: 'latexpp_output'
 
 # main document file name in the output directory
-output_fname: 'paper.tex'
+output_fname: 'main.tex'
 
 # specify list of fixes to apply, in the given order
 fixes:
 
+  # replace \input{...} directives by the contents of the included
+  # file
+  - 'latexpp.fixes.input.EvalInput'
+
   # remove all comments
-  - 'latexpp.fixes.comments.RemoveCommentsFixes'
+  - 'latexpp.fixes.comments.RemoveComments'
 
-  # replace \input{...} directives by the contents of the included file
-  - 'latexpp.fixes.input.EvalInputFixes'
+  # copy any style files (.sty) that are used in the document and
+  # that are present in the current directory to the output directory
+  - 'latexpp.fixes.usepackage.CopyLocalPkgs'
 
-  # copy any style files (.sty) that are used in the document and that
-  # are present in the current directory to the output directory
-  - 'latexpp.fixes.usepackage.CopyLocalPkgsFixes'
+  # copy figure files to the output directory and rename them
+  # fig-01.xxx, fig-02.xxx, etc.
+  - 'latexpp.fixes.figures.CopyAndRenameFigs'
 
-  # copy figure files to the output directory and rename them fig-1.xxx,
-  # fig-2.xxx, etc.
-  - 'latexpp.fixes.figures.CopyNumberFigsFixes'
+  # Replace \bibliography{...} by \input{xxx.bbl} and copy the bbl
+  # file to the output directory.  Make sure you run (pdf)latex on
+  # the main docuemnt before running latexpp
+  - 'latexpp.fixes.bib.CopyAndInputBbl'
 
-  # Replace \bibliography{...} by \input{xxx.bbl} and copy the bbl file to the
-  # output directory.  Make sure you run (pdf)latex on the main docuemnt
-  # before running latexpp
-  - 'latexpp.fixes.bib.CopyAndInputBblFixes'
-
-  # Expand some macros. Instead of trying to infer the exact expansion that
-  # (pdf)latex would itself perform, you specify here a custom string that the
-  # macro will be expanded to. If the macro has arguments, specify the nature
-  # of the arguments here in the 'argspec:' key (a '*' is an optional *
-  # character, a '[' one optional square-bracket-delimited argument, and a '{'
-  # is a mandatory argument). The argument values are available via the
-  # placeholders %(1)s, %(2)s, etc. Make sure to use single quotes for strings
-  # that contain \ backslashes.
-  - name: 'latexpp.fixes.macro_subst.Fixes'
+  # Expand some macros. Latexpp doesn't parse \newcommand's, so you
+  # need to specify here the LaTeX code that the macro should be
+  # expanded to. If the macro has arguments, specify the nature of
+  # the arguments here in the 'argspec:' key (a '*' is an optional
+  # * character, a '[' one optional square-bracket-delimited
+  # argument, and a '{' is a mandatory argument). The argument values
+  # are available via the placeholders %(1)s, %(2)s, etc. Make sure
+  # to use single quotes for strings that contain \ backslashes.
+  - name: 'latexpp.fixes.macro_subst.Subst'
     config:
       macros:
         # \tr         -->  \operatorname{tr}
@@ -111,7 +111,8 @@ class NewLppconfigTemplate(argparse.Action):
         # create new YaML template and exit
         cfgfile = 'lppconfig.yml'
         if os.path.exists(cfgfile):
-            raise ValueError("The file {} already exists. I won't overwrite it.".format(cfgfile))
+            raise ValueError("The file {} already exists. I won't overwrite it."
+                             .format(cfgfile))
         with open(cfgfile, 'w') as f:
             f.write(_lppconfig_template)
         # logger hasn't been set up yet.
@@ -186,7 +187,8 @@ def main(argv=None, omit_processed_by=False):
         with open(lppconfigyml) as f:
             lppconfig = yaml.load(f, Loader=yaml.FullLoader)
     except FileNotFoundError:
-        logger.error("Can't file config file %s.  See %s for instructions to create a lppconfig file.",
+        logger.error("Cannot find configuration file ‘%s’.  "
+                     "See %s for instructions to create a lppconfig file.",
                      lppconfigyml, _LPPCONFIG_DOC_URL)
         sys.exit(1)
 
@@ -212,16 +214,7 @@ def main(argv=None, omit_processed_by=False):
     if omit_processed_by:
         pp.omit_processed_by = omit_processed_by
 
-    for fixconfig in lppconfig['fixes']:
-        if isinstance(fixconfig, str):
-            fixconfig = {'name': fixconfig}
-
-        modname, clsname = fixconfig['name'].rsplit('.', maxsplit=1)
-
-        mod = importlib.import_module(modname)
-        cls = mod.__dict__[clsname]
-
-        pp.install_fix(cls(**fixconfig.get('config', {})))
+    pp.install_fixes_from_config(lppconfig['fixes'])
 
     try:
 
@@ -232,7 +225,7 @@ def main(argv=None, omit_processed_by=False):
         pp.finalize()
 
     except latexwalker.LatexWalkerParseError as e:
-        logger.error("Parse error while processing LaTeX document %s\n%s", fname, e)
+        logger.error("Parse error while processing LaTeX document ‘%s’\n%s", fname, e)
         sys.exit(1)
 
 

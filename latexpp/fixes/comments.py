@@ -16,15 +16,22 @@ class RemoveComments(BaseFix):
       LaTeX).  If `False`, then the comment and following whitespace is removed
       entirely.
     """
-    def __init__(self, leave_percent=True):
+    def __init__(self, leave_percent=True, collapse=True):
         super().__init__()
         self.leave_percent = leave_percent
+        self.collapse = collapse
 
     def fix_node(self, n, prev_node=None, **kwargs):
 
         if n.isNodeType(LatexCommentNode):
             if self.leave_percent:
                 # sys.stderr.write("Ignoring comment: '%s'\n"% node.comment)
+                if self.collapse and prev_node \
+                   and prev_node.isNodeType(LatexCommentNode):
+                    # previous node is already a comment, ignore this one. But update
+                    # previous node's post_space
+                    prev_node.comment_post_space = n.comment_post_space
+                    return []
                 return "%"+n.comment_post_space
             else:
                 if prev_node is not None and prev_node.isNodeType(LatexMacroNode):
