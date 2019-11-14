@@ -15,8 +15,9 @@ from . import __version__ as version_str
 
 from pylatexenc import latexwalker # catch latexwalker.LatexWalkerParseError
 
-_LPPCONFIG_DOC_URL = 'https://github.com/phfaist/latexpp/blob/master/README.rst'
-_LATEXPP_QUICKSTART_DOC_URL = 'https://github.com/phfaist/latexpp/blob/master/README.rst'
+_LPPCONFIG_DOC_URL = 'https://latexpp.readthedocs.io/'
+_LATEXPP_QUICKSTART_DOC_URL = 'https://git.io/JerVr' #'https://github.com/phfaist/latexpp/blob/master/README.rst'
+_LATEXPP_FIXES_DOC_URL = 'https://latexpp.readthedocs.io/en/latest/fixes/'
 
 
 from .preprocessor import LatexPreprocessor
@@ -129,8 +130,10 @@ def main(argv=None, omit_processed_by=False):
 
     parser = argparse.ArgumentParser(
         prog='latexpp',
-        epilog='See {} for a quick introduction on how to use latexpp.'.format(
-            _LATEXPP_QUICKSTART_DOC_URL
+        epilog=('See {} for a quick introduction on how to use latexpp '
+                'and {} for a list of available fix classes.').format(
+            _LATEXPP_QUICKSTART_DOC_URL,
+            _LATEXPP_FIXES_DOC_URL
         ),
         add_help=False # custom help option
         )

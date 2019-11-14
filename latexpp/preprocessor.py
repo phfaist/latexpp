@@ -388,7 +388,7 @@ class LatexPreprocessor:
         # that do not have lpp_ignore set.
 
         for fix in self.fixes:
-            logger.info("Running fix: %s", fix.fix_name())
+            logger.info("*** Fix %s", fix.fix_name())
             newnodelist = fix.preprocess(newnodelist)
 
         return newnodelist
