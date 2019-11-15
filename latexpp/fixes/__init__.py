@@ -2,6 +2,9 @@ r"""
 Module that provides the base class for a *latexpp* fix.
 """
 
+import logging
+logger = logging.getLogger(__name__)
+
 from pylatexenc import latexwalker
 
 
