@@ -155,19 +155,22 @@ class BaseFix:
         if n.isNodeType(latexwalker.LatexMacroNode):
             if n.nodeargd is not None and n.nodeargd.argnlist is not None:
                 for j in range(len(n.nodeargd.argnlist)):
-                    n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
+                    n.nodeargd.argnlist[j] = \
+                        self._call_preprocess_argnode(n.nodeargd.argnlist[j])
 
         if n.isNodeType(latexwalker.LatexEnvironmentNode):
             if n.nodeargd is not None and n.nodeargd.argnlist is not None:
                 for j in range(len(n.nodeargd.argnlist)):
-                    n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
+                    n.nodeargd.argnlist[j] = \
+                        self._call_preprocess_argnode(n.nodeargd.argnlist[j])
 
             n.nodelist = self.preprocess(n.nodelist)
 
         if n.isNodeType(latexwalker.LatexSpecialsNode):
             if n.nodeargd is not None and n.nodeargd.argnlist is not None:
                 for j in range(len(n.nodeargd.argnlist)):
-                    n.nodeargd.argnlist[j] = self._call_preprocess_argnode(n.nodeargd.argnlist[j])
+                    n.nodeargd.argnlist[j] = \
+                        self._call_preprocess_argnode(n.nodeargd.argnlist[j])
 
         if n.isNodeType(latexwalker.LatexMathNode):
             n.nodelist = self.preprocess(n.nodelist)

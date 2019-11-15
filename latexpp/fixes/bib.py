@@ -29,12 +29,16 @@ class CopyAndInputBbl(BaseFix):
     - `outbblname`: the bbl file is copied to the output directory and renamed
       to `outbblname`.  By default this derived from the main output latex file
       name.
+
+    - `eval_input`: Paste the BBL file contents into the TeX file rather than
+      issuing a '\input{XXX.bbl}' directive.
     """
 
-    def __init__(self, bblname=None, outbblname=None):
+    def __init__(self, bblname=None, outbblname=None, eval_input=False):
         super().__init__()
         self.bblname = bblname
         self.outbblname = outbblname
+        self.eval_input = eval_input
     
     def specs(self, **kwargs):
         return dict(macros=[
@@ -62,9 +66,15 @@ class CopyAndInputBbl(BaseFix):
 
             self.lpp.check_autofile_up_to_date(bblname)
 
-            self.lpp.copy_file(bblname, outbblname)
-
-            return r'\input{%s}'%(outbblname)
+            if self.eval_input:
+                # input BBL contents
+                with open(bblname, 'r') as f:
+                    bbl_contents = f.read()
+                return bbl_contents
+            else:
+                # copy BBL file
+                self.lpp.copy_file(bblname, outbblname)
+                return r'\input{%s}'%(outbblname)
 
         return None
 

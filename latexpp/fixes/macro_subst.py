@@ -1,4 +1,7 @@
 
+import logging
+logger = logging.getLogger(__name__)
+
 from pylatexenc.latexwalker import LatexMacroNode, LatexEnvironmentNode
 
 from latexpp.macro_subst_helper import MacroSubstHelper
@@ -87,6 +90,8 @@ class Subst(BaseFix):
     def __init__(self, macros={}, environments={}):
         super().__init__()
         self.helper = MacroSubstHelper(macros, environments)
+        logger.debug("substitutions are macros=%r, environments=%r",
+                     macros, environments)
 
     def specs(self, **kwargs):
         return dict(**self.helper.get_specs())
@@ -95,7 +100,9 @@ class Subst(BaseFix):
 
         c = self.helper.get_node_cfg(n)
         if c is not None:
-            return self.helper.eval_subst(c, n,
-                                          node_contents_latex=self.preprocess_contents_latex)
+            return self.helper.eval_subst(
+                c, n,
+                node_contents_latex=self.preprocess_contents_latex
+            )
 
         return None
