@@ -56,11 +56,9 @@ class CopyAndRenameFigs(BaseFix):
 
             # find file and copy it
             orig_fig_name = self.preprocess_arg_latex(n, 1)
-            ext = ''
             for e in exts:
                 if os_path.exists(orig_fig_name+e):
                     orig_fig_name = orig_fig_name+e
-                    ext = e
                     break
             else:
                 logger.warning("File not found: %s. Tried extensions %r", orig_fig_name, exts)

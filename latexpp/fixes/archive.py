@@ -1,7 +1,6 @@
 import os
 import os.path
 import datetime
-import shutil
 import zipfile
 import tarfile
 import logging

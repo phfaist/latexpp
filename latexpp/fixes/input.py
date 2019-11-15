@@ -38,11 +38,9 @@ class EvalInput(BaseFix):
 
             infname = self.preprocess_arg_latex(n, 0)
 
-            ext = ''
             for e in exts:
                 if os_path.exists(infname+e):
                     infname = infname+e
-                    ext = e
                     break
             else:
                 logger.warning("File not found: %s. Tried extensions %r", infname, exts)
@@ -98,11 +96,9 @@ class CopyInputDeps(BaseFix):
 
             infname = self.preprocess_arg_latex(n, 0)
 
-            ext = ''
             for e in exts:
                 if os_path.exists(infname+e):
                     infname = infname+e
-                    ext = e
                     break
             else:
                 logger.warning("File not found: %s. Tried extensions %r", infname, exts)
