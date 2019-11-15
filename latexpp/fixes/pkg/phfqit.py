@@ -212,8 +212,10 @@ class ExpandQitObjects(BaseFix):
             text = '{' + sym + '}'
             if subscript:
                 text += '_{' + subscript + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
-            text += od + self.preprocess_contents_latex(narg) + cd
+            nargcontents = self.preprocess_contents_latex(narg)
+            if nargcontents:
+                (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
+                text += od + nargcontents + cd
             return text
 
         if m['type'] == 'ee':
@@ -256,8 +258,10 @@ class ExpandQitObjects(BaseFix):
                 text += '_{' + sub + '}'
             if sup:
                 text += '^{' + sup + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
-            text += od + self.preprocess_contents_latex(narg) + cd
+            nargcontents = self.preprocess_contents_latex(narg)
+            if nargcontents:
+                (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
+                text += od + nargcontents + cd
             return text
 
         if m['type'] == 'Dbase':
@@ -272,8 +276,11 @@ class ExpandQitObjects(BaseFix):
             if nepsilon is not None:
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
-            text += od + self.preprocess_contents_latex(nstate) + r'\,' + md + r'\,' \
-                + self.preprocess_contents_latex(nrel) + cd
+            nstatecontents = self.preprocess_contents_latex(nstate)
+            nrelcontents = self.preprocess_contents_latex(nrel)
+            if nstatecontents or nrelcontents:
+                text += od + nstatecontents + r'\,' + md + r'\,' \
+                    + nrelcontents + cd
             return text
 
         if m['type'] == 'DD':
@@ -287,8 +294,11 @@ class ExpandQitObjects(BaseFix):
             if nsup is not None:
                 text += '^{' + self.preprocess_contents_latex(nsup) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
-            text += od + self.preprocess_contents_latex(nstate) + r'\,' + md + r'\,' \
-                + self.preprocess_contents_latex(nrel) + cd
+            nstatecontents = self.preprocess_contents_latex(nstate)
+            nrelcontents = self.preprocess_contents_latex(nrel)
+            if nstatecontents or nrelcontents:
+                text += od + nstatecontents + r'\,' + md + r'\,' \
+                    + nrelcontents + cd
             return text
 
         if m['type'] == 'DCohbase':
@@ -311,10 +321,12 @@ class ExpandQitObjects(BaseFix):
             if nepsilon is not None:
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
-            if nstate.isNodeType(latexwalker.LatexGroupNode) and \
-               len(nstate.nodelist) and nstate.nodelist[0].isNodeType(latexwalker.LatexCharsNode) and \
-               nstate.nodelist[0].chars.lstrip().startswith('*'):
-                statelatex = self.preprocess_contents_latex(nstate).lstrip(' \t*') # remove '*'
+            if nstate.isNodeType(latexwalker.LatexGroupNode) \
+               and len(nstate.nodelist) \
+               and nstate.nodelist[0].isNodeType(latexwalker.LatexCharsNode) \
+               and nstate.nodelist[0].chars.lstrip().startswith('*'):
+                # remove '*'
+                statelatex = self.preprocess_contents_latex(nstate).lstrip(' \t*')
             else:
                 if process_arg_subscripts:
                     statelatex = self.preprocess_contents_latex(nstate) + '_{' \
@@ -322,7 +334,8 @@ class ExpandQitObjects(BaseFix):
                 else:
                     statelatex = self.preprocess_contents_latex(nstate) + '_{' + tXp \
                         + 'R_{' + tX + '}}'
-            text += od + statelatex + r'\,' + md + r'\,' + self.preprocess_contents_latex(nGX) + r',\,' \
+            text += od + statelatex + r'\,' + md + r'\,' + \
+                self.preprocess_contents_latex(nGX) + r',\,' \
                 + self.preprocess_contents_latex(nGXp) + cd
             return text
 
