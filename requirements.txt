@@ -1,0 +1,1 @@
+. # use install_requires from setup.py
