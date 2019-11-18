@@ -1,8 +1,0 @@
-# require pylatexenc 2.0
-pylatexenc >= 2.0
-
-# colorlog for pretty logging
-colorlog
-
-# PyYAML for reading our YAML config file
-PyYAML

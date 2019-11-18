@@ -62,12 +62,21 @@ setup(
 
     # files
     packages = find_packages(),
+
+    # scripts
     entry_points = {
         'console_scripts': [
             'latexpp=latexpp.__main__:main',
         ],
     },
-    install_requires = [],
+
+    # see https://packaging.python.org/discussions/install-requires-vs-requirements/
+    install_requires = [
+        "pylatexenc >= 2.0", # require pylatexenc 2.0
+        "colorlog", # colorlog for pretty logging
+        "PyYAML", # PyYAML for reading our YAML config file
+    ],
+
     package_data = {
     },
 )
