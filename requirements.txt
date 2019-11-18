@@ -1,1 +1,1 @@
-. # use install_requires from setup.py
+. # use install_requires from setup.py (https://stackoverflow.com/a/19081268)
