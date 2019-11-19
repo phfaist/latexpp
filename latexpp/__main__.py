@@ -186,6 +186,8 @@ def main(argv=None, omit_processed_by=False):
     else:
         lppconfigyml = 'lppconfig.yml'
 
+    config_dir = os.path.dirname(os.path.abspath(lppconfigyml))
+
     try:
         with open(lppconfigyml) as f:
             lppconfig = yaml.load(f, Loader=yaml.FullLoader)
@@ -210,7 +212,8 @@ def main(argv=None, omit_processed_by=False):
     pp = LatexPreprocessor(
         output_dir=output_dir,
         main_doc_fname=fname,
-        main_doc_output_fname=output_fname
+        main_doc_output_fname=output_fname,
+        config_dir=config_dir
     )
 
     # for tests

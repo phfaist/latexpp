@@ -2,6 +2,7 @@ r"""
 This module provides the main preprocessor engine.
 """
 
+import sys
 import os
 import os.path
 import shutil
@@ -76,6 +77,22 @@ _PROCESSED_BY_HEADING = r"""
 """.lstrip()
 
 
+class _TemporarilySetSysPath:
+    def __init__(self, dir):
+        self.dir = dir
+
+    def __enter__(self):
+        self.oldsyspath = sys.path
+        if self.dir:
+            sys.path = [self.dir] + sys.path
+        return self
+
+    def __exit__(self, typ, value, traceback):
+        if self.dir:
+            sys.path = self.oldsyspath
+
+
+
 class LatexPreprocessor:
     r"""
     Main preprocessor class.
@@ -85,12 +102,16 @@ class LatexPreprocessor:
     def __init__(self, *,
                  output_dir='_latexpp_output',
                  main_doc_fname=None,
-                 main_doc_output_fname=None):
+                 main_doc_output_fname=None,
+                 config_dir=None):
+
         super().__init__()
 
         self.output_dir = os.path.realpath(os.path.abspath(output_dir))
         self.main_doc_fname = main_doc_fname
         self.main_doc_output_fname = main_doc_output_fname
+        # directory relative to which to search for custom python fixes:
+        self.config_dir = config_dir
 
         # version of output_dir for displaying purposes
         self.display_output_dir = output_dir.rstrip('/') + '/'
@@ -141,9 +162,18 @@ class LatexPreprocessor:
             if isinstance(fixconfig, str):
                 fixconfig = {'name': fixconfig}
 
-            modname, clsname = fixconfig['name'].rsplit('.', maxsplit=1)
+            fixname = fixconfig['name']
 
-            mod = importlib.import_module(modname)
+            modname, clsname = fixname.rsplit('.', maxsplit=1)
+
+            # allow package to be in current working directory
+            with _TemporarilySetSysPath(dir=self.config_dir):
+                mod = importlib.import_module(modname)
+
+            if clsname not in mod.__dict__:
+                raise ValueError("Module ‘%s’ does not provide a class named ‘%s’"%(
+                    modname, clsname))
+
             cls = mod.__dict__[clsname]
 
             self.install_fix(cls(**fixconfig.get('config', {})))

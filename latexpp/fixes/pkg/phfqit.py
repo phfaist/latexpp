@@ -118,7 +118,12 @@ class ExpandQitObjects(BaseFix):
 
         - `<type>='Dbase'`: You may further specify ``'sub': <sub>`` which
           specifies the subscript to add to the relative entropy object.  This
-          can be any LaTeX code.
+          can be any LaTeX code.  You can also specify 'default_epsilon' to give
+          a default value of the epsilon argument (any LaTeX code).
+
+        - `<type>='Dalpha'`: You can also specify 'default_alpha' and
+          'default_epsilon' to give a default value for these arguments (any
+          LaTeX code).
 
         - `<type>='DD'`: There are no further keys you can specify.
 
@@ -169,6 +174,7 @@ class ExpandQitObjects(BaseFix):
             "Hfnbase": "`(",
             "DD": "_^`{{",
             "Dbase": "[`{{",
+            "Dalpha": "[[`{{",
             "DCohbase": "[`{{{{{",
         }.get(t)
 
@@ -264,17 +270,64 @@ class ExpandQitObjects(BaseFix):
                 text += od + nargcontents + cd
             return text
 
+        if m['type'] == 'Hfnbase':
+            
+            nsub, nsup, nsizespec, narg = n.nodeargd.qitargnlist
+            sub = m.get('sub', None)
+            sup = m.get('sup', None)
+            sym = m.get('sym', self.HSym)
+
+            text = '{' + sym + '}'
+            if sub:
+                text += '_{' + sub + '}'
+            if sup:
+                text += '^{' + sup + '}'
+            nargcontents = self.preprocess_contents_latex(narg)
+            if nargcontents:
+                (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
+                text += od + nargcontents + cd
+            return text
+
         if m['type'] == 'Dbase':
             
             nepsilon, nsizespec, nstate, nrel = n.nodeargd.qitargnlist
             sub = m.get('sub', None)
             sym = m.get('sym', self.DSym)
 
+            default_epsilon = m.get('default_epsilon', None)
+
             text = '{' + sym + '}'
             if sub:
                 text += '_{' + sub + '}'
             if nepsilon is not None:
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
+            elif default_epsilon:
+                text += '^{' + default_epsilon + '}'
+            (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
+            nstatecontents = self.preprocess_contents_latex(nstate)
+            nrelcontents = self.preprocess_contents_latex(nrel)
+            if nstatecontents or nrelcontents:
+                text += od + nstatecontents + r'\,' + md + r'\,' \
+                    + nrelcontents + cd
+            return text
+
+        if m['type'] == 'Dalpha':
+            
+            nalpha, nepsilon, nsizespec, nstate, nrel = n.nodeargd.qitargnlist
+            sym = m.get('sym', self.DSym)
+
+            default_alpha = m.get('default_alpha', None)
+            default_epsilon = m.get('default_epsilon', None)
+
+            text = '{' + sym + '}'
+            if nalpha is not None:
+                text += '_{' + self.preprocess_contents_latex(nalpha) + '}'
+            elif default_alpha:
+                text += '_{' + default_alpha + '}'
+            if nepsilon is not None:
+                text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
+            elif default_epsilon:
+                text += '^{' + default_epsilon + '}'
             (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
             nstatecontents = self.preprocess_contents_latex(nstate)
             nrelcontents = self.preprocess_contents_latex(nrel)
@@ -634,7 +687,8 @@ class ExpandMacros(BaseFix):
                     # with star
                     delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
                     delimsize = r'\middle'
-                elif n.nodeargd.qitargnlist[1] is not None:
+                elif n.nodeargd.qitargnlist[1] is not None \
+                     and n.nodeargd.qitargnlist[1].nodelist:
                     sizemacro = '\\'+n.nodeargd.qitargnlist[1].nodelist[0].macroname
                     delimsize = sizemacro
                     delims_pc = (sizemacro+r'l%s', sizemacro+r'r%s')

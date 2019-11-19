@@ -38,12 +38,14 @@ class EvalInput(BaseFix):
 
             infname = self.preprocess_arg_latex(n, 0)
 
+            logger.info("Input ‘%s’", infname)
+
             for e in exts:
                 if os_path.exists(infname+e):
                     infname = infname+e
                     break
             else:
-                logger.warning("File not found: %s. Tried extensions %r", infname, exts)
+                logger.warning("File not found: ‘%s’. Tried extensions %r", infname, exts)
                 return None # keep the node as it is
 
             # open that file and go through it, too
@@ -101,8 +103,10 @@ class CopyInputDeps(BaseFix):
                     infname = infname+e
                     break
             else:
-                logger.warning("File not found: %s. Tried extensions %r", infname, exts)
+                logger.warning("File not found: ‘%s’. Tried extensions %r", infname, exts)
                 return None # keep the node as it is
+
+            logger.info("Preprocessing ‘%s’", infname)
 
             # copy file to output while running our whole selection of fixes on
             # it!  Recurse into a full instantiation of lpp.execute_file().
