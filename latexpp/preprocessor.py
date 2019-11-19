@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 
-from . import lpp_pragma
+from .fixes._lpp_pragma_fix import ReportRemainingPragmas
+from .fixes.skip import SkipPragma
 
 
 
@@ -356,8 +357,7 @@ class LatexPreprocessor:
 
     def preprocess(self, nodelist):
         r"""
-        Run all the installed fixes on the given list of nodes `nodelist`.  Also
-        processes ``%%!lpp``\ -pragmas.
+        Run all the installed fixes on the given list of nodes `nodelist`.
         """
 
         if not self.initialized:
@@ -366,12 +366,11 @@ class LatexPreprocessor:
         newnodelist = list(nodelist)
 
         #
-        # execute %%!lpp pragmas -- implemented using the BaseFix class & its
-        # API but *THIS IS NOT AN ACTUAL FIX CLASS* (not in fixes list, etc.)
+        # Execute %%!lpp skip pragmas as a built-in fix before all other fixes
         #
-        lpp_pragma_fix = lpp_pragma._LppPragmaFix()
-        lpp_pragma_fix.set_lpp(self)
-        newnodelist = lpp_pragma_fix.preprocess(newnodelist)
+        skip_pragma_fix = SkipPragma()
+        skip_pragma_fix.set_lpp(self)
+        newnodelist = skip_pragma_fix.preprocess(newnodelist)
 
         #
         # do add_preamble if necessary
@@ -423,6 +422,11 @@ class LatexPreprocessor:
         for fix in self.fixes:
             logger.info("*** Fix %s", fix.fix_name())
             newnodelist = fix.preprocess(newnodelist)
+
+        # check that all LPP pragmas were consumed & report those remaining
+        report_pragma_fix = ReportRemainingPragmas()
+        report_pragma_fix.set_lpp(self)
+        report_pragma_fix.preprocess(newnodelist)
 
         return newnodelist
 

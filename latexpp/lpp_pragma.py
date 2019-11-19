@@ -26,6 +26,9 @@ The API design for this module is far from final, don't rely on it.  This
 whole module could change without notice.
 """
 
+ERROR---ENTIRE FILE IS OBSOLETE
+
+
 import logging
 logger = logging.getLogger(__name__)
 

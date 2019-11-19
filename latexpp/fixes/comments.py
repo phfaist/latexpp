@@ -24,9 +24,9 @@ class RemoveComments(BaseFix):
     def fix_node(self, n, prev_node=None, **kwargs):
 
         if n.isNodeType(LatexCommentNode):
-            # if n.comment.startswith('%!lpp'):
-            #     # DO NOT remove LPP pragmas.
-            #     return None
+            if n.comment.startswith('%!lpp'):
+                # DO NOT remove LPP pragmas -- they will be needed by other fixes.
+                return None
 
             if self.leave_percent:
                 # sys.stderr.write("Ignoring comment: '%s'\n"% node.comment)
