@@ -1,8 +1,1 @@
-# require pylatexenc 2.0
-pylatexenc >= 2.0
-
-# colorlog for pretty logging
-colorlog
-
-# PyYAML for reading our YAML config file
-PyYAML
+. # use install_requires from setup.py (https://stackoverflow.com/a/19081268)
