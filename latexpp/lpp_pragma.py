@@ -26,16 +26,37 @@ The API design for this module is far from final, don't rely on it.  This
 whole module could change without notice.
 """
 
+import logging
+logger = logging.getLogger(__name__)
+
 import re
 
 from pylatexenc import latexwalker
 
 
 # node.comment does not contain first '%' comment char
-rx_lpp_pragma = re.compile(r'^%!lpp\s*(?P<instruction>.*?)\s*(?P<openbrace>\{)?$')
-rx_lpp_pragma_close = re.compile(r'^%!lpp\s*(?P<closebrace>\})\s*$')
+rx_lpp_pragma = re.compile(r'^%!(?P<nospace>\s*)lpp\s*(?P<instruction>[a-z]+)\s*(?P<pragma_args>.*?)\s*(?P<openbrace>\{)?$')
+rx_lpp_pragma_close = re.compile(r'^%!(?P<nospace>\s*)lpp\s*(?P<closebrace>\})\s*$')
 
-def do_pragmas(nodelist, lpp):
+
+## Implemented using fix helpers, *but this is not a proper Fix class!!!*
+
+from .fixes import BaseFix
+
+
+class _LppPragmaFix(BaseFix):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def fix_nodelist(self, nodelist):
+        newnodelist = list(nodelist)
+        _do_pragmas(newnodelist, self.lpp)
+        for n in newnodelist:
+            self.preprocess_child_nodes(n)
+        return newnodelist
+
+
+def _do_pragmas(nodelist, lpp):
     # we can modify nodelist in place.
     j = 0
     while j < len(nodelist):
@@ -43,13 +64,21 @@ def do_pragmas(nodelist, lpp):
         if n is not None and n.isNodeType(latexwalker.LatexCommentNode):
             m = rx_lpp_pragma.match(n.comment)
             if m:
+                if m.group('nospace'):
+                    raise ValueError("LPP Pragmas should start with the exact string '%%!lpp': "
+                                     "‘{}’ @ line {}, col {}".format(
+                                         n.to_latex(),
+                                         *n.parsing_state.lpp_latex_walker
+                                         .pos_to_lineno_colno(n.pos)
+                                     ))
                 instruction = m.group('instruction')
                 if instruction not in pragmas:
                     raise ValueError("Invalid %%!lpp pragma: ‘{}’".format(instruction))
-                pragma = pragmas[instruction]()
+                pragma = pragmas[instruction](lpp=lpp, pragma_args=m.group('pragma_args'))
                 if pragma.requires_block():
                     if m.group('openbrace').strip() != '{':
-                        raise ValueError("Expected open brace after ‘%%!lpp {}’".format(instruction))
+                        raise ValueError("Expected open brace after ‘%%!lpp {}’"
+                                         .format(instruction))
                     # scan until we find the matching '}'
                     jstart = j
                     j += 1
@@ -75,15 +104,25 @@ def do_pragmas(nodelist, lpp):
                 else:
                     j = pragma.execute(nodelist, j, lpp=lpp)
                     continue
+
         j += 1
 
 
 class SkipPragma:
 
+    def __init__(self, **kwargs):
+        super().__init__()
+
     def requires_block(self):
         return True
 
     def execute(self, nodelist, jstart, jend, *, lpp):
+        logger.debug("‘%%%%!lpp skip’ applied from lines %d to %d",
+                     nodelist[jstart].parsing_state.lpp_latex_walker
+                     .pos_to_lineno_colno(nodelist[jstart].pos)[0],
+                     nodelist[jend].parsing_state.lpp_latex_walker
+                     .pos_to_lineno_colno(nodelist[jend].pos-1)[0])
+
         nodelist[jstart:jend] = []
         return jstart
 

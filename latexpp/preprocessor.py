@@ -366,9 +366,12 @@ class LatexPreprocessor:
         newnodelist = list(nodelist)
 
         #
-        # execute %%!lpp pragmas
+        # execute %%!lpp pragmas -- implemented using the BaseFix class & its
+        # API but *THIS IS NOT AN ACTUAL FIX CLASS* (not in fixes list, etc.)
         #
-        lpp_pragma.do_pragmas(newnodelist, lpp=self)
+        lpp_pragma_fix = lpp_pragma._LppPragmaFix()
+        lpp_pragma_fix.set_lpp(self)
+        newnodelist = lpp_pragma_fix.preprocess(newnodelist)
 
         #
         # do add_preamble if necessary
@@ -432,6 +435,8 @@ class LatexPreprocessor:
     def node_to_latex(self, n):
 
         def add_args(n):
+            if n.nodeargd and hasattr(n.nodeargd, 'args_to_latex'):
+                return n.nodeargd.args_to_latex()
             if n.nodeargd is None or n.nodeargd.argspec is None \
                or n.nodeargd.argnlist is None:
                 # no arguments or unknown argument structure

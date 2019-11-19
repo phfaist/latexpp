@@ -2,6 +2,7 @@ r"""
 Module that provides the base class for a *latexpp* fix.
 """
 
+import string
 import logging
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,8 @@ class BaseFix:
             except DontFixThisNode:
                 nn = None
             if nn is None:
-                # make sure child nodes are preprocessed.
+                # keep this node as it is; make sure child nodes are
+                # preprocessed.
                 self.preprocess_child_nodes(n)
                 newnodelist.append(n)
                 continue
@@ -133,13 +135,61 @@ class BaseFix:
                 nn = self._parse_nodes(nn, parsing_state=n.parsing_state)
                 # fall through case is list ->
             if isinstance(nn, list):
-                # preprocess new replacement node list
+                # add new nodes
                 newnodelist.extend(nn)
                 continue
 
             newnodelist.append(nn)
 
+        # make sure in the newnodelist that macro nodes are always protected by
+        # a post-space, e.g., avoid a situation where a macro replacement \a ->
+        # \b removed the post-space and glues the macro invokation to a
+        # subsequent string.
+        for j in range(len(newnodelist)-1):
+            if newnodelist[j].isNodeType(latexwalker.LatexMacroNode):
+                self._ensure_macro_node_maybe_post_space(newnodelist, j)
+
         return newnodelist
+
+    def _ensure_macro_node_maybe_post_space(self, newnodelist, j):
+        # Assumes that newnodelist[j] is a macro node
+
+        n = newnodelist[j]
+        n2 = newnodelist[j+1]
+
+        # The only problematic situations are if the macro name is alpha and it
+        # is followed by a chars node that starts with an ASCII letter
+        if n.macroname[-1:] not in string.ascii_letters:
+            return
+        if not n2.isNodeType(latexwalker.LatexCharsNode) \
+           or n2.chars[0:1] not in string.ascii_letters:
+            return
+
+        if n.nodeargd and n.nodeargd.argnlist:
+            # the macro invocation has arguments
+
+            for j in range(len(n.nodeargd.argnlist)):
+                nla = n.nodeargd.argnlist[-1-j]
+                if nla is None:
+                    continue
+                elif nla.isNodeType(latexwalker.LatexMacroNode):
+                    # last argument is bare macro.  Add macro_post_space *to the
+                    # argument macro node* (if we add it to n.macro_post_space,
+                    # the space will appear before the macro args)
+                    if not nla.macro_post_space:
+                        nla.macro_post_space = ' '
+                        # all ok, done
+                        return
+                else:
+                    # no need for any protection, there is a non-bare-macro
+                    # argument at the end of the specified arguments.
+                    return
+
+        # no args (or empty arg list), so make sure the macro has post_space
+        if not n.macro_post_space:
+            n.macro_post_space = ' ' # nothing -> single space
+
+        return
 
 
     def preprocess_child_nodes(self, node):
@@ -204,24 +254,24 @@ class BaseFix:
         if newnode is None:
             newnode = node
 
-        if newnode.isNodeType(latexwalker.LatexGroupNode):
-            newnode.nodelist = self.preprocess(newnode.nodelist)
-            return newnode
-
         if isinstance(newnode, str):
-            newnode = self._parse_nodes(newnode, node.parsing_state) # re-parse with latexwalker etc.
+            # re-parse with latexwalker etc.
+            newnode = self._parse_nodes(newnode, node.parsing_state)
             # fall through to list case ->
 
         if isinstance(newnode, list):
             nx = newnode
-            # run arguments also through our preprocessor:
-            nx = self.preprocess(nx)
-            return node.parsing_state.lpp_latex_walker.make_node(
+            newnode = node.parsing_state.lpp_latex_walker.make_node(
                 latexwalker.LatexGroupNode,
                 nodelist=nx,
                 delimiters=('{', '}'),
                 parsing_state=node.parsing_state,
+                pos=None, len=None
             )
+
+        if newnode.isNodeType(latexwalker.LatexGroupNode):
+            newnode.nodelist = self.preprocess(newnode.nodelist)
+
         return newnode
 
 

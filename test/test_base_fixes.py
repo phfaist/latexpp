@@ -225,10 +225,13 @@ Also: {\itshape some italic text}."""
         class MyFix(fixes.BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'textbf':
-                    if n.nodeargd is None or not n.nodeargd.argnlist or not n.nodeargd.argnlist[0]:
+                    if n.nodeargd is None or not n.nodeargd.argnlist \
+                       or not n.nodeargd.argnlist[0]:
                         return None
-                    return r'\myboldtext {' + self.preprocess_contents_latex(n.nodeargd.argnlist[0]) + '}'
-                if n.isNodeType(latexwalker.LatexEnvironmentNode) and n.environmentname == 'enumerate':
+                    return r'\myboldtext {' \
+                        + self.preprocess_contents_latex(n.nodeargd.argnlist[0]) + '}'
+                if n.isNodeType(latexwalker.LatexEnvironmentNode) \
+                   and n.environmentname == 'enumerate':
                     if n.nodeargd is None or not n.nodeargd.argnlist or not n.nodeargd.argnlist[0]:
                         return r'\mystuff{' + self.preprocess_contents_latex(n.nodelist) + '}'
                     return r'\mystuff[' + self.preprocess_arg_latex(n, 0) \
@@ -256,10 +259,12 @@ Also: {\itshape some italic text}."""
         class MyFix(fixes.BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'textbf':
-                    if n.nodeargd is None or not n.nodeargd.argnlist or not n.nodeargd.argnlist[0]:
+                    if n.nodeargd is None or not n.nodeargd.argnlist \
+                       or not n.nodeargd.argnlist[0]:
                         return None
                     return r'\myboldtext {' + self.preprocess_arg_latex(n, 0) + '}'
-                if n.isNodeType(latexwalker.LatexEnvironmentNode) and n.environmentname == 'enumerate':
+                if n.isNodeType(latexwalker.LatexEnvironmentNode) \
+                   and n.environmentname == 'enumerate':
                     if n.nodeargd is None or not n.nodeargd.argnlist or not n.nodeargd.argnlist[0]:
                         return r'\mystuff{' + self.preprocess_latex(n.nodelist) + '}'
                     return r'\mystuff[' + self.preprocess_arg_latex(n, 0) \
@@ -296,6 +301,97 @@ Also: {\itshape some italic text}."""
 }
 """
         )
+
+    def test_preprocess_recursively_3(self):
+        
+        class MyFix(fixes.BaseFix):
+            def fix_node(self, n, **kwargs):
+                if n.isNodeType(latexwalker.LatexMacroNode):
+                    #print("Try fix ", n)
+                    if n.macroname == 'ket':
+                        if n.nodeargd is None or not n.nodeargd.argnlist \
+                           or not n.nodeargd.argnlist[0]:
+                            return None
+                        return r'| {' + self.preprocess_arg_latex(n, 0) + r'} \rangle'
+                    if n.macroname == r'rhostate':
+                        return r'\hat\rho'
+                return None
+
+        latex = r"""\ket\rhostate"""
+        lpp = helpers.MockLPP()
+        myfix = MyFix()
+        lpp.install_fix( myfix )
+        lw = lpp.make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+        newnodelist = myfix.preprocess(nodelist)
+        newlatex = lpp.nodelist_to_latex(newnodelist)
+        self.assertEqual(
+            newlatex,
+            r"""| {\hat\rho} \rangle"""
+        )
+
+
+    def test_preprocess_macrospace(self):
+
+        class MyFix(fixes.BaseFix):
+            def fix_node(self, n, **kwargs):
+                if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'rho':
+                    return r'\hat\sigma'
+                return None
+
+        latex = r"""The projected state $P_k\rho  P_{k'}$"""
+
+        lpp = helpers.MockLPP()
+        myfix = MyFix()
+        lpp.install_fix( myfix )
+
+        lw = lpp.make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+
+        newnodelist = myfix.preprocess(nodelist)
+        self.assertEqual(len(newnodelist), 2)
+        self.assertEqual( newnodelist[0], nodelist[0] )
+        self.assertTrue( newnodelist[1].isNodeType(latexwalker.LatexMathNode) )
+        self.assertEqual( len(newnodelist[1].nodelist), 4 )
+        self.assertEqual( (newnodelist[1].nodelist[0], newnodelist[1].nodelist[2]),
+                          (nodelist[1].nodelist[0], nodelist[1].nodelist[2]) )
+        m1 = newnodelist[1].nodelist[1]
+        self.assertEqual(
+            (m1.macroname, m1.macro_post_space,
+             m1.nodeargd.argnlist[0].macroname, m1.nodeargd.argnlist[0].macro_post_space),
+            (r'hat', '', r'sigma', ' ')
+        )
+        
+
+    def test_preprocess_macroarg(self):
+
+        class MyFix(fixes.BaseFix):
+            def fix_node(self, n, **kwargs):
+                if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'hello':
+                    return r'Hello !'
+                return None
+
+        latex = r"""\textbf\hello"""
+
+        lpp = helpers.MockLPP()
+        myfix = MyFix()
+        lpp.install_fix( myfix )
+
+        lw = lpp.make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+
+        newnodelist = myfix.preprocess(nodelist)
+        self.assertEqual(len(newnodelist), 1)
+        self.assertTrue( newnodelist[0].isNodeType(latexwalker.LatexMacroNode) )
+        m = newnodelist[0]
+        self.assertEqual( len(m.nodeargd.argnlist), 1 )
+        g = m.nodeargd.argnlist[0]
+        self.assertTrue( g.isNodeType(latexwalker.LatexGroupNode) )
+        self.assertEqual( len(g.nodelist), 1 )
+        c = g.nodelist[0]
+        self.assertTrue( c.isNodeType(latexwalker.LatexCharsNode) )
+        self.assertEqual( c.chars, "Hello !" )
+        
 
 
 if __name__ == '__main__':

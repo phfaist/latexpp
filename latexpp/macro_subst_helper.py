@@ -154,20 +154,22 @@ class MacroSubstHelper:
         ``%(macroname)s``/``%(environmentname)s``.
         """
 
-        _, repl = self._cfg_argspec_repl(c)
+        argspec, repl = self._cfg_argspec_repl(c)
             
         q = dict(self.context)
 
-        if n.nodeargd is None or n.nodeargd.argnlist is None:
+        if argspec and (n.nodeargd is None or n.nodeargd.argnlist is None):
+            logger.debug("Node arguments were not set, skipping replacement: %r", n)
             raise fixes.DontFixThisNode
 
-        q.update(dict(
-                (str(1+k), v)
-                for k, v in enumerate(
-                        node_contents_latex(n) if n is not None else ''
-                        for n in n.nodeargd.argnlist[argoffset:]
-                )
-            ))
+        if n.nodeargd and n.nodeargd.argnlist:
+            q.update(dict(
+                    (str(1+k), v)
+                    for k, v in enumerate(
+                            node_contents_latex(n) if n is not None else ''
+                            for n in n.nodeargd.argnlist[argoffset:]
+                    )
+                ))
 
         if n.isNodeType(LatexMacroNode):
             q.update(macroname=n.macroname)

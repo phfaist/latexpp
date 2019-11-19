@@ -48,6 +48,22 @@ Hello guys.  Just testin': \textbf{ABC}.
         )
 
 
+    def test_recursive(self):
+
+        lpp = helpers.MockLPP()
+        lpp.install_fix( macro_subst.Subst(
+            macros={
+                'ket': dict(argspec='{', repl=r'\lvert{%(1)s}\rangle'),
+                'rhostate': r'\hat\rho',
+            },
+        ) )
+
+        self.assertEqual(
+            lpp.execute(r"""\ket\rhostate"""),
+            r"""\lvert{\hat\rho}\rangle"""
+        )
+
+
 
 
 if __name__ == '__main__':
