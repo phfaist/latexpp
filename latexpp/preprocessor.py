@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 
-from .fixes._lpp_pragma_fix import ReportRemainingPragmas
-from .fixes.skip import SkipPragma
+from .fixes.builtin.remaining_pragmas import ReportRemainingPragmas
+from .fixes.builtin.skip import SkipPragma
 
 
 

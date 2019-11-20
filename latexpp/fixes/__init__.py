@@ -1,8 +1,4 @@
 r"""
-Module that provides the base class for a *latexpp* fix.
+Package containing a collection of fixes that you can apply to your LaTeX
+code
 """
-
-
-from ._basefix import DontFixThisNode, BaseFix
-
-from ._lpp_pragma_fix import PragmaFix

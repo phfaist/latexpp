@@ -63,7 +63,7 @@ class BaseFix:
         'macros', 'environments', and 'specials' with lists of corresponding
         definitions.  The return value of `specs()` should be suitable for use
         as keyword arguments to
-        `macrospec.LatexContextDb.add_context_category()`.
+        :py:meth:`pylatexenc.macrospec.LatexContextDb.add_context_category()`.
         """
         return None
 
