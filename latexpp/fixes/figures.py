@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 from pylatexenc.latexwalker import LatexMacroNode
 #from pylatexenc.latexencode import unicode_to_latex
 
-from latexpp.fixes import BaseFix
+from latexpp.fix import BaseFix
 
 
 exts = ['', '.pdf', '.png', '.jpg', '.jpeg', '.eps']

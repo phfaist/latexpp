@@ -6,7 +6,7 @@ from pylatexenc.latexwalker import LatexMacroNode, LatexEnvironmentNode
 
 from latexpp.macro_subst_helper import MacroSubstHelper
 
-from latexpp.fixes import BaseFix
+from latexpp.fix import BaseFix
 
 
 class Subst(BaseFix):

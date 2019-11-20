@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 from pylatexenc.macrospec import SpecialsSpec, ParsedMacroArgs, MacroStandardArgsParser
 from pylatexenc import latexwalker
 
-from latexpp.fixes import BaseFix
+from latexpp.fix import BaseFix
 
 
 

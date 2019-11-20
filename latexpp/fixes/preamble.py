@@ -1,5 +1,5 @@
 
-from latexpp.fixes import BaseFix
+from latexpp.fix import BaseFix
 
 
 class AddPreamble(BaseFix):

@@ -1,7 +1,7 @@
 
 from pylatexenc.latexwalker import LatexCommentNode, LatexMacroNode
 
-from latexpp.fixes import PragmaFix
+from latexpp.pragma_fix import PragmaFix
 
 
 class SkipPragma(PragmaFix):

@@ -5,9 +5,7 @@ import helpers
 
 from pylatexenc import latexwalker
 
-from latexpp import fixes
-
-
+from latexpp.fix import BaseFix
 
 
 class TestBaseFix(unittest.TestCase):
@@ -18,7 +16,7 @@ class TestBaseFix(unittest.TestCase):
 
     def test_preprocess_00(self):
         
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'testmacro':
                     return latexwalker.LatexMacroNode(macroname=r'replacemacro',
@@ -57,7 +55,7 @@ Also: {\itshape some italic text}."""
 
     def test_preprocess_00b(self):
         
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'testmacro':
                     return r'\newmacro {}'
@@ -90,7 +88,7 @@ Also: {\itshape some italic text}."""
 
     def test_preprocess_01(self):
         
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'testmacro':
                     return r'\newmacro {}'
@@ -117,7 +115,7 @@ Also: {\itshape some italic text}."""
 
     def test_preprocess_02(self):
 
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 #print("fix_node: ", n)
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'testmacro':
@@ -222,7 +220,7 @@ Also: {\itshape some italic text}."""
 
     def test_preprocess_recursively(self):
         
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'textbf':
                     if n.nodeargd is None or not n.nodeargd.argnlist \
@@ -256,7 +254,7 @@ Also: {\itshape some italic text}."""
 
     def test_preprocess_recursively_2(self):
         
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'textbf':
                     if n.nodeargd is None or not n.nodeargd.argnlist \
@@ -304,7 +302,7 @@ Also: {\itshape some italic text}."""
 
     def test_preprocess_recursively_3(self):
         
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode):
                     #print("Try fix ", n)
@@ -333,7 +331,7 @@ Also: {\itshape some italic text}."""
 
     def test_preprocess_macrospace(self):
 
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'rho':
                     return r'\hat\sigma'
@@ -365,7 +363,7 @@ Also: {\itshape some italic text}."""
 
     def test_preprocess_macroarg(self):
 
-        class MyFix(fixes.BaseFix):
+        class MyFix(BaseFix):
             def fix_node(self, n, **kwargs):
                 if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'hello':
                     return r'Hello !'

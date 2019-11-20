@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 from pylatexenc.latexwalker import LatexMacroNode
 
-from latexpp.fixes import BaseFix
+from latexpp.fix import BaseFix
 
 
 def node_get_usepackage(n, fix):

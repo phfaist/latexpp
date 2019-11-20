@@ -1,6 +1,7 @@
 import os
 import os.path
 
+import json
 import logging
 import unittest
 
@@ -76,6 +77,33 @@ class FakeOsPath:
 
     def exists(self, fn):
         return fn in self.existing_filenames
+
+
+
+class LatexWalkerNodesComparer:
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def assert_nodelists_equal(self, nodelist, d, *, line_numbers=True):
+
+        from pylatexenc.latexwalker import make_json_encoder
+
+        lw = next(n.parsing_state.lpp_latex_walker
+                  for n in nodelist
+                  if n is not None,
+                  None)
+
+        if lw is not None:
+            json_cls = make_json_encoder(latexwalker, use_line_numbers=line_numbers)
+        else:
+            json_cls = None
+
+        # make (json-serializable) data tree from nodelist in the same way as we make the JSON object
+        newd = json.load(
+            json.dumps(nodelist, cls=json_cls)
+        )
+
+        self.assertEqual(newd, d)
 
 
 

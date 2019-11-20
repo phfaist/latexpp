@@ -10,7 +10,7 @@ from pylatexenc import latexwalker
 
 from latexpp.macro_subst_helper import MacroSubstHelper
 
-from latexpp.fixes import BaseFix
+from latexpp.fix import BaseFix
 
 
 # parse entropy macros etc.

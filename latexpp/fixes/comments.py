@@ -1,7 +1,7 @@
 
 from pylatexenc.latexwalker import LatexCommentNode, LatexMacroNode
 
-from latexpp.fixes import BaseFix
+from latexpp.fix import BaseFix
 
 
 class RemoveComments(BaseFix):

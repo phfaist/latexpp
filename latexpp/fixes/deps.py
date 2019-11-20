@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from latexpp.fixes import BaseFix
+from latexpp.fix import BaseFix
 
 
 class CopyFiles(BaseFix):
