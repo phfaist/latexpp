@@ -8,15 +8,15 @@ API documentation for the *latexpp* package
    :local:
 
 
-Module `latexpp.fixes` — the base fix class
+Module `latexpp.fix` — the base fix class
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: latexpp.fixes
+.. automodule:: latexpp.fix
 
-.. autoclass:: latexpp.fixes.BaseFix
+.. autoclass:: latexpp.fix.BaseFix
    :members:
 
-.. autoclass:: latexpp.fixes.DontFixThisNode
+.. autoclass:: latexpp.fix.DontFixThisNode
    :show-inheritance:
    :members:
 
@@ -27,6 +27,15 @@ Module `latexpp.macro_subst_helper` — helper for macro replacements
 .. automodule:: latexpp.macro_subst_helper
 
 .. autoclass:: latexpp.macro_subst_helper.MacroSubstHelper
+   :members:
+
+
+Module `latexpp.fix` — fix class working with lpp-pragmas
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: latexpp.pragma_fix
+
+.. autoclass:: latexpp.pragma_fix.PragmaFix
    :members:
 
 

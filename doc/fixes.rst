@@ -69,6 +69,12 @@ General fixes — bibliography
 
 .. autoclass:: latexpp.fixes.bib.ApplyAliases
 
+General fixes — act on parts of your document
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: latexpp.fixes.regional_fix.Apply
+
+
 General fixes — create archive with all files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -6,7 +6,7 @@ Writing a custom fix
 
 . ... WRITE ME ...
 
-. ... Derive a subclass of :py:class:`latexpp.fixes.BaseFix`.
+. ... Derive a subclass of :py:class:`latexpp.fix.BaseFix`.
 
 . ... see examples ... make sure you call `preprocess_latex()` on inner contents
 to ensure it is preprocessed, too...

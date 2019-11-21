@@ -6,12 +6,16 @@ from latexpp.pragma_fix import PragmaFix
 
 class SkipPragma(PragmaFix):
     r"""
-    Remove all sections in the LaTeX source marked by the LPP-pragma::
+    This fix remove all sections in the LaTeX source marked by the LPP-pragma::
 
       %%!lpp skip {
       ...
       %%!lpp }
 
+    .. note::
+
+       You should NOT invoke this fix directly, it is automatically
+       invoked for you!
     """
     def __init__(self):
         super().__init__()

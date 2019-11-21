@@ -34,8 +34,8 @@ class PragmaFix(BaseFix):
     
     def fix_nodelist(self, nodelist):
         r"""
-        Reimplemented from :py:`latexpp.fix.BaseFix`.  Subclasses should generally
-        not reimplement this.
+        Reimplemented from :py:class:`latexpp.fix.BaseFix`.  Subclasses should
+        generally not reimplement this.
         """
         newnodelist = list(nodelist)
 
@@ -73,11 +73,11 @@ class PragmaFix(BaseFix):
           - `jstart` and `jend` are the indices in `nodelist` that point to the
             opening lpp pragma comment node and *one past* the closing lpp
             pragma comment node. This is like a Python range; for instance, you
-            can remove the entire pragma block with ``nodelist[jstart:jend] =
-            []``.
+            can remove the entire pragma block with
+            ``nodelist[jstart:jend] = []``.
 
           - `instruction` is the pragma instruction name (the word after
-            ``%%!lpp ``).
+            ``%%!lpp``).
 
           - `args` is a list of any remaining arguments after the instruction
             (excluding the opening brace).
@@ -113,7 +113,7 @@ class PragmaFix(BaseFix):
             pragma comment node that this function might want to handle.
 
           - `instruction` is the pragma instruction name (the word after
-            ``%%!lpp ``).
+            ``%%!lpp``).
 
           - `args` is a list of any remaining arguments after the instruction.
 

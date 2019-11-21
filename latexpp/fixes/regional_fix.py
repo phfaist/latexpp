@@ -6,15 +6,22 @@ from latexpp.pragma_fix import PragmaFix
 
 class Apply(PragmaFix):
     r"""
-    Remove all LaTeX comments from the latex document.
+    Apply a regional fix, i.e., apply a set of rules to a delimited section of
+    your document.
 
-    Arguments:
+    This fix looks for one or more delimited sections in your document (see
+    below) whose name matches the given argument `region`.  On those delimited
+    sections, a specified list of custom fixes are executed.  The fixes to run
+    are specified in the `fixes` argument, with a format that is exactly the
+    same as the global `fixes:` dictionary key in the `lppconfig.yml` file.
 
-    - `leave_percent`: If `True` (the default), then a full LaTeX comment is
-      replaced by an empty comment, i.e., a single percent sign and whatever
-      whitespace followed the comment (the whitespace is anyways ignored by
-      LaTeX).  If `False`, then the comment and following whitespace is removed
-      entirely.
+    The section of your document that you would like to apply the specified
+    fixes to is marked using a ``%%!lpp`` pragma instruction of the form::
+
+      %%!lpp regional-fix My-Region-Name-1 {
+      ...
+      ...
+      %%!lpp }
     """
     def __init__(self, region=None, fixes=None):
         super().__init__()
