@@ -1,11 +1,13 @@
 import os
 import os.path
 
-import json
 import logging
 import unittest
 
+from pylatexenc import latexwalker, macrospec
+
 from latexpp import preprocessor 
+
 
 class MockLPP(preprocessor.LatexPreprocessor):
     def __init__(self, mock_files={}):
@@ -40,7 +42,10 @@ class MockLPP(preprocessor.LatexPreprocessor):
         #logging.getLogger(__name__).debug("mock execute_file(): %s -> %s, s=%r",
         #                                  fname, output_fname, s)
 
-        outdata = self.execute_string(s, input_source='"file" {} [if you know what I mean]'.format(fname))
+        outdata = self.execute_string(
+            s,
+            input_source='"file" {} if you know what I mean *wink wink nudge nudge*'.format(fname)
+        )
 
         self.register_output_file(output_fname)
 
@@ -64,6 +69,10 @@ class MockLPP(preprocessor.LatexPreprocessor):
 
 
 
+def make_latex_walker(s, **kwargs):
+    return preprocessor._LPPLatexWalker(s, lpp=None, **kwargs)
+
+
 
 class FakeOsPath:
     def __init__(self, existing_filenames):
@@ -80,28 +89,62 @@ class FakeOsPath:
 
 
 
+
+def nodelist_to_d(nodelist, use_line_numbers=False, use_detailed_position=False):
+    
+    def get_obj(x):
+        if x is None:
+            return None
+
+        if isinstance(x, (list, tuple)):
+            return [get_obj(y) for y in x]
+
+        if isinstance(x, dict):
+            return {k: get_obj(v) for k, v in x.items()}
+
+        if isinstance(x, (str, int, bool)):
+            return x
+
+        if isinstance(x, latexwalker.LatexNode):
+            n = x
+            d = {
+                'nodetype': n.__class__.__name__
+            }
+            for fld in n._fields:
+                d[fld] = n.__dict__[fld]
+
+            pos = d.pop('pos', None)
+            len_ = d.pop('len', None)
+
+            if use_line_numbers:
+                lineno, colno = \
+                    n.parsing_state.lpp_latex_walker.pos_to_lineno_colno(n.pos)
+
+                d['lineno'] = lineno
+
+                if use_detailed_position:
+                    d['colno'] = colno
+                    d['pos'] = pos
+                    d['len'] = len_
+
+            return get_obj(d)
+
+        if isinstance(x, macrospec.ParsedMacroArgs):
+            return get_obj(x.to_json_object())
+
+        raise ValueError("Unknown value to serialize: {!r}".format(x))
+
+    return get_obj(nodelist)
+
+
+
 class LatexWalkerNodesComparer:
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def assert_nodelists_equal(self, nodelist, d, *, line_numbers=True):
+    def assert_nodelists_equal(self, nodelist, d, **kwargs):
 
-        from pylatexenc.latexwalker import make_json_encoder
-
-        lw = next(n.parsing_state.lpp_latex_walker
-                  for n in nodelist
-                  if n is not None,
-                  None)
-
-        if lw is not None:
-            json_cls = make_json_encoder(latexwalker, use_line_numbers=line_numbers)
-        else:
-            json_cls = None
-
-        # make (json-serializable) data tree from nodelist in the same way as we make the JSON object
-        newd = json.load(
-            json.dumps(nodelist, cls=json_cls)
-        )
+        newd = nodelist_to_d(nodelist, **kwargs)
 
         self.assertEqual(newd, d)
 
@@ -110,3 +153,5 @@ class LatexWalkerNodesComparer:
 def test_main():
     logging.basicConfig(level=logging.DEBUG)
     unittest.main()
+
+
