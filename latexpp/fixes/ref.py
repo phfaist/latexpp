@@ -194,22 +194,44 @@ class ExpandRefs(BaseFix):
 
         logger.debug("collected_cmds = %r", self.collected_cmds)
 
-        #
-        # recompose the whole document preamble and get refs
-        #
-        try:
-            i = next( (i for i, n in enumerate(nodelist)
-                       if (n.isNodeType(latexwalker.LatexEnvironmentNode)
-                           and n.environmentname == 'document')) )
-        except StopIteration:
-            raise ValueError("Couldn't find \\begin{document}")
-        preamblelist = nodelist[:i]
-        
-        self._get_run_ltx_resolved_cmds("".join([n.to_latex() for n in preamblelist]))
+        doc_preamble = self._get_doc_preamble(nodelist)
+        self._get_run_ltx_resolved_cmds(doc_preamble)
         
         self.stage = "replace-crefs"
 
         return super().preprocess(newnodelist)
+
+    def _get_doc_preamble(self, doc_nodelist):
+        #
+        # Use original, unmodifed doc preamble.  So we have sections removed by
+        # %%!lpp skip pragmas, etc. -- it's just safer
+        #
+        with open(self.lpp.main_doc_fname) as f:
+            full_raw_doc_contents = f.read()
+
+        # Minor caveat -- \begin{document} must be in the main latex file (but
+        # we can probably ignore the rare edge cases).
+        m = re.search(r'\\begin\s*\{document\}', full_raw_doc_contents)
+        if m is None:
+            raise ValueError("Couldn't find \\begin{document} in main file %s"%(self.lpp.main_doc_fname))
+        
+        return full_raw_doc_contents[:m.start()]
+
+    def _get_doc_preamble_recomposed(self, doc_nodelist):
+        # this method should not be used at all, except in the tests with a Mock
+        # LPP
+
+        #
+        # recompose the whole document preamble and get refs
+        #
+        try:
+            i = next( (i for i, n in enumerate(doc_nodelist)
+                       if (n.isNodeType(latexwalker.LatexEnvironmentNode)
+                           and n.environmentname == 'document')) )
+        except StopIteration:
+            raise ValueError("Couldn't find \\begin{document}")
+        preamblelist = doc_nodelist[:i]
+        return "".join([n.to_latex() for n in preamblelist])
 
 
     def fix_node(self, n, **kwargs):
@@ -261,7 +283,7 @@ class ExpandRefs(BaseFix):
                 one_not_ok = True
         if one_ok and one_not_ok:
             logger.warning("Reference ‘%s’ has one label with the requested prefix, and "
-                           "one label without.  I cannot expand it!")
+                           "one label without.  I cannot expand it!" %(n.to_latex()))
         if one_not_ok:
             return False
         return True
@@ -416,13 +438,13 @@ class ExpandRefs(BaseFix):
                     with_hyperlink_code = r"""
 \def\lpp@cref@hyperlink#1#2#3\@nil{%
   % #1 = url, #2 = target, #3 = link text  -- (?)
-  \if\relax\detokenize\expandafter{#1}\relax % empty URL
+  \if\relax\detokenize\expandafter{#1}\relax% empty URL
     \protect\hyperlink{#2}{#3}%
   \else
-    \if\relax\detokenize\expandafter{#2}\relax % empty target
+    \if\relax\detokenize\expandafter{#2}\relax% empty target
       \protect\href{#1}{#3}%
     \else
-      <latexpp.fixes.ref: Both link URL and target provided: `#1' and `#2' -- I can't handle this, sorry. \ERROR>#3
+      \protect\hyperref{#1}{}{#2}{#3}%
     \fi
   \fi
 }%  %\protect\hyperlink[#2]{#3}}
@@ -616,6 +638,8 @@ class ApplyPoorMan(BaseFix):
                     s, pat, repl, g = sedline.split('/')
                     pat = sed_to_py_re(pat)
                     replacements.append( (re.compile(pat), repl) )
+
+        lpp = self.lpp # ### NEEDED, RIGHT ??
 
         # now apply these replacements onto the final file
         with open(os.path.join(lpp.output_dir, lpp.main_doc_output_fname)) as of:

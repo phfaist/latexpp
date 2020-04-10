@@ -61,6 +61,7 @@ Equation~(\ref{eq:test}) on page~\pageref{eq:test} reads:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(only_ref_types='ref', debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: r"""
 \relax 
 \newlabel{eq:test}{{1}{1}}
@@ -108,6 +109,7 @@ Equation~(\ref{eq:test}) [Eq.~(\ref*{eq:test}) without link]:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(only_ref_types='ref', debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{eq:test}{{1}{1}{}{equation.0.1}{}}
 """
@@ -156,6 +158,7 @@ Equation~(\ref{eq:test}) [Eq.~(\ref*{eq:test}) without link]:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(only_ref_types='ref', make_hyperlinks=False, debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{eq:test}{{1}{1}{}{equation.0.1}{}}
 """
@@ -204,6 +207,7 @@ Equation~\eqref{eq:test} reads:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(only_ref_types='ams-eqref', debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: r"""
 \relax 
 \newlabel{eq:test}{{1}{1}}
@@ -253,6 +257,7 @@ Equation~\eqref{eq:test}:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(only_ref_types='ams-eqref', debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{eq:test}{{1}{1}{}{equation.0.1}{}}
 """
@@ -314,6 +319,7 @@ And here is another lemma:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{lemma:test}{{1}{1}{}{lemma.1}{}}
 \newlabel{lemma:test@cref}{{[lemma][1][]1}{1}}
@@ -385,6 +391,7 @@ And here is another lemma:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(make_hyperlinks=False, debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{lemma:test}{{1}{1}{}{lemma.1}{}}
 \newlabel{lemma:test@cref}{{[lemma][1][]1}{1}}
@@ -456,6 +463,7 @@ And here is another lemma:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(make_hyperlinks=True, debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: r"""
 \newlabel{lemma:test}{{1}{1}}
 \newlabel{lemma:test@cref}{{[lemma][1][]1}{1}}
@@ -534,6 +542,7 @@ And here is another lemma:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{lemma:test}{{1}{1}{}{lemma.1}{}}
 \newlabel{lemma:test@cref}{{[lemma][1][]1}{1}}
@@ -619,6 +628,7 @@ And here is another lemma:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(make_hyperlinks=False, debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{lemma:test}{{1}{1}{}{lemma.1}{}}
 \newlabel{lemma:test@cref}{{[lemma][1][]1}{1}}
@@ -706,6 +716,7 @@ And here is another lemma:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(only_ref_types=('cleveref',), debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{lemma:test}{{1}{1}{}{lemma.1}{}}
 \newlabel{lemma:test@cref}{{[lemma][1][]1}{1}}
@@ -798,6 +809,7 @@ And here is another lemma:
 
         lpp = helpers.MockLPP()
         fix = ref.ExpandRefs(expand_only_prefixes=['A-','B-'], debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
         fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
 \newlabel{A-lemma:test}{{1}{1}{}{lemma.1}{}}
 \newlabel{A-lemma:test@cref}{{[lemma][1][]1}{1}}
