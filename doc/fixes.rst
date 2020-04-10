@@ -43,6 +43,8 @@ General fixes — document contents & formatting
 
 .. autoclass:: latexpp.fixes.macro_subst.Subst
 
+.. autoclass:: latexpp.fixes.ref.ExpandRefs
+
 General fixes — used packages
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
