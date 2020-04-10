@@ -30,8 +30,8 @@ class CopyAndInputBbl(BaseFix):
       to `outbblname`.  By default this derived from the main output latex file
       name.
 
-    - `eval_input`: Paste the BBL file contents into the TeX file rather than
-      issuing a '\input{XXX.bbl}' directive.
+    - `eval_input`: Directly paste the BBL file contents into the TeX file
+      rather than issuing a '\input{XXX.bbl}' directive.
     """
 
     def __init__(self, bblname=None, outbblname=None, eval_input=False):
@@ -66,10 +66,13 @@ class CopyAndInputBbl(BaseFix):
 
             self.lpp.check_autofile_up_to_date(bblname)
 
+            # input BBL contents in any case at least to check for nonascii chars
+            with open(bblname, 'r') as f:
+                bbl_contents = f.read()
+            # check for nonascii chars
+            check_for_nonascii(bbl_contents, what='BBL file {}'.format(bblname))
+
             if self.eval_input:
-                # input BBL contents
-                with open(bblname, 'r') as f:
-                    bbl_contents = f.read()
                 return bbl_contents
             else:
                 # copy BBL file
@@ -77,6 +80,15 @@ class CopyAndInputBbl(BaseFix):
                 return r'\input{%s}'%(outbblname)
 
         return None
+
+def check_for_nonascii(x, what):
+    cna = next( (ord(c) for c in x if ord(c) >= 127),
+                None )
+    if cna is None:
+        # all ok
+        return True
+    logger.warning("Non-ascii character ‘%s’ (U+%04x) encountered in %s", chr(cna), cna, what)
+    return False
 
 
 class ApplyAliases(BaseFix):

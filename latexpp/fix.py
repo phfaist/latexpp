@@ -319,8 +319,9 @@ class BaseFix:
         Subclasses should inspect `node` and return one of either:
 
         - return `None`: If the present `node` does not need to be transformed
-          in any way.  (In this case, this method does not need to inspect child
-          nodes, as they will be visited separately.)
+          in any way.  (In this case, the reimplemented method does not need to
+          inspect child nodes, as they will automatically be visited
+          separately.)
 
         - return a string: The string is parsed into a node list, and the
           resulting nodes are used as a replacement of the original `node`.
@@ -333,7 +334,7 @@ class BaseFix:
         recursing into child nodes*.  This can be done by using the methods
         :py:meth:`preprocess()`, :py:meth:`preprocess_child_nodes()`,
         :py:meth:`preprocess_latex()`, and
-        :py:meth:`preprocess_contents_latex()` on the nodes that
+        :py:meth:`preprocess_contents_latex()` on the new nodes.
 
         If this method returns `None`, then child nodes will be preprocessed
         automatically.

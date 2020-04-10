@@ -77,6 +77,8 @@ setup(
         "PyYAML", # PyYAML for reading our YAML config file
     ],
 
+    python_requires = ">=3.7", # 3.7 for some features like subprocess.run(capture_output=...), etc.
+
     package_data = {
     },
 )

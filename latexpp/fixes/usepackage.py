@@ -99,11 +99,17 @@ class InputLocalPkgs(BaseFix):
        [FIXME]: This will most probably not work if your package processes
        package options.
 
+    The copied local packages can also have their own set of "fixes" applied,
+    too, as if you had run a separate instance of LatexPP on the pacakge file.
+
     Arguments:
 
     - `packages`: a list of package names (without the '.sty' extension) for
       which we should include the style file contents into the file.  The style
       file must reside in the current working directory.
+
+    - `fixes`: a set of fixes to run on the local package files.  There is no
+      artificial limit to the recursion :)
     """
     def __init__(self, packages=None, fixes=None):
         super().__init__()

@@ -27,6 +27,9 @@ class PragmaFix(BaseFix):
     ``%%!lpp <instruction> [<args>] [{ ... %%!lpp }]`` constructs.  The fix
     may then choose to process these pragma instructions, and their
     surrounding node lists, as it wishes.
+
+    [PhF coming back at this later:] IIRC: Do not try to add a pragma fix name
+    in the lppconfig list of fixes.
     """
 
     def __init__(self):
