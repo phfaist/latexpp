@@ -758,6 +758,104 @@ And here is another lemma:
 
 
 
+    def test_crefs_with_prefixes(self):
+        
+        latex = r"""
+\documentclass[11pt]{article}
+
+\usepackage{amsthm}
+\newtheorem{lemma}{Lemma}
+
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+\begin{document}
+Try \cref*{A-lemma:test}; \cref*{B-eq:hi}; \cref{B-eq:hi,lemma:test2}; \cref{lemma:test2}
+Also \crefrange*{A-eq:hello}{B-eq:hi}; \cpagerefrange{A-eq:hello}{B-eq:hi}
+
+Here is a lemma:
+\begin{lemma}
+  \label{A-lemma:test}
+  Test lemma. 
+\end{lemma}
+Here is an equation
+\begin{equation}
+  \label{A-eq:hello}
+  a + b = c \ .
+\end{equation}
+and another:
+\begin{equation}
+  \label{B-eq:hi}
+  x = y\ .
+\end{equation}
+And here is another lemma:
+\begin{lemma}
+  \label{lemma:test2}
+  Another test lemma.
+\end{lemma}
+\end{document}
+"""
+
+        lpp = helpers.MockLPP()
+        fix = ref.ExpandRefs(expand_only_prefixes=['A-','B-'], debug_latex_output=True)
+        fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
+\newlabel{A-lemma:test}{{1}{1}{}{lemma.1}{}}
+\newlabel{A-lemma:test@cref}{{[lemma][1][]1}{1}}
+\newlabel{A-eq:hello}{{1}{1}{}{equation.0.1}{}}
+\newlabel{A-eq:hello@cref}{{[equation][1][]1}{1}}
+\newlabel{B-eq:hi}{{2}{1}{}{equation.0.2}{}}
+\newlabel{B-eq:hi@cref}{{[equation][2][]2}{1}}
+\newlabel{lemma:test2}{{2}{1}{}{lemma.2}{}}
+\newlabel{lemma:test2@cref}{{[lemma][2][]2}{1}}
+"""
+        lpp.install_fix( fix )
+
+        self.assertEqual(
+            lpp.execute(latex),
+            # NOTE: KEEP \protect in output, because the substitution might
+            # happen somewhere fragile.
+            r"""
+\documentclass[11pt]{article}
+
+\usepackage{amsthm}
+\newtheorem{lemma}{Lemma}
+
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+\begin{document}
+Try lemma\protect \nobreakspace  1; eq.\protect \nobreakspace  \protect \textup  {(2)}; \cref{B-eq:hi,lemma:test2}; \cref{lemma:test2}
+Also eqs.\protect \nobreakspace  \protect \textup  {(1)} to\protect \nobreakspace  \protect \textup  {(2)}; pages\protect \nobreakspace  \protect \hyperlink {equation.0.1}{1} to\protect \nobreakspace  \protect \hyperlink {equation.0.2}{1}
+
+Here is a lemma:
+\begin{lemma}
+  \label{A-lemma:test}
+  Test lemma. 
+\end{lemma}
+Here is an equation
+\begin{equation}
+  \label{A-eq:hello}
+  a + b = c \ .
+\end{equation}
+and another:
+\begin{equation}
+  \label{B-eq:hi}
+  x = y\ .
+\end{equation}
+And here is another lemma:
+\begin{lemma}
+  \label{lemma:test2}
+  Another test lemma.
+\end{lemma}
+\end{document}
+"""
+        )
+
+
+
+
+
+
 
 if __name__ == '__main__':
     import logging

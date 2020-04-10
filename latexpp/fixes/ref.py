@@ -16,30 +16,49 @@ from latexpp.fix import BaseFix
 from .usepackage import node_get_usepackage # for detecting \usepackage{cleveref}
 
 _REFCMDS =  {
-    'ref': [
-        MacroSpec('ref', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('pageref', args_parser=MacroStandardArgsParser('*{')),
-    ],
-    'ams-eqref': [
-        MacroSpec('eqref', args_parser=MacroStandardArgsParser('*{')),
-    ],
-    'cleveref': [
-        MacroSpec('cref', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('Cref', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('cpageref', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('Cpageref', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('crefrange', args_parser=MacroStandardArgsParser('*{{')),
-        MacroSpec('Crefrange', args_parser=MacroStandardArgsParser('*{{')),
-        MacroSpec('cpagerefrange', args_parser=MacroStandardArgsParser('*{{')),
-        MacroSpec('Cpagerefrange', args_parser=MacroStandardArgsParser('*{{')),
-        MacroSpec('namecref', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('nameCref', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('lcnamecref', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('namecrefs', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('nameCrefs', args_parser=MacroStandardArgsParser('*{')),
-        MacroSpec('lcnamecrefs', args_parser=MacroStandardArgsParser('*{')),
-    ]
+    'ref': {
+        'ref': {'macro': MacroSpec('ref', args_parser=MacroStandardArgsParser('*{')),
+                'label_args': [1]},
+        'pageref': {'macro': MacroSpec('pageref', args_parser=MacroStandardArgsParser('*{')),
+                    'label_args': [1]},
+    },
+    'ams-eqref': {
+        'eqref': {'macro': MacroSpec('eqref', args_parser=MacroStandardArgsParser('*{')),
+                  'label_args': [1]},
+    },
+    'cleveref': {
+        'cref': {'macro': MacroSpec('cref', args_parser=MacroStandardArgsParser('*{')),
+                 'label_args': [1]},
+        'Cref': {'macro': MacroSpec('Cref', args_parser=MacroStandardArgsParser('*{')),
+                 'label_args': [1]},
+        'cpageref': {'macro': MacroSpec('cpageref', args_parser=MacroStandardArgsParser('*{')),
+                     'label_args': [1]},
+        'Cpageref': {'macro': MacroSpec('Cpageref', args_parser=MacroStandardArgsParser('*{')),
+                     'label_args': [1]},
+        'crefrange': {'macro': MacroSpec('crefrange', args_parser=MacroStandardArgsParser('*{{')),
+                      'label_args': [1,2]},
+        'Crefrange': {'macro': MacroSpec('Crefrange', args_parser=MacroStandardArgsParser('*{{')),
+                      'label_args': [1,2]},
+        'cpagerefrange': {'macro': MacroSpec('cpagerefrange', args_parser=MacroStandardArgsParser('*{{')),
+                          'label_args': [1,2]},
+        'Cpagerefrange': {'macro': MacroSpec('Cpagerefrange', args_parser=MacroStandardArgsParser('*{{')),
+                          'label_args': [1,2]},
+        'namecref': {'macro': MacroSpec('namecref', args_parser=MacroStandardArgsParser('*{')),
+                     'label_args': [1]},
+        'nameCref': {'macro': MacroSpec('nameCref', args_parser=MacroStandardArgsParser('*{')),
+                     'label_args': [1]},
+        'lcnamecref': {'macro': MacroSpec('lcnamecref', args_parser=MacroStandardArgsParser('*{')),
+                       'label_args': [1]},
+        'namecrefs': {'macro': MacroSpec('namecrefs', args_parser=MacroStandardArgsParser('*{')),
+                      'label_args': [1]},
+        'nameCrefs': {'macro': MacroSpec('nameCrefs', args_parser=MacroStandardArgsParser('*{')),
+                      'label_args': [1]},
+        'lcnamecrefs': {'macro': MacroSpec('lcnamecrefs', args_parser=MacroStandardArgsParser('*{')),
+                        'label_args': [1]},
+    }
 }
+
+
 
 class ExpandRefs(BaseFix):
     r"""
@@ -58,9 +77,21 @@ class ExpandRefs(BaseFix):
     - `make_hyperlinks`: If the `hyperref` package is loaded, then hyperlinks
       commands to the appropriate targets are generated in the document.
 
+    - `expand_only_prefixes=['LIST', 'OF', 'PREFIXES']`: Only do the expansion
+      for reference labels that start with one of the given prefixes.  This is
+      useful, for instance, if you load labels from external documents with a
+      prefix and you only want to expand those.
+
+      One way to load external labels is with the `zref-xr` package:
+
+          \usepackage{zref-xr}
+          \zxrsetup{toltxlabel}
+          \zexternaldocument*[PREFIX]{OtherDocument}
+
     - `remove_usepackage_cleveref`: remove any occurrence of
       ``\usepackage[options..]{cleveref}``.  Default: True if 'cleveref' is one
-      of the reference types acted upon (see `only_ref_types`), otherwise False.
+      of the reference types acted upon (see `only_ref_types`) and if the
+      expansion is not for specific prefixes, otherwise False.
   
     - `latex_command`: latex executable to run.  By default, 'pdflatex'.  (Can
       also specify absolute path.)
@@ -71,6 +102,7 @@ class ExpandRefs(BaseFix):
     def __init__(self, *,
                  only_ref_types=None,
                  make_hyperlinks=True,
+                 expand_only_prefixes=False,
                  remove_usepackage_cleveref=None,
                  latex_command='pdflatex',
                  debug_latex_output=False):
@@ -89,10 +121,13 @@ class ExpandRefs(BaseFix):
 
         self.make_hyperlinks = make_hyperlinks
 
+        self.expand_only_prefixes = expand_only_prefixes
+
         if remove_usepackage_cleveref is not None:
             self.remove_usepackage_cleveref = remove_usepackage_cleveref
         else:
-            self.remove_usepackage_cleveref = ('cleveref' in self.ref_types)
+            self.remove_usepackage_cleveref = \
+                ('cleveref' in self.ref_types and not  self.expand_only_prefixes)
 
         self.debug_latex_output = debug_latex_output
 
@@ -101,7 +136,7 @@ class ExpandRefs(BaseFix):
         self.resolved_cmds = {}
         self.latex_command = latex_command
 
-        self.cmd_macros = {reftype: {m.macroname: m for m in _REFCMDS[reftype]}
+        self.cmd_macros = {reftype: {k: d['macro'] for k,d in _REFCMDS[reftype].items()}
                            for reftype in self.ref_types}
 
     def specs(self, **kwargs):
@@ -183,7 +218,8 @@ class ExpandRefs(BaseFix):
             if n.isNodeType(latexwalker.LatexMacroNode):
                 for reftype in self.ref_types:
                     if n.macroname in self.cmd_macros[reftype]:
-                        self.collected_cmds[reftype].append(n.to_latex())
+                        if self._check_prefix(reftype, n):
+                            self.collected_cmds[reftype].append(n.to_latex())
 
         elif self.stage == "replace-crefs":
 
@@ -196,8 +232,8 @@ class ExpandRefs(BaseFix):
                     if n.macroname in self.cmd_macros[reftype]:
                         ltx = n.to_latex()
                         if ltx not in self.resolved_cmds[reftype]:
-                            raise RuntimeError("No resolved substitution for cleveref expression ‘{}’"
-                                               .format(ltx))
+                            # probably not the requested prefix
+                            return None
                         return self.resolved_cmds[reftype][ltx]
 
         else:
@@ -206,6 +242,29 @@ class ExpandRefs(BaseFix):
         return None # keep node as is & descend into children
 
 
+    def _check_prefix(self, reftype, n):
+        if n.nodeargd is None or n.nodeargd.argnlist is None:
+            return False
+        if not self.expand_only_prefixes:
+            return True
+        one_ok = False
+        one_not_ok = False
+        labels = list(itertools.chain( *[
+            self.preprocess_contents_latex(n.nodeargd.argnlist[i]).split(',')
+            for i in _REFCMDS[reftype][n.macroname]['label_args']
+        ] ))
+        logger.debug("cmd = %s, labels = %s", n.to_latex(), labels)
+        for lbl in labels:
+            if lbl.startswith(tuple(self.expand_only_prefixes)):
+                one_ok = True
+            else:
+                one_not_ok = True
+        if one_ok and one_not_ok:
+            logger.warning("Reference ‘%s’ has one label with the requested prefix, and "
+                           "one label without.  I cannot expand it!")
+        if one_not_ok:
+            return False
+        return True
 
     def _get_run_ltx_resolved_cmds(self, doc_preamble):
         """
