@@ -482,7 +482,8 @@ class LatexPreprocessor:
         
         self.register_output_file(destfname)
 
-
+    def open_file(self, fname):
+        return open(fname) #os.path.join(os.path.dirname(self.main_doc_fname), fname))
 
     def _do_ensure_destdir(self, destdir, destdn):
         if os.path.exists(destdir):

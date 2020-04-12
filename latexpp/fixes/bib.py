@@ -67,7 +67,7 @@ class CopyAndInputBbl(BaseFix):
             self.lpp.check_autofile_up_to_date(bblname)
 
             # input BBL contents in any case at least to check for nonascii chars
-            with open(bblname, 'r') as f:
+            with self.lpp.open_file(bblname) as f:
                 bbl_contents = f.read()
             # check for nonascii chars
             check_for_nonascii(bbl_contents, what='BBL file {}'.format(bblname))

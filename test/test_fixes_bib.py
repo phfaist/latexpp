@@ -18,7 +18,9 @@ Some text~\cite{alias1,target3} and see also~\citep{alias2}.
 \end{document}
 """
 
-        lpp = helpers.MockLPP()
+        lpp = helpers.MockLPP( mock_files={
+            'TESTDOC.bbl': r"\relax\bibdata{XYZ}\bibcite{mybib1}{24}" # etc. this is random stuff here
+})
         lpp.install_fix( bib.CopyAndInputBbl() )
         lpp.install_fix( bib.ApplyAliases() )
 

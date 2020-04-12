@@ -62,6 +62,17 @@ class MockLPP(preprocessor.LatexPreprocessor):
     def _do_copy_file(self, source, dest):
         self.copied_files.append( (source, dest,) )
 
+    def open_file(self, fname):
+        import io
+        mocklpp = self
+        class X:
+            def __enter__(self):
+                return io.StringIO(mocklpp.mock_files[fname])
+            def __exit__(self, exc_type, exc_value, exc_traceback):
+                pass
+                
+        return X()
+
 
     def check_autofile_up_to_date(self, autotexfile):
         # skip checks

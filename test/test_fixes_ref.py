@@ -1,3 +1,5 @@
+import os
+import os.path
 
 import unittest
 
@@ -27,9 +29,21 @@ hyperref_aux_preamble = r"""\relax
 """
 
 
+@unittest.skipIf(os.environ.get("TRAVIS", "") == "true",
+                 "Skipping these tests on Travis CI because you'd need to run latex.")
 class TestExpandRefs(unittest.TestCase):
 
     maxDiff = None
+
+    def setUp(self):
+        # for possible location of crossreftools.sty and/or cleveref.sty in this
+        # directory (test/*.sty)
+        self.old_texinputs = os.environ.get('TEXINPUTS', '')
+        os.environ['TEXINPUTS'] = os.path.realpath(os.path.dirname(__file__)) \
+            + ":" + self.old_texinputs + ":"
+
+    def tearDown(self):
+        os.environ['TEXINPUTS'] = self.old_texinputs
 
     def test_flags_ref_types(self):
 
