@@ -65,8 +65,17 @@ class ExpandRefs(BaseFix):
     Expands references in the document.  Includes support for `cleveref`
     references.
 
-    The expansion of the reference commands are computed by running LaTeX on a
-    specially-generated temporary document in a temporary directory.
+    Reference expansion means replacing a LaTeX reference command by its actual
+    substitution with the corrsponding number, replacing e.g. ``\eqref{eq:abc}``
+    by ``(13)`` or ``\cref{fig:xyz}`` by ``Figure 3``, possibly creating a link
+    if appropriate.
+
+    The expansion text of the reference commands is computed by running LaTeX on
+    a specially-generated temporary document in a temporary directory, with
+    special LaTeX commands that reveal the text that would be typeset for those
+    references by extracting the relevant information from your document's AUX
+    file.  (You need to have run `latex`/`pdflatex` on your document first, to
+    create the AUX file in the first place.)
 
     Arguments:
 

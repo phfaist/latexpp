@@ -43,10 +43,22 @@ General fixes — document contents & formatting
 
 .. autoclass:: latexpp.fixes.macro_subst.Subst
 
+General fixes — references and citations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. autoclass:: latexpp.fixes.ref.ExpandRefs
 
-General fixes — used packages
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: latexpp.fixes.bib.CopyAndInputBbl
+
+.. autoclass:: latexpp.fixes.bib.ApplyAliases
+
+General fixes — figures
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: latexpp.fixes.figures.CopyAndRenameFigs
+
+General fixes — ``usepackage`` instructions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.usepackage.RemovePkgs
 
@@ -59,23 +71,10 @@ General fixes — preamble definitions
 
 .. autoclass:: latexpp.fixes.deps.CopyFiles
 
-General fixes — figures
-~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: latexpp.fixes.figures.CopyAndRenameFigs
-
-General fixes — bibliography
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: latexpp.fixes.bib.CopyAndInputBbl
-
-.. autoclass:: latexpp.fixes.bib.ApplyAliases
-
 General fixes — act on parts of your document
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.regional_fix.Apply
-
 
 General fixes — create archive with all files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

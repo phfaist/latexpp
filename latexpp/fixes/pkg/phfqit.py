@@ -785,26 +785,26 @@ class PhfQitObjectParsedArgs(ParsedMacroArgs):
             self.__class__.__name__, self.qitargspec, self.argnlist
         )
 
-    def args_to_latex(self):
-        return "".join(self._arg_to_latex(at, an)
+    def args_to_latex(self, recomposer):
+        return "".join(self._arg_to_latex(at, an, recomposer=recomposer)
                        for at, an in zip(self.qitargspec, self.argnlist))
 
-    def _arg_to_latex(self, argt, argn):
+    def _arg_to_latex(self, argt, argn, recomposer):
         if argn is None:
             return ''
 
         if argt == '{':
-            return argn.to_latex()
+            return recomposer.node_to_latex(argn)
         elif argt == '[':
-            return argn.to_latex()
+            return recomposer.node_to_latex(argn)
         elif argt == '*':
-            return argn.to_latex()
+            return recomposer.node_to_latex(argn)
         elif argt == '`':
-            return '`' + argn.to_latex()
+            return '`' + recomposer.node_to_latex(argn)
         elif argt == '(':
-            return argn.to_latex()
+            return recomposer.node_to_latex(argn)
         elif argt in ('_', '^'):
-            return argt + argn.to_latex()
+            return argt + recomposer.node_to_latex(argn)
         
         raise RuntimeError("Invalid argt={!r} (argn={!r})".format(argt, argn))
 

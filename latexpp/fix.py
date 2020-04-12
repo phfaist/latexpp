@@ -97,7 +97,7 @@ class BaseFix:
             ps = None
             if nodelist:
                 ps = nodelist[0].parsing_state
-            return self._parse_nodes(newnodelist, parsing_state=ps)
+            return self.parse_nodes(newnodelist, parsing_state=ps)
         if newnodelist is not None:
             raise ValueError("{}.fix_nodelist() did not return a string or node list"
                              .format(self.fix_name()))
@@ -129,7 +129,7 @@ class BaseFix:
 
             if isinstance(nn, str):
                 # if it is a str then we need to re-parse output into nodes
-                nn = self._parse_nodes(nn, parsing_state=n.parsing_state)
+                nn = self.parse_nodes(nn, parsing_state=n.parsing_state)
                 # fall through case is list ->
             if isinstance(nn, list):
                 # add new nodes
@@ -226,8 +226,11 @@ class BaseFix:
             n.nodelist = self.preprocess(n.nodelist)
 
 
-    def _parse_nodes(self, s, parsing_state):
-        # returns a node list
+    def parse_nodes(self, s, parsing_state):
+        """
+        Parses the given string `s` with an appropriate `LatexWalker` to get a node
+        list again, using the given `parsing_state`.
+        """
         try:
             lw = self.lpp.make_latex_walker(s)
             nodes, _, _ = lw.get_latex_nodes(
@@ -235,7 +238,7 @@ class BaseFix:
             )
             return nodes
         except latexwalker.LatexWalkerParseError as e:
-            logger.error("Internal error: can't re-parse preprocessed latex:\n%r\n%s",
+            logger.error("Error re-parsing intermediate latex code:\n%r\n%s",
                          s, e)
             raise
 
@@ -253,7 +256,7 @@ class BaseFix:
 
         if isinstance(newnode, str):
             # re-parse with latexwalker etc.
-            newnode = self._parse_nodes(newnode, node.parsing_state)
+            newnode = self.parse_nodes(newnode, node.parsing_state)
             # fall through to list case ->
 
         if isinstance(newnode, list):
