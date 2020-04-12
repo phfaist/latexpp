@@ -34,17 +34,22 @@ translates to the fix instantiation (python class)::
 
    
 
-General fixes — document contents & formatting
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Document contents & formatting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.input.EvalInput
 
 .. autoclass:: latexpp.fixes.comments.RemoveComments
 
+Expanding custom macros
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: latexpp.fixes.newcommand.Expand
+
 .. autoclass:: latexpp.fixes.macro_subst.Subst
 
-General fixes — references and citations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+References and citations
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.ref.ExpandRefs
 
@@ -52,38 +57,35 @@ General fixes — references and citations
 
 .. autoclass:: latexpp.fixes.bib.ApplyAliases
 
-General fixes — figures
-~~~~~~~~~~~~~~~~~~~~~~~
+Figures
+~~~~~~~
 
 .. autoclass:: latexpp.fixes.figures.CopyAndRenameFigs
 
-General fixes — ``usepackage`` instructions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. autoclass:: latexpp.fixes.usepackage.RemovePkgs
+Preamble, packages, local files, and other dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.usepackage.CopyLocalPkgs
 
-General fixes — preamble definitions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: latexpp.fixes.usepackage.RemovePkgs
 
 .. autoclass:: latexpp.fixes.preamble.AddPreamble
 
 .. autoclass:: latexpp.fixes.deps.CopyFiles
 
-General fixes — act on parts of your document
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Act on parts of your document
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.regional_fix.Apply
 
-General fixes — create archive with all files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Create archive with all files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.archive.CreateArchive
 
 
-Expand package macros
-~~~~~~~~~~~~~~~~~~~~~
+Package-specific fixes
+~~~~~~~~~~~~~~~~~~~~~~
 
 These fix classes expand the definitions that are provided by a given package in
 order to remove the dependency of a document on that package.

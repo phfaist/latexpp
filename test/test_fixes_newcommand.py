@@ -115,17 +115,18 @@ Albert Einstein{} and Max Planck both thought a lot about quantum mechanics.
 \documentclass[11pt]{article}
 
 \newcommand{\a}{Albert Einstein}
-\providecommand\b{Bbbb}
+\newcommand\b{Bbbb}
+\newcommand\bob{Bobbby}
 \newcommand\max[1]{Max #1}
 \renewcommand\thepage{\roman{page}}
 
 \begin{document}
-\a{} and \max{Planck} both thought a lot about quantum mechanics. Some B's: \b.
+\a{} and \max{Planck} both thought a lot about quantum mechanics. Some B's by \bob: \b.
 \end{document}
 """
 
         lpp = helpers.MockLPP()
-        fix = newcommand.Expand(leave_newcommand=False, macro_blacklist_patterns=[r'^b$', r'^the'])
+        fix = newcommand.Expand(leave_newcommand=False, macro_blacklist_patterns=[r'b$', r'^the'])
         lpp.install_fix( fix )
 
         self.assertEqual(
@@ -134,12 +135,13 @@ Albert Einstein{} and Max Planck both thought a lot about quantum mechanics.
 \documentclass[11pt]{article}
 
 
-\providecommand\b{Bbbb}
+\newcommand\b{Bbbb}
+\newcommand\bob{Bobbby}
 
 \renewcommand\thepage{\roman{page}}
 
 \begin{document}
-Albert Einstein{} and Max Planck both thought a lot about quantum mechanics. Some B's: \b.
+Albert Einstein{} and Max Planck both thought a lot about quantum mechanics. Some B's by \bob: \b.
 \end{document}
 """
         )

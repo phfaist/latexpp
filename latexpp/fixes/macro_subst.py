@@ -14,6 +14,15 @@ class Subst(BaseFix):
     Define macros and environments that will be replaced by corresponding custom
     LaTeX code.
 
+    .. admonition::  Update
+
+       See :py:class:`latexpp.fixes.newcommand.Expand` for a fix that
+       automatically detects ``\newcommand`` instructions and performs
+       replacements in the document body.  The difference between that fix and
+       this fix is that here, you need to specify all defined macros with their
+       substitution text manually.  There, everything is automatically
+       detected.
+
     Arguments:
     
       - `macros`: a dictionary of macro substitution rules ``{<macro-name>:
@@ -87,7 +96,7 @@ class Subst(BaseFix):
            instead of ``\begin{align*}``.
     """
 
-    def __init__(self, macros={}, environments={}):
+    def __init__(self, *, macros={}, environments={}):
         super().__init__()
         self.helper = MacroSubstHelper(macros, environments)
         logger.debug("substitutions are macros=%r, environments=%r",

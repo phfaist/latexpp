@@ -475,11 +475,143 @@ class LatexMacroReplacementRecomposer(LatexCodeRecomposer):
 
 class Expand(BaseFix):
     r"""
-    Detect custom macro definitions in the preamble and apply them throughout
-    the document.
+    Detect custom macro and environment definitions in the preamble and apply
+    them throughout the document.
+
+    This fix detects custom macros and environments, for instance:
+
+    .. code-block:: latex
+    
+        \newcommand\calE{\mathcal{E}}
+        \newcommand\mycomments[1]{\textcolor{red}{#1}}
+        \newcommand\myket[2][\big]{#1|{#2}#1\rangle} % \ket{\psi}, \ket[\Big]{\psi}
+        \newenvironment{boldtext}{\bfseries}{}
+
+    This fix then detects their use throughout the LaTeX document and replaces
+    them with their respective substitutions.  Macro and environment arguments
+    are processed as you would expect.
+
+    By default, the corresponding ``\newcommand`` instructions are removed from
+    the preamble.  If you'd like to keep them even though they have been
+    substituted throughout the document, specify `leave_newcommand=True`.
+
+    You can blacklist some macro name patterns and environment name patterns, so
+    that any macro or environment whose name matches a pattern does not get
+    expanded (and its definition is not removed from the preamble).  Use the
+    arguments `macro_blacklist_patterns` and `environment_blacklist_patterns`
+    for this.
+
+    By default, the instructions ``\newcommand`` and ``\newenvironment`` are
+    detected, while the instructions ``\renewcommand``, ``\providecommand``,
+    ``\renewenvironment`` are ignored.  If you would like to also replace
+    commands re-defined with those instructions, specify `newcommand_cmds` (see
+    below).
+
+    .. note::
+
+       The rationale for not substituting commands defined with
+       ``\renewcommand`` and ``\providecommand`` (and same for environments) is
+       that such commands are often used to redefined LaTeX special commands,
+       such as counters or formatting instructions.  For instance:
+
+       .. code-block:: latex
+
+           \renewcommand{\thepage}{- \roman{page} -} % page numbering format
+           \renewcommand{\familydefault}{\sfdefault} % sans serif font
+           \providecommand{\selectlanguage}[1]{} % babel dummy drop-in
+
+       These (re-)defined commands should generally not be substituted by this
+       fix, because they are not used in the document main text but rather, they
+       are used by the LaTeX engine.  Especially, if we removed their
+       (re-)definition their effect would disappear entirely (page numbers would
+       revert to defaults, etc.).  This is certainly not the intended effect.
+
+    .. warning::
+
+       If you opt to add ``renewcommand`` and/or ``providecommand`` to the
+       argument `newcommand_cmds`, be aware that they are treated exactly like
+       ``\newcommand``.  That is, they do not check whether the macro is already
+       defined (`latexpp` cannot know if a macro was defined somewhere deep in a
+       package).  In particular, ``\providecommand`` *always* defines the
+       command if this command is enabled via `newcommand_cmds`.
+
+    When substituting environments, the full environment is further enclosed
+    within a LaTeX group delimited by braces '{' ... '}' (this is because LaTeX
+    actually does create a TeX group for the environment contents).  But you can
+    change this if you like using the arguments `envbody_begin` and
+    `envbody_end`.
+
+    Arguments:
+
+    - `leave_newcommand`: Set this to True to leave all macro and environment
+      definition instructions (e.g., ``\newcommand``) in the preamble even if we
+      substituted their replacements throughout the document.  If False (the
+      default), then we remove macro and environment definitions in the preamble
+      for which we have carried out substitutions throughout the document.
+
+      Definitions of blacklisted macros/environments and to definitions using
+      instructions that are not in `newcommand_cmds` are always left in place,
+      regardless of the `leave_newcommand` argument.
+
+    - `newcommand_cmds`: The type of LaTeX command definition instructions to
+      pay attention to.  This should be a list containing one or more elements
+      in `('newcommand', 'renewcommand', 'providecommand', 'newenvironment',
+      'renewenvironment')`
+    
+      (In the future, I might add support for other definition instructions such
+      as ``\DeclareRobustCommand``, or ``\DeclarePairedDelimiter`` [from the
+      `mathtools` package].  Adding support for ``\def`` would be more involved,
+      let's see.)
+
+      By default, only ``\newcommand`` and ``\newenvironment`` are observed.
+      (See rationale and warning above for ignoring ``\renewcommand`` etc. by
+      default)
+
+    - `macro_blacklist_patterns`, `environment_blacklist_patterns`: These
+      arguments may be set to a list of regular expressions that specify which
+      macro definitions and environment definitions should not be acted upon by
+      this fix.  Any regular expressions recognized by python's `re` module may
+      be employed.  If a macro (respectively an environment) matches any of the
+      patterns in the respective blacklist, then they are left unchanged in the
+      document and the definitions are left in the preamble unaltered.
+
+      For instance, if you use the fix configuration:
+
+      .. code-block:: yaml
+
+           - name: 'latexpp.fix.newcommand'
+             config:
+               newcommand_cmds: ['newcommand', 'renewcommand', 'newenvironment']
+               macro_blacklist_patterns: ['^the', 'blablabla$']
+
+      then instructions such as
+      ``\renewcommand{\theequation}{\roman{equation}}`` (or any definition of a
+      macro whose name starts with "the" or that ends with "blablabla") would be
+      left as-is in the output, and similarly any occurrences of
+      ``\theequation`` in the document (should there be any) would be left
+      unaltered.
+
+      (You could use the blacklist pattern ``^the`` as in this particular
+      example to identify redefinitions of formatting of LaTeX counters, but
+      then all macros that begin with "the" would not be substituted, and for
+      instance ``\newcommand{\therefore}{...}`` would not be replaced.)
+
+    - `envbody_begin`, `envbody_end`: When expanding environments, the entire
+      replacement LaTeX code is wrapped by these two strings.  By default,
+      `envbody_begin='{'` and `envbody_end='}'`, such that all expansions of
+      environments are enclosed within a LaTeX group.  You may specify any other
+      prefixes and postfixes here (e.g. ``\begingroup`` and ``\endgroup`` or
+      empty strings to avoid creating a LaTeX group).
+
+      Placing the environment contents in a group imitates what LaTeX itself
+      does.  If you don't put the contents in a group, you might change the
+      resulting document output (for instance, if you have an ``\itshape``
+      inside the environment, the group would ensure the italic text doesn't
+      continue outside of the environment).
     """
     
-    def __init__(self, leave_newcommand=False, newcommand_cmds=None,
+    def __init__(self, *,
+                 leave_newcommand=False, newcommand_cmds=None,
                  macro_blacklist_patterns=None,
                  environment_blacklist_patterns=None,
                  envbody_begin='{', envbody_end='}'):
@@ -570,7 +702,7 @@ class Expand(BaseFix):
 
     def _is_name_blacklisted(self, name, blacklist_patterns):
         m = next(filter(lambda x: x is not None,
-                        (rx.match(name) for rx in blacklist_patterns)), None)
+                        (rx.search(name) for rx in blacklist_patterns)), None)
         if m is not None:
             # matched one blacklist pattern
             return True
