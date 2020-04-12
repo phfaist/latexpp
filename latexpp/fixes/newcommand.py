@@ -179,7 +179,7 @@ class NCArgsParser(MacroStandardArgsParser):
             if new_macro_def.argnlist[3] is not None:
                 # default first argument
                 argspec = '[' + argspec[1:] 
-                first_default_value = new_macro_def.argnlist[3].to_latex()
+                first_default_value = new_macro_def.argnlist[3]
 
             macroname = new_macro_def.argnlist[1]._ncarg_the_macro_name
 
@@ -190,6 +190,9 @@ class NCArgsParser(MacroStandardArgsParser):
                 logger.debug("encountered custom-defined command %s", macroname)
                 ptuple = old_parse_args(w, pos, parsing_state=parsing_state)
                 ptuple[0].nc_defined_command = new_macro_def
+                # use default first value, if applicable
+                if argspec[0:1] == '[' and ptuple[0].argnlist[0] is None:
+                    ptuple[0].argnlist[0] = first_default_value
                 return ptuple
             args_parser.parse_args = new_parse_args
 
@@ -428,9 +431,7 @@ class Expand(BaseFix):
         body = new_macro_definition.body_replacement_toknode
         recomposer = \
             LatexMacroReplacementRecomposer([
-                ("".join(y.to_latex() for y in x.nodelist)
-                 if x.isNodeType(latexwalker.LatexGroupNode)
-                 else x.to_latex())
+                self._arg_contents_to_latex(x)
                 for x in n.nodeargd.argnlist
             ])
         replacement_latex = "".join(recomposer.node_to_latex(n) for n in body.nodelist)
@@ -447,6 +448,12 @@ class Expand(BaseFix):
 
         return self.preprocess(nodes)
 
+    def _arg_contents_to_latex(self, x):
+        if x is None:
+            return ""
+        if x.isNodeType(latexwalker.LatexGroupNode):
+            return "".join(y.to_latex() for y in x.nodelist)
+        return x.to_latex()
         
 
 
