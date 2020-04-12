@@ -159,7 +159,7 @@ class NCArgsParser(MacroStandardArgsParser):
 
         orig_pos = pos
 
-        if self.ncmacroname in ('newcommand', 'renewcommand'):
+        if self.ncmacroname in ('newcommand', 'renewcommand', 'providecommand'):
             (new_macro_def, pos, len_) = \
                 self.nc_parse_args(['*', NCArgMacroName, '[', '[', NCArgBracedTokens],
                                    w, pos, parsing_state=parsing_state)
@@ -383,13 +383,16 @@ class Expand(BaseFix):
     
     def __init__(self, leave_newcommand=True):
         self.leave_newcommand = leave_newcommand
+        self.newcommand_cmds = ('newcommand',)
         super().__init__()
 
     def specs(self, **kwargs):
-        return dict(macros=[
+        mm = [
             MacroSpec('newcommand', args_parser=NCArgsParser('newcommand')),
-            #MacroSpec('renewcommand', args_parser=NCArgsParser('renewcommand')),
-        ])
+            MacroSpec('renewcommand', args_parser=NCArgsParser('renewcommand')),
+        ]
+
+        return dict(macros=(m for m in mm if m.macroname in self.newcommand_cmds))
 
 
     def fix_node(self, n, **kwargs):
@@ -398,7 +401,7 @@ class Expand(BaseFix):
 
             #logger.debug("Fixing node %s, its context is %r", n, n.parsing_state.latex_context.d)
 
-            if n.macroname in ('newcommand', 'renewcommand'):
+            if n.macroname in self.newcommand_cmds:
                 if self.leave_newcommand:
                     return None
                 return [] # remove new macro definition -- won't need it any longer
