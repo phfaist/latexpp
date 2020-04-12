@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pylatexenc.macrospec import MacroSpec, SpecialsSpec, \
+from pylatexenc.macrospec import MacroSpec, EnvironmentSpec, SpecialsSpec, \
     ParsedMacroArgs, MacroStandardArgsParser, LatexContextDb
 from pylatexenc import latexwalker
 
@@ -30,20 +30,23 @@ class NCDefArgsSignature:
 
 
 class NCNewMacroDefinition(ParsedMacroArgs):
-    def __init__(self, ncmacroname, ncargspec, argnlist, **kwargs):
-        self.ncmacroname = ncmacroname
+    def __init__(self, nc_what, ncmacrotype, ncargspec, argnlist, **kwargs):
+        self.nc_what = nc_what # 'macro' or 'environment'
+        self.ncmacrotype = ncmacrotype
         self.ncargspec = ncargspec
 
         self.new_defined_macrospec = None
-        self.body_replacement_toknode = None
+        self.new_defined_environmentospec = None
+        self.macro_replacement_toknode = None
+        self.endenv_replacement_toknode = None
 
         super().__init__(argspec="".join('?' for x in argnlist),
                          argnlist=argnlist,
                          **kwargs)
         
     def __repr__(self):
-        return "{}(ncmacroname={!r}, ncargspec={!r}, argnlist={!r})".format(
-            self.__class__.__name__, self.ncmacroname, self.ncargspec, self.argnlist
+        return "{}(ncmacrotype={!r}, ncargspec={!r}, argnlist={!r})".format(
+            self.__class__.__name__, self.ncmacrotype, self.ncargspec, self.argnlist
         )
 
     def args_to_latex(self, recomposer):
@@ -133,6 +136,57 @@ class NCNewMacroDefinition(ParsedMacroArgs):
 
 
 
+def _get_string_arg(arg_node, msg):
+    if arg_node.isNodeType(latexwalker.LatexCharsNode):
+        return arg_node.chars
+    if arg_node.isNodeType(latexwalker.LatexGroupNode):
+        if len(arg_node.nodelist) == 1 and \
+           arg_node.nodelist[0].isNodeType(latexwalker.LatexCharsNode):
+            return arg_node.nodelist[0].chars
+    #
+    raise ValueError(msg)
+
+
+class MacroStandardArgsParserForNewcommand(MacroStandardArgsParser):
+    def __init__(self, nc_defined_command, macroname, num_args,
+                 optional_first_arg_default_node):
+        self.num_args = num_args
+        self.optional_first_arg_default_node = optional_first_arg_default_node
+        argspec = '{' * num_args
+        if self.optional_first_arg_default_node is not None:
+            # default first argument
+            argspec = '[' + argspec[1:]
+        # instantiate superclass with this argspec.
+        super().__init__(argspec)
+
+        self.nc_defined_command = nc_defined_command
+        self.nc_macroname = macroname
+
+    def parse_args(self, w, pos, parsing_state=None):
+        logger.debug("encountered custom-defined %s", self.nc_macroname)
+        ptuple = super().parse_args(w, pos, parsing_state=parsing_state)
+
+        parsed_args_instance = ptuple[0]
+
+        parsed_args_instance.nc_defined_command = self.nc_defined_command
+        # use default first value, if applicable, but then also instruct the
+        # parsed_args not to include it in recomposed LaTeX code
+        if self.argspec[0:1] == '[' and parsed_args_instance.argnlist and \
+           parsed_args_instance.argnlist[0] is None:
+            #
+            parsed_args_instance.argnlist[0] = self.optional_first_arg_default_node
+            parsed_args_instance.nc_is_default_first_arg = True
+
+            def new_args_to_latex(recomposer):
+                # do the node-to-latex for argnlist[1:], skipping the first
+                # optional, non-specified parameter (see "if" above)
+                return ''.join( (recomposer.node_to_latex(n) if n else '')
+                                for n in parsed_args_instance.argnlist[1:] )
+            
+        return ptuple
+
+
+
 class NCArgsParser(MacroStandardArgsParser):
     r"""
     Args parser for ``\newcommand/\def`` statements that define new macros.
@@ -147,72 +201,116 @@ class NCArgsParser(MacroStandardArgsParser):
 
     Arguments:
 
-    - `ncmacroname` should be the newcommand-type macro name.  One of
-    'newcommand', 'renewcommand', 'def', [TODO: add more,
-    e.g. DeclareRobustCommand, DeclareMathDelimiters, etc.]
+    - `ncmacrotype` should be the newcommand-type macro name.  One of
+    'newcommand', 'newenvironment', [TODO: add more, e.g. DeclareDocumentCommand
+    ?, DeclareMathDelimiters ?, etc.]
     """
-    def __init__(self, ncmacroname):
-        self.ncmacroname = ncmacroname
+    def __init__(self, ncmacrotype):
+        self.ncmacrotype = ncmacrotype
         super().__init__(argspec=None)
 
     def parse_args(self, w, pos, parsing_state=None):
 
         orig_pos = pos
 
-        if self.ncmacroname in ('newcommand', 'renewcommand', 'providecommand'):
+        # we'll have to update the parsing state --- FIXME NEED BETTER INTERFACE
+        # IN PYLATEXENC.  Should be able to modify in place the
+        # LatexContextDb....right?
+        if '_lpp-custom-newcommands' not in parsing_state.latex_context.d:
+            parsing_state.latex_context.add_context_category('_lpp-custom-newcommands', prepend=True)
+
+
+        if self.ncmacrotype == 'newcommand':
             (new_macro_def, pos, len_) = \
-                self.nc_parse_args(['*', NCArgMacroName, '[', '[', NCArgBracedTokens],
-                                   w, pos, parsing_state=parsing_state)
-            pos = pos + len_ 
+                self.nc_parse_args(
+                    'macro',
+                    ['*', NCArgMacroName, '[', '[', NCArgBracedTokens],
+                    w, pos, parsing_state=parsing_state
+                )
+            pos = pos + len_
+
+            # Note: We treat all 'newcommand'-type macros the same way
+            # (\newcommand, \renewcommand, \providecommand).  E.g., if the macro
+            # was \providecommand, we don't check if the command is already
+            # defined.  This would be way too sketchy; how would we know if the
+            # command was already defined in some obscure section of some random
+            # package?  I say, let the user explicitly specify they want
+            # replacement of \providecommand definitions, and they can blacklist
+            # any ones which are in fact already defined.
             
             num_args = 0
             if new_macro_def.argnlist[2] is not None:
-                if (not new_macro_def.argnlist[2].isNodeType(latexwalker.LatexGroupNode) or \
-                    len(new_macro_def.argnlist[2].nodelist) != 1 or \
-                    not new_macro_def.argnlist[2].nodelist[0].isNodeType(latexwalker.LatexCharsNode)):
-                    #
-                    raise ValueError("Expected number of arguments ‘[X]’ for argument of {}"
-                                     .format(self.ncmacroname))
-                num_args = int(new_macro_def.argnlist[2].nodelist[0].chars)
-            argspec = '{' * num_args
-            first_default_value = None
-            if new_macro_def.argnlist[3] is not None:
-                # default first argument
-                argspec = '[' + argspec[1:] 
-                first_default_value = new_macro_def.argnlist[3]
+                num_args = int(_get_string_arg(new_macro_def.argnlist[2],
+                                               "Expected number of arguments ‘[X]’ for argument of {}"
+                                               .format(self.ncmacrotype)))
+            first_default_value_node = new_macro_def.argnlist[3]
 
             macroname = new_macro_def.argnlist[1]._ncarg_the_macro_name
 
-            args_parser = MacroStandardArgsParser(argspec)
-            args_parser.nc_defined_command = new_macro_def
-            old_parse_args = args_parser.parse_args
-            def new_parse_args(w, pos, parsing_state=None):
-                logger.debug("encountered custom-defined command %s", macroname)
-                ptuple = old_parse_args(w, pos, parsing_state=parsing_state)
-                ptuple[0].nc_defined_command = new_macro_def
-                # use default first value, if applicable
-                if argspec[0:1] == '[' and ptuple[0].argnlist[0] is None:
-                    ptuple[0].argnlist[0] = first_default_value
-                return ptuple
-            args_parser.parse_args = new_parse_args
+            args_parser = MacroStandardArgsParserForNewcommand(new_macro_def, macroname,
+                                                               num_args, first_default_value_node)
 
             new_macro_def.new_defined_macrospec = MacroSpec(macroname, args_parser=args_parser)
-            new_macro_def.body_replacement_toknode = new_macro_def.argnlist[4]
+            new_macro_def.macro_replacement_toknode = new_macro_def.argnlist[4]
+
+            # update the parsing state --- FIXME NEED BETTER INTERFACE IN
+            # PYLATEXENC.  Should be able to modify in place the LatexContextDb....right?
+            m = new_macro_def.new_defined_macrospec
+            parsing_state.latex_context.d['_lpp-custom-newcommands']['macros'][m.macroname] = m
+
+            logger.debug("New command defined: {} {} -> {}"
+                         .format(m.macroname,
+                                 new_macro_def.args_to_latex(LatexCodeRecomposer()),
+                                 new_macro_def.macro_replacement_toknode.to_latex()))
+
+            new_def = new_macro_def
+
+        elif self.ncmacrotype == 'newenvironment':
+
+            (new_env_def, pos, len_) = \
+                self.nc_parse_args(
+                    'environment',
+                    ['*', '{', '[', '[', NCArgBracedTokens, NCArgBracedTokens],
+                    w, pos, parsing_state=parsing_state
+                )
+            pos = pos + len_
+
+            num_args = 0
+            if new_env_def.argnlist[2] is not None:
+                num_args = int(_get_string_arg(new_env_def.argnlist[2],
+                                               "Expected number of arguments ‘[X]’ for argument of {}"
+                                               .format(self.ncmacrotype)))
+            first_default_value_node = new_env_def.argnlist[3]
+
+            environmentname = _get_string_arg(new_env_def.argnlist[1],
+                                              "Expected simple environment name ‘{{environment}}’ "
+                                              "for argument of {}".format(self.ncmacrotype))
+
+            args_parser = MacroStandardArgsParserForNewcommand(
+                new_env_def, r'\begin{%s}'%(environmentname),
+                num_args, first_default_value_node
+            )
+
+            new_env_def.new_defined_environmentspec = EnvironmentSpec(environmentname,
+                                                                      args_parser=args_parser)
+            new_env_def.macro_replacement_toknode = new_env_def.argnlist[4]
+            new_env_def.endenv_replacement_toknode = new_env_def.argnlist[5]
+
+            # update the parsing state --- FIXME NEED BETTER INTERFACE IN
+            # PYLATEXENC.  Should be able to modify in place the LatexContextDb....right?
+            e = new_env_def.new_defined_environmentspec
+            ddcat = parsing_state.latex_context.d['_lpp-custom-newcommands']
+            ddcat['environments'][e.environmentname] = e
+
+            logger.debug("New environment defined: {} / {}"
+                         .format(e.environmentname,
+                                 new_env_def.args_to_latex(LatexCodeRecomposer())))
+
+            new_def = new_env_def
 
         else:
-            raise ValueError("Unknown macro definition command type: {}".format(self.ncmacroname))
 
-        # update the parsing state --- FIXME NEED BETTER INTERFACE IN
-        # PYLATEXENC.  Should be able to modify in place the LatexContextDb....right?
-        if '_lpp-custom-newcommands' not in parsing_state.latex_context.d:
-            parsing_state.latex_context.add_context_category('_lpp-custom-newcommands', prepend=True)
-        m = new_macro_def.new_defined_macrospec
-        parsing_state.latex_context.d['_lpp-custom-newcommands']['macros'][m.macroname] = m
-
-        logger.debug("New command defined: {} {} -> {}"
-                     .format(m.macroname,
-                             new_macro_def.args_to_latex(LatexCodeRecomposer()),
-                             new_macro_def.body_replacement_toknode.to_latex()))
+            raise ValueError("Unknown macro definition command type: {}".format(self.ncmacrotype))
 
         #logger.debug("latex context is now\n%r", parsing_state.latex_context.d)
 
@@ -221,9 +319,9 @@ class NCArgsParser(MacroStandardArgsParser):
             'new_parsing_state': parsing_state
         }
 
-        return (new_macro_def, orig_pos, pos - orig_pos, mdic)
+        return (new_def, orig_pos, pos - orig_pos, mdic)
 
-    def nc_parse_args(self, ncargspec, w, pos, parsing_state=None):
+    def nc_parse_args(self, nc_what, ncargspec, w, pos, parsing_state=None):
 
         if parsing_state is None:
             parsing_state = w.make_parsing_state()
@@ -339,17 +437,14 @@ class NCArgsParser(MacroStandardArgsParser):
                     "Unknown macro argument kind for macro: {!r}".format(argt)
                 )
 
-        new_macro_def = NCNewMacroDefinition(
-            ncmacroname=self.ncmacroname,
+        new_def = NCNewMacroDefinition(
+            nc_what=nc_what,
+            ncmacrotype=self.ncmacrotype,
             ncargspec=ncargspec,
             argnlist=argnlist,
         )
-        
-        # store the newly defined macro into the actual LaTeX context so that it
-        # is new_macro_def correctly in the rest of the document.
-        
 
-        return (new_macro_def, pos, p-pos)
+        return (new_def, pos, p-pos)
 
 
 
@@ -384,15 +479,40 @@ class Expand(BaseFix):
     the document.
     """
     
-    def __init__(self, leave_newcommand=True):
+    def __init__(self, leave_newcommand=False, newcommand_cmds=None,
+                 macro_blacklist_patterns=None,
+                 environment_blacklist_patterns=None,
+                 envbody_begin='{', envbody_end='}'):
         self.leave_newcommand = leave_newcommand
-        self.newcommand_cmds = ('newcommand',)
+        if newcommand_cmds is None:
+            self.newcommand_cmds = ('newcommand', 'newenvironment',)
+        else:
+            self.newcommand_cmds = newcommand_cmds
+        if macro_blacklist_patterns:
+            self.macro_blacklist_patterns = [
+                re.compile(x) for x in macro_blacklist_patterns
+            ]
+        else:
+            self.macro_blacklist_patterns = [ ]
+        if environment_blacklist_patterns:
+            self.environment_blacklist_patterns = [
+                re.compile(x) for x in environment_blacklist_patterns
+            ]
+        else:
+            self.environment_blacklist_patterns = [ ]
+
+        self.envbody_begin = envbody_begin
+        self.envbody_end = envbody_end
+
         super().__init__()
 
     def specs(self, **kwargs):
         mm = [
             MacroSpec('newcommand', args_parser=NCArgsParser('newcommand')),
-            MacroSpec('renewcommand', args_parser=NCArgsParser('renewcommand')),
+            MacroSpec('renewcommand', args_parser=NCArgsParser('newcommand')),
+            MacroSpec('providecommand', args_parser=NCArgsParser('newcommand')),
+            MacroSpec('newenvironment', args_parser=NCArgsParser('newenvironment')),
+            MacroSpec('renewenvironment', args_parser=NCArgsParser('newenvironment')),
         ]
 
         return dict(macros=(m for m in mm if m.macroname in self.newcommand_cmds))
@@ -401,25 +521,110 @@ class Expand(BaseFix):
     def fix_node(self, n, **kwargs):
 
         if n.isNodeType(latexwalker.LatexMacroNode):
-
             #logger.debug("Fixing node %s, its context is %r", n, n.parsing_state.latex_context.d)
 
             if n.macroname in self.newcommand_cmds:
                 if self.leave_newcommand:
                     return None
+                if not isinstance(n.nodeargd, NCNewMacroDefinition):
+                    logger.warning("Encountered ‘%s’ but it wasn't parsed correctly by us ...",
+                                   n.macroname)
+                    logger.debug("n.nodeargd = %r", n.nodeargd)
+                    return None
+                # see if macro name was blacklisted by an exclusion pattern
+                if (n.nodeargd.nc_what == 'macro' and
+                    self._is_name_blacklisted(n.nodeargd.new_defined_macrospec.macroname,
+                                              self.macro_blacklist_patterns)) or \
+                   (n.nodeargd.nc_what == 'environment' and
+                    self._is_name_blacklisted(n.nodeargd.new_defined_environmentspec.environmentname,
+                                              self.environment_blacklist_patterns)):
+                    # blacklisted -- leave unchanged
+                    return None
+                logger.debug("Removing ‘%s’ for %s ‘%s’", n.macroname, n.nodeargd.nc_what,
+                             getattr(n.nodeargd, 'new_defined_'+n.nodeargd.nc_what+'spec'))
                 return [] # remove new macro definition -- won't need it any longer
                           # after all text replacements :)
 
             if n.nodeargd is not None and hasattr(n.nodeargd, 'nc_defined_command'):
                 # this command was parsed by a MacroSpec generated automatically
-                # by a \newcommand (or sth) -- try to replace it with body substitution
+                # by a \newcommand (or sth).  If it's not blacklisted, replace
+                # it with its body substitution
+                if self._is_name_blacklisted(n.macroname, self.macro_blacklist_patterns):
+                    return None
                 return self.subst_macro(n)
 
+
+        if n.isNodeType(latexwalker.LatexEnvironmentNode):
+            #logger.debug("Fixing node %s, its context is %r", n, n.parsing_state.latex_context.d)
+
+            if n.nodeargd is not None and hasattr(n.nodeargd, 'nc_defined_command'):
+                # this command was parsed by a EnvironmentSpec generated
+                # automatically by a \newenvironment (or sth).  If it's not
+                # blacklisted, replace it with its body substitution
+                if self._is_name_blacklisted(n.environmentname, self.environment_blacklist_patterns):
+                    return None
+                return self.subst_environment(n)
+            
+
         return  None
+
+    def _is_name_blacklisted(self, name, blacklist_patterns):
+        m = next(filter(lambda x: x is not None,
+                        (rx.match(name) for rx in blacklist_patterns)), None)
+        if m is not None:
+            # matched one blacklist pattern
+            return True
+        return False
+
+
+    def subst_environment(self, n):
+        
+        logger.debug("subst_environment: %r", n)
+
+        new_env_definition = n.nodeargd.nc_defined_command # the NCNewMacroDefinition instance
+
+        # strategy : recurse only *after* having recomposed & expanded values,
+        # so that fixes get applied to the macro body definition and that any
+        # interplay between body defs and arguments might even work.  (And it's
+        # closer to what LaTeX does.)
+
+        beginenv = new_env_definition.macro_replacement_toknode
+        endenv = new_env_definition.endenv_replacement_toknode
+        recomposer = \
+            LatexMacroReplacementRecomposer([
+                self._arg_contents_to_latex(x)
+                for x in n.nodeargd.argnlist
+            ])
+
+        replacement_latex = \
+            self.envbody_begin + \
+            "".join(recomposer.node_to_latex(n) for n in beginenv.nodelist) + \
+            "".join(nn.to_latex() for nn in n.nodelist) + \
+            "".join(recomposer.node_to_latex(n) for n in endenv.nodelist) + \
+            self.envbody_end
+
+        # now, re-parse into nodes and re-run fix (because the macro was
+        # expanded, we're not risking infinite recursion unless the environment
+        # expanded into itself)
+
+        logger.debug("Got environment replacement_latex = %r", replacement_latex)
+
+        nodes = self.parse_nodes(replacement_latex, n.parsing_state)
+        #logger.debug("Got new nodes = %r", nodes)
+
+        return self.preprocess(nodes)
+
 
     def subst_macro(self, n):
         
         logger.debug("subst_macro: %r", n)
+
+        # generate some warnings if we're substituting a macro name that looks
+        # like we shouldn't be -- e.g., a counter
+        if n.macroname.startswith("the"):
+            logger.warning("Substituting macro ‘{}’ (replacement LaTeX ‘{}’); it looks like "
+                           "a LaTeX counter though — if you don't mean to substitute it use "
+                           "the `macro_blacklist_patterns` argument to blacklist it.")
         
         new_macro_definition = n.nodeargd.nc_defined_command # the NCNewMacroDefinition instance
 
@@ -428,7 +633,7 @@ class Expand(BaseFix):
         # interplay between body defs and arguments might even work.  (And it's
         # closer to what LaTeX does.)
 
-        body = new_macro_definition.body_replacement_toknode
+        body = new_macro_definition.macro_replacement_toknode
         recomposer = \
             LatexMacroReplacementRecomposer([
                 self._arg_contents_to_latex(x)
