@@ -134,7 +134,7 @@ class NCNewMacroDefinition(ParsedMacroArgs):
 
 
 class NCArgsParser(MacroStandardArgsParser):
-    """
+    r"""
     Args parser for ``\newcommand/\def`` statements that define new macros.
 
     This is a bit awkward for `pylatexenc`, because `pylatexenc` is really a
