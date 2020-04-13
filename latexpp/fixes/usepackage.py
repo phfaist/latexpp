@@ -143,7 +143,7 @@ class InputLocalPkgs(BaseFix):
             pkgnamesty = pkgname + '.sty'
             if os_path.exists(pkgnamesty):
                 logger.debug("Processing input package ‘%s’", pkgnamesty)
-                with open(pkgnamesty, 'r') as f:
+                with self.lpp.open_file(pkgnamesty) as f:
                     pkgcontents = f.read()
                 if self.subpp:
                     pkgcontents = \

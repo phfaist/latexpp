@@ -131,7 +131,7 @@ class ApplyAliases(BaseFix):
             flags=re.MULTILINE
         )
         for bfn in self.bibalias_defs_search_files:
-            with open(bfn) as ff:
+            with self.lpp.open_file(bfn) as ff:
                 for m in rx_bibalias.finditer(ff.read()):
                     alias = m.group('alias')
                     target = m.group('target')

@@ -527,14 +527,14 @@ class LatexPreprocessor:
           first.  By default, `what_to_run="(pdf)latex"`.
         """
 
-        autotexfile = self._resolve_source_fname(autotexfile)
+        autotexfile_resolved = self._resolve_source_fname(autotexfile)
 
-        if not os.path.isfile(autotexfile):
+        if not os.path.isfile(autotexfile_resolved):
             raise ValueError(
                 "File {} does not exist. Please run {} on the main document first."
                 .format(autotexfile, what_to_run)
             )
-        if os.path.getmtime(autotexfile) < os.path.getmtime(self.main_doc_fname):
+        if os.path.getmtime(autotexfile_resolved) < os.path.getmtime(self.main_doc_fname):
             logger.warning(
                 "File %s might be out-of-date, main tex file %s is more recent",
                 autotexfile, self.main_doc_fname

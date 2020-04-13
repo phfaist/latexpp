@@ -163,7 +163,7 @@ class ExpandRefs(BaseFix):
     def _get_auxfile_contents(self):
         # separate function so it can be monkey-patched in tests
         auxfn = re.sub(r'(\.(la)?tex)$', '.aux', self.lpp.main_doc_fname)
-        with open(auxfn) as f:
+        with self.lpp.open_file(auxfn) as f:
             return f.read()
 
 
@@ -215,7 +215,7 @@ class ExpandRefs(BaseFix):
         # Use original, unmodifed doc preamble.  So we have sections removed by
         # %%!lpp skip pragmas, etc. -- it's just safer
         #
-        with open(self.lpp.main_doc_fname) as f:
+        with self.lpp.open_file(self.lpp.main_doc_fname) as f:
             full_raw_doc_contents = f.read()
 
         # Minor caveat -- \begin{document} must be in the main latex file (but

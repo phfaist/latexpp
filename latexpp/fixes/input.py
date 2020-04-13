@@ -41,6 +41,7 @@ class EvalInput(BaseFix):
             logger.info("Input ‘%s’", infname)
 
             for e in exts:
+                # FIXME: resolve path relative to main document source
                 if os_path.exists(infname+e):
                     infname = infname+e
                     break
@@ -76,7 +77,7 @@ class EvalInput(BaseFix):
         return None
 
     def _read_file_contents(self, infname):
-        with open(infname) as f:
+        with self.lpp.open_file(infname) as f:
             return f.read()
 
 
