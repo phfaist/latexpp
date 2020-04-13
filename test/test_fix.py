@@ -244,7 +244,7 @@ Also: {\itshape some italic text}."""
         lw = lpp.make_latex_walker(latex)
         nodelist = lw.get_latex_nodes()[0]
         newnodelist = myfix.preprocess(nodelist)
-        newlatex = lpp.nodelist_to_latex(newnodelist)
+        newlatex = "".join(nn.to_latex() for nn in newnodelist)
         self.assertEqual(
             newlatex,
             r"""
@@ -285,7 +285,7 @@ Also: {\itshape some italic text}."""
         lw = lpp.make_latex_walker(latex)
         nodelist = lw.get_latex_nodes()[0]
         newnodelist = myfix.preprocess(nodelist)
-        newlatex = lpp.nodelist_to_latex(newnodelist)
+        newlatex = "".join(nn.to_latex() for nn in newnodelist)
         self.assertEqual(
             newlatex,
             r"""
@@ -322,7 +322,7 @@ Also: {\itshape some italic text}."""
         lw = lpp.make_latex_walker(latex)
         nodelist = lw.get_latex_nodes()[0]
         newnodelist = myfix.preprocess(nodelist)
-        newlatex = lpp.nodelist_to_latex(newnodelist)
+        newlatex = "".join(nn.to_latex() for nn in newnodelist)
         self.assertEqual(
             newlatex,
             r"""| {\hat\rho} \rangle"""

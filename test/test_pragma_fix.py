@@ -7,6 +7,8 @@ from pylatexenc import latexwalker
 
 from latexpp.pragma_fix import PragmaFix
 
+from latexpp.fixes.builtin.skip import SkipPragma
+
 from helpers import LatexWalkerNodesComparer, make_latex_walker
 
 class TestPragmaFix(unittest.TestCase, LatexWalkerNodesComparer):
@@ -248,6 +250,66 @@ proident, sunt in culpa qui officia deserunt mollit anim id est laborum.}
                         {'nodetype': 'LatexCharsNode',
                          'chars': "[Marked scope contains 4 occurrences of the substring `lor']"},
                         {'nodetype': 'LatexCharsNode', 'chars': '\n\n'}
+                    ],
+                    'nodeargd': {'argspec': '', 'argnlist': []}
+                },
+                {'nodetype': 'LatexCharsNode', 'chars': '\n'}
+            ]
+        )
+
+
+    def test_pragma_skip(self):
+        
+        latex = r"""
+\documentclass{article}
+\begin{document}
+
+%%!lpp skip {
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
+nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+consequat. \emph{Duis aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+proident, sunt in culpa qui officia deserunt mollit anim id est laborum.}
+
+%%!lpp }
+
+But don't skip this.
+
+\end{document}
+""".lstrip()
+
+        lw = make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+
+        myfix = SkipPragma()
+
+        newnodes = myfix.preprocess(nodelist)
+
+        self.assert_nodelists_equal(
+            newnodes,
+            [
+                {
+                    'nodetype': 'LatexMacroNode',
+                    'macroname': 'documentclass',
+                    'nodeargd': {
+                        'argspec': '[{', 'argnlist': [
+                            None, {'nodetype': 'LatexGroupNode',
+                                   'nodelist': [{'nodetype': 'LatexCharsNode',
+                                                 'chars': 'article'}],
+                                   'delimiters': ['{', '}']}
+                        ]
+                    },
+                    'macro_post_space': ''},
+                {'nodetype': 'LatexCharsNode', 'chars': '\n'},
+                {
+                    'nodetype': 'LatexEnvironmentNode',
+                    'environmentname': 'document',
+                    'nodelist': [
+                        {'nodetype': 'LatexCharsNode', 'chars': '\n\n'},
+                        {'nodetype': 'LatexCharsNode',
+                         'chars': '\n\nBut don\'t skip this.\n\n'},
                     ],
                     'nodeargd': {'argspec': '', 'argnlist': []}
                 },

@@ -22,6 +22,17 @@ class Apply(PragmaFix):
       ...
       ...
       %%!lpp }
+
+    Arguments:
+
+    - `region`: is the name of the region that the given extra fixes should be
+      applied to.  In your LaTeX code, you should have a ``%%!lpp regional-fix``
+      pragma instruction that delimits the sections of code on which these fixes
+      should be applied.  In the example above, `region="My-Region-Name-1"`.
+
+    - `fixes`: a data structure of fixes configuration like the main `fixes`
+      section of the `latexpp` configuration.  You can specify here any fixes
+      that you could specify for the document at the top level.
     """
     def __init__(self, region=None, fixes=None):
         super().__init__()

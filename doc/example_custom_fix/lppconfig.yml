@@ -1,0 +1,24 @@
+# latexpp config for this example
+#
+# This is YAML syntax -- google "YAML tutorial" to get a quick intro.
+# Be careful with spaces since indentation is important.
+
+# the master LaTeX document -- this file will not be modified, all
+# output will be produced in the output_dir
+fname: 'testdoc.tex'
+
+# output file(s) will be created in this directory, originals will
+# not be modified
+output_dir: 'latexpp_output'
+
+# main document file name in the output directory
+output_fname: 'main.tex'
+
+# specify list of fixes to apply, in the given order
+fixes:
+
+  # Custom fix
+  - name: 'myfixes.mycustomfix.MyGreetingFix'
+    config:
+      greeting: "I've been expecting you, %(name)s."
+

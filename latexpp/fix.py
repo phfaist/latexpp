@@ -1,3 +1,10 @@
+r"""
+This module provides the base class for fixes.
+
+
+See :ref:`customfix` for a tutorial and reference on writing a custom fix class.
+"""
+
 import string
 import logging
 logger = logging.getLogger(__name__)
@@ -21,9 +28,6 @@ class BaseFix:
     A `fix` should be defined by defining a subclass of this class and
     overriding the methods that will allow to transform nodes.
 
-    See :ref:`customfix` for a tutorial and reference on writing a custom fix
-    class.
-
     The methods you should consider overriding are:
 
     - :py:meth:`fix_node()` — this method will be called once for each node in
@@ -39,19 +43,55 @@ class BaseFix:
 
     - :py:meth:`add_preamble()` — include additional definitions to the preamble
       of the document.
+
+
+    .. py:attribute:: lpp
+
+       The `lpp` attribute holds a reference to the preprocessor object (a
+       :py:class:`latexpp.preprocessor.LatexPreprocessor` instance).  You can
+       use this to access some additional functions such as
+       :py:meth:`self.lpp.copy_file()
+       <latexpp.preprocessor.LatexPreprocessor.copy_file()>`.
+
+       Note, if you create an instance of the fix manually, you need to call
+       :py:meth:`set_lpp()` to set the `lpp` attribute.
     """
     def __init__(self):
         self.lpp = None
         self._basefix_constr_called = True # preprocessor checks this to prevent silly bugs
 
     def fix_name(self):
+        """
+        Returns the full name/identifier of the fix, like
+        'latexpp.fixes.ref.ExpandRefs'.  No need to reimplement this.
+        """
         return self.__class__.__module__ + '.' + self.__class__.__name__
 
     def set_lpp(self, lpp):
+        """
+        Set the :py:attr:`lpp` attribute to `lpp`.  If you create a fix instance you
+        should call this so that the fix can call utility methods on the
+        preprocessor object.
+        
+        You don't have to call `set_lpp()` on fixes that are loaded via the
+        preprocessor's :py:meth:`install_fix()
+        <latexpp.preprocessor.LatexPreprocessor.install_fix()>` method.
+        """
         self.lpp = lpp
 
 
     def initialize(self):
+        """
+        This method is called at the beginning, after having parsed the document,
+        but before any other fixes actually process the document.
+
+        This is a good opportunity to parse an AUX file, to create a
+        sub-preprocessor, or perform some other task that needs to be done once
+        before applying transformations throughout the document.
+
+        The default implementation does nothing, reimplement to do something
+        useful for your fix.
+        """
         pass
 
     def specs(self):
@@ -64,21 +104,70 @@ class BaseFix:
         definitions.  The return value of `specs()` should be suitable for use
         as keyword arguments to
         :py:meth:`pylatexenc.macrospec.LatexContextDb.add_context_category()`.
+
+        Specify a :py:class:`pylatexenc.macrospec.MacroSpec` for each macro you
+        want to define.  The second argument is a string that describes what
+        arguments the macro expects.  Each character in the string may be '*',
+        '[' or '{' indicating an optional star ('*'), an optional argument
+        delimited by square brackets, or a mandatory argument (single token or
+        braced group).  The arguments are stored in the `node.nodeargd.argnlist`
+        array in the parsed `node` (see
+        :py:class:`pylatexenc.latexwalker.LatexMacroNode`) with their order
+        being exactly the one given in the argument specification string where a
+        value `None` indicates that an optional star or optional argument was
+        not specified.
+
+        See :py:class:`pylatexenc.macrospec.MacroSpec`,
+        :py:class:`pylatexenc.macrospec.EnvironmentSpec`, and
+        :py:class:`pylatexenc.macrospec.SpecialsSpec` for more detailed
+        information on specifying macro, environment, and "latex specials"
+        argument signatures.
+
+        The default implementation returns `None`.  Reimplement this method to
+        provide additional macro/environment/latex-specials for the parser's
+        consideration.
         """
         return None
 
     def finalize(self):
+        """
+        Method that is called after all fixes have finished processing their
+        transformations ("fixes").  This might be a good time to do any
+        finish-up work, generate a log file with a report, or whatever one-off
+        task you have to do at the end of your processing.
+
+        The default implementation does nothing, reimplement to do something
+        useful for your fix.
+        """
         pass
 
 
     def add_preamble(self):
+        """
+        Fixes can add arbitrary code to the LaTeX preamble by subclassing this
+        method and returning the required preamble definitions as a string.  The
+        default implementation returns `None`, which means that no additional
+        preamble definitions are requested.
+
+        Currently, the preamble definitions are included from the start, before
+        running all the fixes and they are processed as part of the document
+        with all the relevant fixes.  [Don't count on this behavior, it doesn't
+        sound very logical to me in hindsight, so I might change it in the
+        future.]
+        """
         return None
 
 
     def preprocess(self, nodelist):
         r"""
-        Return a new node list that corresponds to the pre-processed version of
-        `nodelist`.
+        Process the `nodelist` and apply all relevant transformations that this fix
+        is meant to carry out.  Return a new node list that corresponds to the
+        transformed version of `nodelist`.
+
+        This function is what someone should call to get a full processed
+        version of `nodelist`.  This method takes care of descending into child
+        nodes and applying the fixes recursively by calling `preprocess()` on
+        children nodes.
 
         Don't subclass this, rather, you should subclass
         :py:meth:`fix_nodelist()` or :py:meth:`fix_node()`.
@@ -192,7 +281,9 @@ class BaseFix:
     def preprocess_child_nodes(self, node):
         r"""
         Call `self.preprocess()` on all children of the given node `node` and
-        modifies the node attributes in place.
+        modifies the node attributes in place.  Children include group contents
+        (if a latex group), argument nodes (if a macro, environment, or latex
+        specials), etc.
 
         This method does not return anything interesting.
         """
@@ -230,6 +321,10 @@ class BaseFix:
         """
         Parses the given string `s` with an appropriate `LatexWalker` to get a node
         list again, using the given `parsing_state`.
+
+        Returns the node list.  Raises
+        :py:exc:`pylatexenc.latexwalker.LatexWalkerParseError` if there was a
+        parse error.
         """
         try:
             lw = self.lpp.make_latex_walker(s)
@@ -399,7 +494,7 @@ class BaseFix:
         #print("*** need to preprocess ", n)
         n2 = self.preprocess(n)
         #print("*** --> ", n2)
-        return self.lpp.nodelist_to_latex(n2)
+        return "".join(nn.to_latex() for nn in n2) #self.lpp.nodelist_to_latex(n2)
 
     def preprocess_contents_latex(self, n):
         r"""

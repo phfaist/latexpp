@@ -7,4 +7,5 @@ build
 dist
 *.egg-info
 doc/_build
+doc/example_custom_fix/latexpp_output
 doccases_test

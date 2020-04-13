@@ -13,10 +13,12 @@
    :caption: Contents:
 
    howtouse
+   howitworks
    lppconfig
    fixes
-   howitworks
+   pragmas
    customfix
+   impl-pylatexenc
    api-latexpp
 
 
