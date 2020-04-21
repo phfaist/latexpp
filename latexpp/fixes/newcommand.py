@@ -1,5 +1,4 @@
 import re
-import yaml
 import logging
 
 logger = logging.getLogger(__name__)
@@ -8,7 +7,7 @@ from pylatexenc.macrospec import MacroSpec, EnvironmentSpec, SpecialsSpec, \
     ParsedMacroArgs, MacroStandardArgsParser, LatexContextDb
 from pylatexenc import latexwalker
 
-from latexpp.macro_subst_helper import MacroSubstHelper
+#from latexpp.macro_subst_helper import MacroSubstHelper
 
 from latexpp.fix import BaseFix
 
@@ -182,6 +181,8 @@ class MacroStandardArgsParserForNewcommand(MacroStandardArgsParser):
                 # optional, non-specified parameter (see "if" above)
                 return ''.join( (recomposer.node_to_latex(n) if n else '')
                                 for n in parsed_args_instance.argnlist[1:] )
+
+            parsed_args_instance.args_to_latex = new_args_to_latex
             
         return ptuple
 

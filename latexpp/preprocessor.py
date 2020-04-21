@@ -7,7 +7,6 @@ import os
 import os.path
 import shutil
 import re
-import functools
 import datetime
 import importlib
 

@@ -2,14 +2,11 @@ import re
 import os
 import os.path
 import logging
-import tempfile
-import itertools
-import subprocess
 
 logger = logging.getLogger(__name__)
 
-from pylatexenc.macrospec import MacroSpec, MacroStandardArgsParser
-from pylatexenc import latexwalker
+#from pylatexenc.macrospec import MacroSpec, MacroStandardArgsParser
+#from pylatexenc import latexwalker
 
 from latexpp.fix import BaseFix
 

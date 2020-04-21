@@ -12,13 +12,14 @@ from .fix import BaseFix
 
 # Regex to detect LPP pragma instructions.
 #
-# - node.comment does not contain first '%' comment char
+# - Only match a single percent sign because the attribute `node.comment` does
+#   not contain the initial '%' comment char
 #
-# - the pragma must start with the exact string '%%!lpp'. We capture similar
+# - The pragma must start with the exact string '%%!lpp'. We capture similar
 #   strings here so that we can give more informative error messages (as opposed
 #   to the instruction being silently ignored)
 #
-# - a scope is opened if the pragma instruction ends with '{', separated from
+# - A scope is opened if the pragma instruction ends with '{', separated from
 #   the rest with whitespace.  Arguments are parsed after detecting a possible
 #   scope open.
 #
@@ -181,7 +182,7 @@ class PragmaFix(BaseFix):
                 j = self._do_simple_pragma(nodelist, j, instruction, args)
                 continue
 
-            j += 1
+            raise RuntimeError("Should never reach here")
 
         if stop_at_close_scope:
             raise ValueError(
