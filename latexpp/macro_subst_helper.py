@@ -179,6 +179,21 @@ class MacroSubstHelper:
         
         q.update(context)
 
-        text = repl % q
+        try:
+            text = repl % q
+        except KeyError as e:
+            logger.error(
+                ("Substitution failed (KeyError {}):\n"
+                 "    {} -> {}  (with keys {!r})\n"
+                 "node = {!r}").format(
+                str(e),
+                n.to_latex(),
+                repl,
+                q,
+                n)
+            )
+            raise
+                
+
         #logger.debug(" -- Performing substitution {} -> {}".format(n.to_latex(), text))
         return text

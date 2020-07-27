@@ -21,6 +21,28 @@ class CopyFiles(BaseFix):
     
     - `files`: a list of files to include in the output directory.  The files
       are not renamed and subdirectories are preserved.
+
+      Each element in `files` is either:
+    
+        - a single file name, in which case the destination file name and
+          relative path is preserved, or
+
+        - a dictionary of the form ``{'from': source_file, 'to': dest_file}``,
+          in which case the file `source_file` is copied to `dest_file`, where
+          `dest_file` is relative to the output directory.
+
+    Example::
+    
+       fixes:
+       [...]
+       - name: 'latexpp.fixes.deps.CopyFiles'
+         config:
+           files:
+             # copy my-suppl-mat-xyz.pdf -> output/SupplMaterial.pdf
+             - from: my-suppl-mat-xyz.pdf
+               to: SupplMaterial.pdf
+             # copy ReplyReferees.pdf -> output/ReplyReferees.pdf
+             - ReplyReferees.pdf
     """
 
     def __init__(self, files=[]):
@@ -30,5 +52,9 @@ class CopyFiles(BaseFix):
     def initialize(self, **kwargs):
 
         for fn in self.files:
-            self.lpp.copy_file(fn, fn)
+            if isinstance(fn, dict):
+                fn_from, fn_to = fn['from'], fn['to']
+            else:
+                fn_from, fn_to = fn, fn
+            self.lpp.copy_file(fn_from, fn_to)
 
