@@ -1,5 +1,5 @@
 
-from pylatexenc.latexwalker import LatexCommentNode, LatexMacroNode
+#from pylatexenc.latexwalker import LatexCommentNode, LatexMacroNode
 
 from latexpp.pragma_fix import PragmaFix
 
@@ -15,7 +15,7 @@ class SkipPragma(PragmaFix):
     .. note::
 
        You should NOT invoke this fix directly, it is automatically
-       invoked for you!
+       included for you!
     """
     def __init__(self):
         super().__init__()

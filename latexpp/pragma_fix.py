@@ -182,7 +182,7 @@ class PragmaFix(BaseFix):
                 j = self._do_simple_pragma(nodelist, j, instruction, args)
                 continue
 
-            raise RuntimeError("Should never reach here")
+            raise RuntimeError("Should never reach here") # lgtm[py/unreachable-statement]
 
         if stop_at_close_scope:
             raise ValueError(
