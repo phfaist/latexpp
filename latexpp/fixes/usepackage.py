@@ -75,6 +75,16 @@ class CopyLocalPkgs(BaseFix):
     def __init__(self, blacklist=None):
         super().__init__()
         self.blacklist = frozenset(blacklist) if blacklist else frozenset()
+        self.initialized = False
+        self.finalized = False
+
+    def initialize(self):
+        if self.initialized:
+            return
+        self.initialized = True
+        self.subpp = self.lpp.create_subpreprocessor()
+        self.subpp.install_fix(self)
+        self.subpp.initialize()
 
     def fix_node(self, n, **kwargs):
 
@@ -82,7 +92,11 @@ class CopyLocalPkgs(BaseFix):
         if pkgname is not None and pkgname not in self.blacklist:
             pkgnamesty = pkgname + '.sty'
             if os_path.exists(pkgnamesty):
-                self.lpp.copy_file(pkgnamesty)
+                self.subpp.copy_file(pkgnamesty, destfname=pkgnamesty)
+                with self.subpp.open_file(pkgnamesty) as f:
+                    pkgcontents = f.read()
+                self.subpp.execute_string(pkgcontents,
+                    omit_processed_by=True, input_source=pkgnamesty)
                 return None # keep node the same
 
         return None
@@ -91,6 +105,12 @@ class CopyLocalPkgs(BaseFix):
         return {
             "macros": [std_macro("RequirePackage", True, 1)]
         }
+
+    def finalize(self):
+        if self.finalized:
+            return
+        self.finalized = True
+        self.subpp.finalize()
 
 
 class InputLocalPkgs(BaseFix):
