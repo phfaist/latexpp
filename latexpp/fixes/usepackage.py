@@ -5,6 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from pylatexenc.latexwalker import LatexMacroNode
+from pylatexenc.macrospec import std_macro
 
 from latexpp.fix import BaseFix
 
@@ -14,11 +15,10 @@ def node_get_usepackage(n, fix):
     If `n` is a macro node that is a 'usepackage' directive, then this function
     returns a string with the package name.  Otherwise we return `None`.
     """
-    if n.isNodeType(LatexMacroNode) and n.macroname == 'usepackage' and \
-       n.nodeargd is not None and n.nodeargd.argnlist is not None:
+    if (n.isNodeType(LatexMacroNode) and n.macroname in ("usepackage", "RequirePackage") 
+        and n.nodeargd is not None and n.nodeargd.argnlist is not None):
         # usepackage has signature '[{'
         return fix.preprocess_arg_latex(n, 1).strip()
-
     return None
 
 
@@ -49,6 +49,11 @@ class RemovePkgs(BaseFix):
             return [] # kill entire node
 
         return None
+
+    def specs(self):
+        return {
+            "macros": [std_macro("RequirePackage", True, 1)]
+        }
 
 
 class CopyLocalPkgs(BaseFix):
@@ -81,6 +86,11 @@ class CopyLocalPkgs(BaseFix):
                 return None # keep node the same
 
         return None
+
+    def specs(self):
+        return {
+            "macros": [std_macro("RequirePackage", True, 1)]
+        }
 
 
 class InputLocalPkgs(BaseFix):
@@ -156,3 +166,8 @@ class InputLocalPkgs(BaseFix):
 
     def finalize(self):
         self.subpp.finalize()
+
+    def specs(self):
+        return {
+            "macros": [std_macro("RequirePackage", True, 1)]
+        }
