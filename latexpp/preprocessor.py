@@ -6,7 +6,7 @@ import sys
 import os
 import os.path
 import shutil
-import re
+#import re
 import datetime
 import importlib
 
@@ -24,7 +24,7 @@ from .fixes.builtin.skip import SkipPragma
 
 
 
-from ._lpp_parsing import LatexCodeRecomposer, _LPPParsingState, _LPPLatexWalker
+from ._lpp_parsing import _LPPLatexWalker #, LatexCodeRecomposer, _LPPParsingState
 
 
 

@@ -2,7 +2,7 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from pylatexenc.latexwalker import LatexMacroNode, LatexEnvironmentNode
+#from pylatexenc.latexwalker import LatexMacroNode, LatexEnvironmentNode
 
 from latexpp.macro_subst_helper import MacroSubstHelper
 

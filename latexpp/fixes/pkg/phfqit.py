@@ -4,8 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from pylatexenc.macrospec import MacroSpec, std_macro, \
-    ParsedMacroArgs, MacroStandardArgsParser
+from pylatexenc.macrospec import MacroSpec, ParsedMacroArgs, MacroStandardArgsParser
 from pylatexenc import latexwalker
 
 from latexpp.macro_subst_helper import MacroSubstHelper
@@ -623,12 +622,14 @@ class ExpandMacros(BaseFix):
                  subst_use_hspace=True):
         super().__init__()
 
-        the_simple_substitution_macros = dict(simple_substitution_macros)
+        the_simple_substitution_macros = {}
+        the_simple_substitution_macros.update(simple_substitution_macros)
         the_simple_substitution_macros.update(subst)
         # remove any items which have a None value (used to indicate a default
         # key should be removed from the YAML config)
 
-        the_math_operators = dict(math_operators)
+        the_math_operators = {}
+        the_math_operators.update(math_operators)
         the_math_operators.update(ops)
         the_simple_substitution_macros.update(**{
             opname: math_operator_fmt%dict(opname=opv)
@@ -877,7 +878,6 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                 if tok.tok in ('char', 'specials') and \
                    (tok.arg == '`' or getattr(tok.arg, 'specials_chars', None) == '`'):
                     # we have an optional size arg
-                    optpos = tok.pos
                     p = tok.pos+1
 
                     tok = w.get_token(p)
@@ -889,16 +889,6 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                                               parsing_state=parsing_state,
                                               chars='*', pos=tok.pos, len=tok.len)
                         argnlist.append(thenode)
-                        # argnlist.append(
-                        #     w.make_node(
-                        #         latexwalker.LatexGroupNode,
-                        #         parsing_state=parsing_state,
-                        #         nodelist=[ thenode ],
-                        #         delimiters=('`', ''),
-                        #         pos=optpos,
-                        #         len=tok.pos+tok.len-optpos
-                        #     )
-                        # )
                         p = tok.pos + 1
                     elif tok.tok == 'macro':
                         thenode = w.make_node(latexwalker.LatexMacroNode,
@@ -908,16 +898,6 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                                               pos=tok.pos, len=tok.len)
 
                         argnlist.append(thenode)
-                        # argnlist.append(
-                        #     w.make_node(
-                        #         latexwalker.LatexGroupNode,
-                        #         parsing_state=parsing_state,
-                        #         nodelist=[ thenode ],
-                        #         delimiters=('`', ''),
-                        #         pos=optpos,
-                        #         len=tok.pos+tok.len-optpos
-                        #     )
-                        # )
                         p = tok.pos+tok.len
                     else:
                         raise latexwalker.LatexWalkerParseError(
@@ -946,7 +926,7 @@ class PhfQitObjectArgsParser(MacroStandardArgsParser):
                 # check for intro char "_"/"^"
                 if tok.tok == 'char' and tok.arg == argt:
                     # has this argument, read expression:
-                    optpos = tok.pos
+                    #optpos = tok.pos
                     p = tok.pos+tok.len
                     (node, np, nl) = w.get_latex_expression(p, strict_braces=False,
                                                             parsing_state=parsing_state)

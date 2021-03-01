@@ -1,5 +1,5 @@
 
-from pylatexenc.latexwalker import LatexCommentNode, LatexMacroNode
+#from pylatexenc.latexwalker import LatexCommentNode, LatexMacroNode
 
 from latexpp.pragma_fix import PragmaFix
 

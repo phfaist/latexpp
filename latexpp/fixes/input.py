@@ -1,4 +1,3 @@
-import os
 import os.path as os_path # allow tests to monkey-patch this
 
 import logging

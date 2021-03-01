@@ -60,6 +60,7 @@ class MockLPP(preprocessor.LatexPreprocessor):
         pass
 
     def _do_copy_file(self, source, dest):
+        source, dest = map(os.path.normpath, (source, dest))
         self.copied_files.append( (source, dest,) )
 
     def open_file(self, fname):
@@ -78,6 +79,21 @@ class MockLPP(preprocessor.LatexPreprocessor):
         # skip checks
         return
 
+    def create_subpreprocessor(self, *, lppconfig_fixes=None):
+        """
+        Create a sub-preprocessor (or child preprocessor) of this preprocessor.
+        """
+        pp = MockLPP(mock_files=self.mock_files)
+        pp.parent_preprocessor = self
+        if lppconfig_fixes:
+            pp.install_fixes_from_config(lppconfig_fixes)
+        return pp
+
+    def finalize(self):
+        if self.parent_preprocessor:
+            self.parent_preprocessor.copied_files += self.copied_files
+        super().finalize()
+
 
 
 def make_latex_walker(s, **kwargs):
@@ -86,19 +102,22 @@ def make_latex_walker(s, **kwargs):
 
 
 class FakeOsPath:
+
     def __init__(self, existing_filenames):
         super().__init__()
-        self.existing_filenames = existing_filenames
+        self.existing_filenames = [os.path.normpath(fn) for fn in existing_filenames]
 
     def basename(self, *args, **kwargs):
         return os.path.basename(*args, **kwargs)
+
+    def join(self, *args, **kwargs):
+        return os.path.join(*args, **kwargs)
+
     def dirname(self, *args, **kwargs):
         return os.path.dirname(*args, **kwargs)
 
     def exists(self, fn):
-        return fn in self.existing_filenames
-
-
+        return os.path.normpath(fn) in self.existing_filenames
 
 
 def nodelist_to_d(nodelist, use_line_numbers=False, use_detailed_position=False):

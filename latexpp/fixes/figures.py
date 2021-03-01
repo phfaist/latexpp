@@ -1,4 +1,3 @@
-import os
 import os.path as os_path # allow tests to monkey-patch this
 
 import logging
@@ -41,13 +40,14 @@ class CopyAndRenameFigs(BaseFix):
     """
 
     def __init__(self, fig_rename='fig-{fig_counter:02}{fig_ext}',
-                 start_fig_counter=1):
+                 start_fig_counter=1, graphicspath="."):
         super().__init__()
 
         # By default we start at Fig #1 because journals like separate files
         # with numbered figures starting at 1
         self.fig_counter = start_fig_counter
         self.fig_rename = fig_rename
+        self.graphicspath = graphicspath
 
     def fix_node(self, n, **kwargs):
 
@@ -56,6 +56,7 @@ class CopyAndRenameFigs(BaseFix):
 
             # find file and copy it
             orig_fig_name = self.preprocess_arg_latex(n, 1)
+            orig_fig_name = os_path.join(self.graphicspath, orig_fig_name)
             for e in exts:
                 if os_path.exists(orig_fig_name+e):
                     orig_fig_name = orig_fig_name+e

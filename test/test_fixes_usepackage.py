@@ -42,13 +42,14 @@ class TestCopyLocalPkgs(unittest.TestCase):
 
     def test_simple(self):
         
-        usepackage.os_path = helpers.FakeOsPath([
+        mock_files = {
             # list of files that "exist"
-            'mymacros.sty',
-            'cleveref.sty',
-        ])        
+            "mymacros.sty": "%test",
+            "cleveref.sty": "%test",
+        }
+        usepackage.os_path = helpers.FakeOsPath(list(mock_files.keys()))
 
-        lpp = helpers.MockLPP()
+        lpp = helpers.MockLPP(mock_files)
         lpp.install_fix( usepackage.CopyLocalPkgs() )
 
         lpp.execute(r"""
@@ -63,12 +64,11 @@ class TestCopyLocalPkgs(unittest.TestCase):
 Hello world.
 \end{document}
 """)
-
         self.assertEqual(
             lpp.copied_files,
             [
-                ('mymacros.sty', '/TESTOUT'),
-                ('cleveref.sty', '/TESTOUT'),
+                ('mymacros.sty', '/TESTOUT/mymacros.sty'),
+                ('cleveref.sty', '/TESTOUT/cleveref.sty'),
             ]
         )
 
