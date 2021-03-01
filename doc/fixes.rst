@@ -34,8 +34,8 @@ translates to the fix instantiation (python class)::
 
    
 
-Document contents & formatting
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+General document contents & formatting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: latexpp.fixes.input.EvalInput
 
@@ -47,6 +47,13 @@ Expanding custom macros
 .. autoclass:: latexpp.fixes.newcommand.Expand
 
 .. autoclass:: latexpp.fixes.macro_subst.Subst
+
+Tweaking document contents
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: latexpp.fixes.environment_contents.InsertPrePost
+
+.. autoclass:: latexpp.fixes.ifsimple.ApplyIf
 
 References and citations
 ~~~~~~~~~~~~~~~~~~~~~~~~

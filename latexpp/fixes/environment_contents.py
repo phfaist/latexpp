@@ -8,13 +8,29 @@ from latexpp.fix import BaseFix
 
 class InsertPrePost(BaseFix):
     r"""
-    Find specific environment instances (e.g., \begin{proof} ... \end{proof})
-    and insert given contents within the environment, before and/or after the
-    inner environment body.
+    Find instances of a specific environment and insert contents in its body,
+    before or after the existing contents.
+
+    This fix can be useful for instance to add a ``\qed`` command in some LaTeX
+    styles at the end of proofs (``\begin{proof} ... \end{proof}`` →
+    ``\begin{proof} ... \qed\end{proof}``).
+
+    Arguments:
+
+      - `environmentnames` is a list of names of environments upon which to act
+        (e.g., ``['proof']``;
+
+      - `pre_contents` is arbitrary LaTeX code to insert at the beginning of the
+        environment body, for each environment encountered whose name is in
+        `environmentnames`;
+
+      - `post_contents` is arbitrary LaTeX code to insert at the end of the
+        environment body, for each environment encountered whose name is in
+        `environmentnames`.
     """
     def __init__(self, environmentnames=None, pre_contents=None, post_contents=None):
         super().__init__()
-        self.environmentnames = environmentnames if environmentnames else []
+        self.environmentnames = list(environmentnames) if environmentnames else []
         self.pre_contents = pre_contents
         self.post_contents = post_contents
 
