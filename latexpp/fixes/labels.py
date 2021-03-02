@@ -11,11 +11,15 @@ from pylatexenc import latexwalker
 from latexpp.fix import BaseMultiStageFix
 
 from . import ref as lppfix_ref
-_default_refcmds = [
-    refcmd
-    for catname,catd in lppfix_ref._REFCMDS.items()
-      for refcmd in catd.keys()
-]
+
+
+_REFCMDS = dict(lppfix_ref._REFCMDS)
+_REFCMDS.update({
+    'autoref': {
+        'autoref': {'macro': MacroSpec('autoref', args_parser=MacroStandardArgsParser('*{')),
+                    'label_args': [1]},
+    }
+})
 
 
 class RenameLabels(BaseMultiStageFix):
@@ -58,13 +62,13 @@ class RenameLabels(BaseMultiStageFix):
         self.label_rename_fmt = label_rename_fmt
 
         if ref_types is None:
-            ref_types = list(lppfix_ref._REFCMDS.keys())
+            ref_types = list(_REFCMDS.keys())
 
         self.ref_types = ref_types
         self.refcmds = dict([
             (refcmd, refspec)
             for ref_type in ref_types
-            for refcmd, refspec in lppfix_ref._REFCMDS[ref_type].items()
+            for refcmd, refspec in _REFCMDS[ref_type].items()
         ])
 
         self.use_hash_length = use_hash_length
