@@ -877,6 +877,90 @@ And here is another lemma:
 """
         )
 
+    def test_simple_labelcref(self):
+        
+        latex = r"""
+\documentclass[11pt]{article}
+
+\usepackage{amsthm}
+\newtheorem{lemma}{Lemma}
+
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+\begin{document}
+
+The proof of Thing~\labelcref{lemma:test,lemma:test2} is easy.
+Thing~\labelcref{eq:hello} is also simple to prove.
+
+Here is a lemma:
+\begin{lemma}
+  \label{lemma:test}
+  Test lemma. 
+\end{lemma}
+Here is an equation
+\begin{equation}
+  \label{eq:hello}
+  a + b = c \ .
+\end{equation}
+And here is another lemma:
+\begin{lemma}
+  \label{lemma:test2}
+  Another test lemma.
+\end{lemma}
+\end{document}
+"""
+
+        lpp = helpers.MockLPP()
+        fix = ref.ExpandRefs(only_ref_types=('cleveref',), debug_latex_output=True)
+        fix._get_doc_preamble = fix._get_doc_preamble_recomposed
+        fix._get_auxfile_contents = lambda: hyperref_aux_preamble + r"""
+\newlabel{lemma:test}{{1}{1}{}{lemma.1}{}}
+\newlabel{lemma:test@cref}{{[lemma][1][]1}{1}}
+\newlabel{eq:hello}{{1}{1}{}{equation.0.1}{}}
+\newlabel{eq:hello@cref}{{[equation][1][]1}{1}}
+\newlabel{lemma:test2}{{2}{1}{}{lemma.2}{}}
+\newlabel{lemma:test2@cref}{{[lemma][2][]2}{1}}
+"""
+        lpp.install_fix( fix )
+
+        self.assertEqual(
+            lpp.execute(latex),
+            # NOTE: KEEP \protect in output, because the substitution might
+            # happen somewhere fragile.
+            r"""
+\documentclass[11pt]{article}
+
+\usepackage{amsthm}
+\newtheorem{lemma}{Lemma}
+
+\usepackage{hyperref}
+
+
+\begin{document}
+
+The proof of Thing~\protect \hyperlink {lemma.1}{1} and\protect \nobreakspace  \protect \hyperlink {lemma.2}{2} is easy.
+Thing~\protect \textup  {(\protect \hyperlink {equation.0.1}{1})} is also simple to prove.
+
+Here is a lemma:
+\begin{lemma}
+  \label{lemma:test}
+  Test lemma. 
+\end{lemma}
+Here is an equation
+\begin{equation}
+  \label{eq:hello}
+  a + b = c \ .
+\end{equation}
+And here is another lemma:
+\begin{lemma}
+  \label{lemma:test2}
+  Another test lemma.
+\end{lemma}
+\end{document}
+"""
+        )
+
 
 
 

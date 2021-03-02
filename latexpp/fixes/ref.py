@@ -55,6 +55,11 @@ _REFCMDS =  {
                       'label_args': [1]},
         'lcnamecrefs': {'macro': MacroSpec('lcnamecrefs', args_parser=MacroStandardArgsParser('*{')),
                         'label_args': [1]},
+        'labelcref': {'macro': MacroSpec('labelcref', args_parser=MacroStandardArgsParser('*{')),
+                      'label_args': [1]},
+        'labelcpageref': {'macro': MacroSpec('labelcpageref',
+                                             args_parser=MacroStandardArgsParser('*{')),
+                          'label_args': [1]},
     }
 }
 
