@@ -14,6 +14,8 @@ import logging
 
 from pylatexenc import latexwalker
 
+from . import __version__
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ def get_datetime_now_tzaware():
 
 
 _PROCESSED_BY_HEADING = r"""
-% Automatically processed by latexpp on {today}
+% Automatically processed by latexpp v{version} on {today}
 % See https://github.com/phfaist/latexpp
 """.lstrip()
 
@@ -354,6 +356,7 @@ class LatexPreprocessor:
         if not omit_processed_by:
             return (
                 _PROCESSED_BY_HEADING.format(
+                    version=__version__,
                     today=get_datetime_now_tzaware().strftime("%a, %d-%b-%Y %H:%M:%S %Z%z")
                 )
                 + newstr

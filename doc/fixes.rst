@@ -60,6 +60,8 @@ References and citations
 
 .. autoclass:: latexpp.fixes.ref.ExpandRefs
 
+.. autoclass:: latexpp.fixes.labels.RenameLabels
+
 .. autoclass:: latexpp.fixes.bib.CopyAndInputBbl
 
 .. autoclass:: latexpp.fixes.bib.ApplyAliases

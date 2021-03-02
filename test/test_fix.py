@@ -5,7 +5,7 @@ import helpers
 
 from pylatexenc import latexwalker
 
-from latexpp.fix import BaseFix
+from latexpp.fix import BaseFix, BaseMultiStageFix
 
 
 class TestBaseFix(unittest.TestCase):
@@ -390,6 +390,141 @@ Also: {\itshape some italic text}."""
         self.assertTrue( c.isNodeType(latexwalker.LatexCharsNode) )
         self.assertEqual( c.chars, "Hello !" )
         
+
+
+
+class TestBaseMultiStageFix(unittest.TestCase):
+    def test_simple(self):
+
+        class StageOne(BaseMultiStageFix.Stage):
+            def fix_node(self, n, **kwargs):
+                if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'relax':
+                    self.parent_fix.number_of_relaxes += 1
+
+        class StageTwo(BaseMultiStageFix.Stage):
+            def fix_node(self, n, **kwargs):
+                if n.isNodeType(latexwalker.LatexEnvironmentNode) \
+                   and n.environmentname == 'document':
+                    n.nodelist.append(n.parsing_state.lpp_latex_walker.make_node(
+                        latexwalker.LatexCharsNode,
+                        chars='\n\n' + r"""There were %d \verb+\relax+'s in this document."""%(
+                            self.parent_fix.number_of_relaxes
+                        ) + '\n',
+                        parsing_state=n.parsing_state,
+                        pos=None, len=None
+                    ))
+                    return n
+                return None
+
+        class MyMultiStageFix(BaseMultiStageFix):
+            def __init__(self):
+                super().__init__()
+
+                self.number_of_relaxes = 0
+
+                self.add_stage(StageOne(self))
+                self.add_stage(StageTwo(self))
+
+        latex = r"""
+\documentclass{article}
+\begin{document}
+        Hello \relax. We are \textbf{counting\relax\ the number
+        of {\relax}ocurrences} of the \relax ``relax'' macro.
+        \begin{enumerate}[\relax]
+        \item \relax \item Do not \relax
+        \end{enumerate}
+\end{document}
+"""
+
+        lpp = helpers.MockLPP()
+        myfix = MyMultiStageFix()
+        lpp.install_fix( myfix )
+
+        lw = lpp.make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+        
+        newnodelist = myfix.preprocess(nodelist)
+        newstr = ''.join(n.to_latex() for n in newnodelist)
+
+        self.assertEqual(newstr, r"""
+\documentclass{article}
+\begin{document}
+        Hello \relax. We are \textbf{counting\relax\ the number
+        of {\relax}ocurrences} of the \relax ``relax'' macro.
+        \begin{enumerate}[\relax]
+        \item \relax \item Do not \relax
+        \end{enumerate}
+
+
+There were 7 \verb+\relax+'s in this document.
+\end{document}
+"""
+        )
+
+
+    def test_simple_2(self):
+
+        class CountMeStageFix(BaseMultiStageFix):
+            def __init__(self):
+                super().__init__()
+
+                self.number_of_countmes = 0
+
+                self.add_stage(self.CountMacros(self))
+                self.add_stage(self.ReplaceMacros(self))
+
+            class CountMacros(BaseMultiStageFix.Stage):
+                # silly example: count number of "\countme" macros in document
+                def fix_node(self, n, **kwargs):
+                    if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'countme':
+                        self.parent_fix.number_of_countmes += 1
+                    return None
+
+            class ReplaceMacros(BaseMultiStageFix.Stage):
+                # silly example: change "\numberofcountme" macro into the actual number of
+                # "\countme" macros encountered in document
+                def fix_node(self, n, **kwargs):
+                    if n.isNodeType(latexwalker.LatexMacroNode) \
+                       and n.macroname == 'numberofcountme':
+                       return str(self.parent_fix.number_of_countmes)
+                    return None
+
+        latex = r"""
+\documentclass{article}
+\begin{document}
+        Hello \countme. We are \textbf{counting\countme\ the number
+        of {\countme}ocurrences} of the \countme ``countme'' macro.
+        \begin{enumerate}[\countme]
+        \item \countme \item Do not \countme
+        \end{enumerate}
+
+        total = \numberofcountme
+\end{document}
+"""
+
+        lpp = helpers.MockLPP()
+        myfix = CountMeStageFix()
+        lpp.install_fix( myfix )
+
+        lw = lpp.make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+        
+        newnodelist = myfix.preprocess(nodelist)
+        newstr = ''.join(n.to_latex() for n in newnodelist)
+
+        self.assertEqual(newstr, r"""
+\documentclass{article}
+\begin{document}
+        Hello \countme. We are \textbf{counting\countme\ the number
+        of {\countme}ocurrences} of the \countme ``countme'' macro.
+        \begin{enumerate}[\countme]
+        \item \countme \item Do not \countme
+        \end{enumerate}
+
+        total = 7\end{document}
+"""
+        )
+
 
 
 if __name__ == '__main__':

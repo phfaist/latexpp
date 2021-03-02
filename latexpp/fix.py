@@ -59,13 +59,14 @@ class BaseFix:
     def __init__(self):
         self.lpp = None
         self._basefix_constr_called = True # preprocessor checks this to prevent silly bugs
+        self._fix_name = self.__class__.__module__ + '.' + self.__class__.__name__
 
     def fix_name(self):
         """
         Returns the full name/identifier of the fix, like
         'latexpp.fixes.ref.ExpandRefs'.  No need to reimplement this.
         """
-        return self.__class__.__module__ + '.' + self.__class__.__name__
+        return self._fix_name
 
     def set_lpp(self, lpp):
         """
@@ -570,5 +571,162 @@ class BaseFix:
         return self.preprocess_contents_latex(self.node_get_arg(n, argn))
 
 
+
+
+
+
+class BaseMultiStageFix(BaseFix):
+    r"""
+    Implement a fix that requires multiple passes through the document.
+
+    On some occasions you want to implement a fix that requires multiple stages
+    of processing.  For instance, the
+    :py:class:`latexpp.fixes.labels.RenameLabels` fix first needs to run through
+    the document to detect all ``\label{eq:xyz}`` commands, and then re-run
+    through the document to replace labels in commands like ``\ref{eq:xyz}``.
+
+    To implement a multi-stage fix, you simply inherit this class.  If you
+    inherit this class *DO NOT REIMPLEMENT ANY OF THE `fix_node()`,
+    `fix_nodelist()`, `preprocess()`, OR OTHER METHODS OF THAT FAMILY*.  The
+    entire processing is left to the individual :py:class:`Stage` objects, which
+    are themselves Fix objects that support `fix_node()`, `preprocess()`, etc.,
+    which you can use normally.
+
+    The `BaseMultiStageFix` is essentially a thin wrapper that calls each
+    stage's `preprocess()` function in sequence (again, each stage is a full
+    "fix" object).
+
+    Minimal example:
+
+    .. code-block:: python
+        
+        class CountMeStageFix(BaseMultiStageFix):
+            def __init__(self):
+                super().__init__()
+
+                self.number_of_countmes = 0
+
+                self.add_stage(self.CountMacros(self))
+                self.add_stage(self.ReplaceMacros(self))
+            
+            class CountMacros(BaseMultiStageFix.Stage):
+                # silly example: count number of "\countme" macros in document
+                def fix_node(self, n, **kwargs):
+                    if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname == 'countme':
+                        self.parent_fix.number_of_countmes += 1
+                    return None
+            
+            class ReplaceMacros(BaseMultiStageFix.Stage):
+                # silly example: change "\numberofcountme" macro into the actual number of
+                # "\countme" macros encountered in document
+                def fix_node(self, n, **kwargs):
+                    if n.isNodeType(latexwalker.LatexMacroNode) \
+                       and n.macroname == 'numberofcountme':
+                       return str(self.parent_fix.number_of_countmes)
+                    return None
+    """
+    def __init__(self):
+        super().__init__()
+        self._fix_stages = []
+
+    class Stage(BaseFix):
+        """
+        A specific stage in a multi-stage fix.  A "stage" is itself a fix object
+        (this class inherits :py:class:`BaseFix`) so you can reimplement the
+        usual `fix_node()` or `fix_nodelist()` (see :py:class:`BaseFix`).
+
+        .. py:attribute:: parent_fix
+
+            You can use the attribute `self.parent_fix` to refer to the parent
+            fix object (the one that inherits :py:class:`BaseMultiStageFix`) and
+            access its properties when implementing your Stage object.
+
+        You can also use the usual attributes provided by :py:class:`BaseFix`
+        (for instance, you can use `self.lpp` when implementing your Stage).
+
+        The :py:meth:`initialize()` and :py:meth:`finalize()` methods are
+        honored, but the are called simultaneously for all stages before any
+        stage is run and after all stages have run, respectively.  The methods
+        :py:meth:`stage_start()` and :py:meth:`stage_finish()`, in contrast, are
+        called immediately before and after the present stage is run.
+
+        .. warning:: The methods `specs()` and `add_preamble()` do not work if
+                     you try to implement them here. (You should implement them
+                     on the parent fix instead).
+        """
+        def __init__(self, parent_fix):
+            super().__init__()
+            self.parent_fix = parent_fix
+
+        def stage_start(self):
+            """
+            This method is called immediately before this stage is run, after any
+            preceding stages have been run.  (In constrast, all stages'
+            `initialize()` method are run before any stage is run.)
+            """
+            pass
+
+        def stage_finish(self):
+            """
+            This method is called immediately after this stage is run, before any
+            succeeding stages are run.  (In constrast, all stages' `finalize()`
+            method are run after all stages are run.)
+            """
+            pass
+
+        def stage_name(self):
+            """
+            Return a short name that describes this stage within this fix (by default,
+            this is the stage's simple class name).
+            """
+            return self.__class__.__name__
+
+
+    def add_stage(self, stage):
+        if not hasattr(self, '_basefix_constr_called'):
+            raise RuntimeError(
+                "BaseMultiStageFix: You didn't call super().__init__() before add_stage()")
+
+        if hasattr(self, 'lpp') and self.lpp is not None:
+            stage.lpp = self.lpp
+        self._fix_stages.append(stage)
+
+    def set_lpp(self, lpp):
+        for stage in self._fix_stages:
+            stage.set_lpp(lpp)
+
+    def initialize(self):
+        """
+        Calls all stages' `initialize()` members in stage sequence.  Don't forget to
+        call the base class' implementation if you reimplement this method.
+
+        Note that this calls the stages' initialize method at once, before any
+        of the stages are actually run.  See also :py:meth:`Stage.stage_start()`
+        and :py:meth:`Stage.stage_finish()`.
+        """
+        for stage in self._fix_stages:
+            stage.initialize()
+
+    def finalize(self):
+        """
+        Calls all stages' `finalize()` members in stage sequence.  Don't forget to
+        call the base class' implementation if you reimplement this method.
+
+        Note that this calls the stages' finalize method at once only after all
+        the stages have finished running.  See also
+        :py:meth:`Stage.stage_start()` and :py:meth:`Stage.stage_finish()`.
+        """
+        for stage in self._fix_stages:
+            stage.finalize()
+
+    def preprocess(self, nodelist):
+        newnodelist = nodelist
+        for stage in self._fix_stages:
+            logger.debug("%s: running stage ‘%s’", self.fix_name(), stage.stage_name())
+            stage.stage_start()
+            newnodelist = stage.preprocess(newnodelist)
+            stage.stage_finish()
+
+        return newnodelist
 
 

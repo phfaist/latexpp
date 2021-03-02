@@ -15,6 +15,9 @@ from latexpp.fix import BaseFix
 
 from .usepackage import node_get_usepackage # for detecting \usepackage{cleveref}
 
+
+# Note this _REFCMDS object is also used in the fix ./labels.py
+
 _REFCMDS =  {
     'ref': {
         'ref': {'macro': MacroSpec('ref', args_parser=MacroStandardArgsParser('*{')),
