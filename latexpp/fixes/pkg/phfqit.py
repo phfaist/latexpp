@@ -617,10 +617,17 @@ class ExpandMacros(BaseFix):
     """
 
     def __init__(self, *,
-                 subst={}, ops={}, delims={},
+                 subst=None, ops=None, delims=None,
                  math_operator_fmt=r'\operatorname{%(opname)s}',
                  subst_use_hspace=True):
         super().__init__()
+
+        if subst is None:
+            subst = {}
+        if ops is None:
+            ops = {}
+        if delims is None:
+            delims = {}
 
         the_simple_substitution_macros = {}
         the_simple_substitution_macros.update(simple_substitution_macros)
