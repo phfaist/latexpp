@@ -39,15 +39,30 @@ class RenameLabels(BaseMultiStageFix):
     
       - `label_rename_fmt`: a python %-format string to generate the new label.
         Use fields of the type ``"%(prefix)s%(hash)s"`` or ``%(n)d``.  Keys can
-        include ``labelname`` (earlier label name), ``n`` (a simple incremental
-        counter for each label), ``hash`` (a hash of the earlier label),
-        ``prefix`` (detects the prefix like "thm:" or "eq:", including colon,
-        empty if no prefix), and ``num_labels`` (total number of detected
-        labels).  [I will add more fields in the future probably.]
+        include:
+
+        - ``labelname`` (earlier label name);
+
+        - ``n`` (a simple incremental counter for each label);
+
+        - ``hash`` (a hash of the earlier label);
+    
+        - ``prefix`` (detects the prefix like "thm:" or "eq:", including colon;
+          expands to empty if no prefix);
+
+        - ``num_labels`` (total number of detected labels).
+
+        - [I will probably add more fields in the future.]
 
       - `ref_types`: which reference command types to recognize when replacing
         labels.  Here we use the same syntax as the
-        :py:class:`latexpp.fixes.ref` filter.
+        :py:class:`latexpp.fixes.ref.ExpandRefs` filter.
+
+        Additionally, you can specify the 'bib' "reference type" to act on
+        bibliographic entries; labels will be searched for (and replaced) in
+        ``\bibitem{}`` commands and replacements will occur in citation-related
+        commands like ``\cite{}``, ``\citet{}``, etc.  By default, bibliographic
+        labels are not touched.
 
       - `use_hash_length`: The key "%(hash)s" in `label_rename_fmt` computes the
         MD5 hash of the previous label and truncates its encoded representation

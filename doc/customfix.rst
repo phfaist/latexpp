@@ -59,7 +59,8 @@ Key points
 
 - Your fix class should inherit :py:class:`latexpp.fix.BaseFix`.  You can check
   out the documentation of that class for various utilities you can make use of
-  in your fix.
+  in your fix. (It can also inherit from
+  :py:class:`latexpp.fix.BaseMultiStageFix`, see further below.)
 
 - Perform transformations in the document by reimplementing the
   :py:meth:`~latexpp.fix.BaseFix.fix_node()` method.  The argument is a "node"
@@ -68,10 +69,12 @@ Key points
   :py:class:`~pylatexenc.latexwalker.LatexMacroNode`).
   (See also :ref:`implementation-notes-pylatexenc`.)
 
-- Make sure you always preprocess arguments, an environment body, etc. so that
-  fixes are also applied to the child nodes.  As a general rule, `fix_node()` is
-  responsible for applying the fix to all the child nodes as well.  This can be
-  done conveniently with :py:meth:`self.preprocess_contents_latex()
+- Make sure you always preprocess all child nodes such as macro arguments, the
+  environment body, etc. so that fixes are also applied to them.  As a general
+  rule, whenever `fix_node()` returns something different than `None` then it is
+  also responsible for applying the fix to all the child nodes of the current
+  node as well.  This can be done conveniently with
+  :py:meth:`self.preprocess_contents_latex()
   <latexpp.fix.BaseFix.preprocess_contents_latex>` and
   :py:meth:`self.preprocess_latex() <latexpp.fix.BaseFix.preprocess_latex>`
   which directly return LaTeX code that can be inserted in your new replacement
@@ -84,6 +87,21 @@ Key points
   :py:meth:`specs() <latexpp.fix.BaseFix.specs>` method.  (See the doc for
   :py:meth:`specs() <latexpp.fix.BaseFix.specs>` for more info.  Also, it never
   hurts to specify a macro, even if it was already defined.)
+
+- If your fix needs multiple passes through the document, you should inherit the
+  class :py:class:`latexpp.fix.BaseMultiStageFix` instead of
+  :py:class:`~latexpp.fix.BaseFix`.  In this case you can subdivide your fix
+  into "stages," which you define by subclassing
+  :py:class:`latexpp.fix.BaseMultiStageFix.Stage` for each stage in your fix
+  process.  Each stage object is itself a fix (meaning it indirectly inherits
+  from :py:class:`~latexpp.fix.BaseFix`) on which you can reimplement
+  `fix_node()` etc.  Each stage is run sequentially.  The "parent" fix object
+  then manages the stages and can store data that is accessed and modified by
+  the different stages.
+
+  See the documentation for :py:class:`~latexpp.fix.BaseMultiStageFix` for more
+  details, and check the fix :py:class:`latexpp.fixes.labels.RenameLabels` for
+  an example.
 
 - The preprocessor instance, available as ``self.lpp``, exposes some methods that
   cover some common fixes' special needs:

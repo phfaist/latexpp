@@ -103,7 +103,7 @@ class ExpandRefs(BaseFix):
 
     Reference expansion means replacing a LaTeX reference command by its actual
     substitution with the corrsponding number, replacing e.g. ``\eqref{eq:abc}``
-    by ``(13)`` or ``\cref{fig:xyz}`` by ``Figure 3``, possibly creating a link
+    by ``(13)`` or ``\cref{fig:xyz}`` by ``Figure~3``, possibly creating a link
     if appropriate.
 
     The expansion text of the reference commands is computed by running LaTeX on
@@ -117,7 +117,7 @@ class ExpandRefs(BaseFix):
 
     - `only_ref_types`: limit expansion to selected reference kind.  If
       non-`None`, it should be a set or list containing one or more of `('ref',
-      'ams-eqref', 'cleveref')`
+      'ams-eqref', 'autoref', 'cleveref')`
 
     - `make_hyperlinks`: If the `hyperref` package is loaded, then hyperlinks
       commands to the appropriate targets are generated in the document.

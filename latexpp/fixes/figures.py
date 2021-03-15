@@ -16,7 +16,7 @@ class CopyAndRenameFigs(BaseFix):
     r"""
     Copy graphics files that are included by ``\includegraphics`` commands to
     the output directory.  By default, they are renamed in figure order,
-    'fig-01.ext', 'fig-02.ext', etc.
+    'fig-01.jpg', 'fig-02.pdf', etc.
 
     Arguments:
 
