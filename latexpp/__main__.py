@@ -229,7 +229,7 @@ def main(argv=None, omit_processed_by=False):
         pp.finalize()
 
     except latexwalker.LatexWalkerParseError as e:
-        logger.error("Parse error while processing LaTeX document ‘%s’\n%s", fname, e)
+        logger.error("Parse error! %s", e)
         sys.exit(1)
 
 

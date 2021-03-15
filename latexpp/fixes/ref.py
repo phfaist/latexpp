@@ -29,6 +29,10 @@ _REFCMDS =  {
         'eqref': {'macro': MacroSpec('eqref', args_parser=MacroStandardArgsParser('*{')),
                   'label_args': [1]},
     },
+    'autoref': {
+        'autoref': {'macro': MacroSpec('autoref', args_parser=MacroStandardArgsParser('*{')),
+                    'label_args': [1]},
+    },
     'cleveref': {
         'cref': {'macro': MacroSpec('cref', args_parser=MacroStandardArgsParser('*{')),
                  'label_args': [1]},
@@ -63,9 +67,33 @@ _REFCMDS =  {
         'labelcpageref': {'macro': MacroSpec('labelcpageref',
                                              args_parser=MacroStandardArgsParser('*{')),
                           'label_args': [1]},
-    }
+    },
+
+    # 'bib' reftype is useful for labels.py
+    'bib': dict([
+        (mname, {'macro': MacroSpec(mname, args_parser=MacroStandardArgsParser(margspec)),
+                 'label_args': [margspec.find('{')]})
+        for mname, margspec in [
+                ('cite', '*[[{'),
+                ('citet', '*[[{'),
+                ('citep', '*[[{'),
+                ('citealt', '*[[{'),
+                ('citealp', '*[[{'),
+                ('citeauthor', '*[[{'),
+                ('citefullauthor', '[[{'),
+                ('citeyear', '[[{'),
+                ('citeyearpar', '[[{'),
+                ('Citet', '*[[{'),
+                ('Citep', '*[[{'),
+                ('Citealt', '*[[{'),
+                ('Citealp', '*[[{'),
+                ('Citeauthor', '*[[{'),
+        ]
+    ]),
 }
 
+
+_REFCMDS_ref_types = ('ref', 'ams-eqref', 'autoref', 'cleveref')
 
 
 class ExpandRefs(BaseFix):
@@ -134,7 +162,7 @@ class ExpandRefs(BaseFix):
             self.ref_types = list(only_ref_types)
         else:
             # by default, use all ref types
-            self.ref_types = list(_REFCMDS.keys())
+            self.ref_types = list(_REFCMDS_ref_types)
 
         self.make_hyperlinks = make_hyperlinks
 

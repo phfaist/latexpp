@@ -52,6 +52,15 @@ class EvalInput(BaseFix):
 
             infdata = self._read_file_contents(infname)
 
+            ## we add %\n to the end to avoid having two newlines one after
+            ## the other (at end of input file and after \input{}) that could
+            ## be misinterpreted as a new paragraph in some settings
+            # ### but this is also unreliable. because
+            # ### "\\input{foo}\n\\input{bar}" would still include a new
+            # ### paragraph.
+            #if self.delimit_with_percent:
+            #    infdata = '%\n' + infdata + '%\n'
+
             # for \include, we need to issue \clearpage.  See
             # https://tex.stackexchange.com/a/32058/32188
             if n.macroname == 'include':

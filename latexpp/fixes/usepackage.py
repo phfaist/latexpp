@@ -4,7 +4,7 @@ import os.path as os_path # allow tests to monkey-patch this
 import logging
 logger = logging.getLogger(__name__)
 
-from pylatexenc.latexwalker import LatexMacroNode
+from pylatexenc.latexwalker import LatexMacroNode, LatexWalkerParseError
 from pylatexenc.macrospec import std_macro
 
 from latexpp.fix import BaseFix
@@ -61,6 +61,11 @@ class CopyLocalPkgs(BaseFix):
     Copy package style files that are present in the current directory and that
     are included with ``\usepackage{...}``.
 
+    Package style files are copied to the output directory as-is (no fixes are
+    applied within the style file).  If the `recursive` flag is set, the style
+    file is also parsed (but not preprocessed) to detect further package
+    inclusions that we should copy to the output directory.
+
     .. warning::
 
        [FIXME]: This does not work if you have ``\usepackage`` directives with
@@ -71,20 +76,27 @@ class CopyLocalPkgs(BaseFix):
     - `blacklist`: a list of package names (without the '.sty' extension) for
       which we should *not* copy the style file, even if found in the current
       working directory.
+
+    - `recursive`: If `True`, then this fix also recursively inspects the copied
+      package sources to detect further packages to inlcude.
     """
-    def __init__(self, blacklist=None):
+    def __init__(self, blacklist=None, recursive=True):
         super().__init__()
         self.blacklist = frozenset(blacklist) if blacklist else frozenset()
         self.initialized = False
         self.finalized = False
+        self.recursive = recursive
 
     def initialize(self):
         if self.initialized:
             return
         self.initialized = True
-        self.subpp = self.lpp.create_subpreprocessor()
-        self.subpp.install_fix(self)
-        self.subpp.initialize()
+        if self.recursive:
+            self.subpp = self.lpp.create_subpreprocessor()
+            self.subpp.install_fix(self)
+            self.subpp.initialize()
+        else:
+            self.subpp = None
 
     def fix_node(self, n, **kwargs):
 
@@ -92,11 +104,17 @@ class CopyLocalPkgs(BaseFix):
         if pkgname is not None and pkgname not in self.blacklist:
             pkgnamesty = pkgname + '.sty'
             if os_path.exists(pkgnamesty):
-                self.subpp.copy_file(pkgnamesty, destfname=pkgnamesty)
-                with self.subpp.open_file(pkgnamesty) as f:
-                    pkgcontents = f.read()
-                self.subpp.execute_string(pkgcontents,
-                    omit_processed_by=True, input_source=pkgnamesty)
+                self.lpp.copy_file(pkgnamesty, destfname=pkgnamesty)
+                if self.recursive:
+                    with self.subpp.open_file(pkgnamesty) as f:
+                        pkgcontents = f.read()
+                    try:
+                        self.subpp.execute_string(pkgcontents,
+                            omit_processed_by=True, input_source=pkgnamesty)
+                    except LatexWalkerParseError as e:
+                        logger.warning("Couldn't parse file ‘%s’, cannot recursively "
+                                       "check for packages to include in that file: %s",
+                                       pkgnamesty, e)
                 return None # keep node the same
 
         return None
@@ -110,7 +128,8 @@ class CopyLocalPkgs(BaseFix):
         if self.finalized:
             return
         self.finalized = True
-        self.subpp.finalize()
+        if self.subpp is not None:
+            self.subpp.finalize()
 
 
 class InputLocalPkgs(BaseFix):
@@ -179,7 +198,7 @@ class InputLocalPkgs(BaseFix):
                         self.subpp.execute_string(pkgcontents,
                                                   omit_processed_by=True,
                                                   input_source=pkgnamesty)
-                pkgcontents = r"\makeatletter" + pkgcontents + r"\makeatother" + "\n"
+                pkgcontents = r"\makeatletter " + pkgcontents + r"\makeatother "
                 return pkgcontents
 
         return None

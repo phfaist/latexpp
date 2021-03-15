@@ -430,7 +430,10 @@ class LatexPreprocessor:
         # that do not have lpp_ignore set.
 
         for fix in self.fixes:
-            logger.info("*** Fix %s", fix.fix_name())
+            if self.parent_preprocessor is not None:
+                logger.debug("*** [sub-preprocessor] Fix: %s", fix.fix_name())
+            else:
+                logger.info("*** Fix %s", fix.fix_name())
             newnodelist = fix.preprocess(newnodelist)
 
         # check that all LPP pragmas were consumed & report those remaining

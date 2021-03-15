@@ -29,7 +29,7 @@ class CopyAndInputBbl(BaseFix):
       name.
 
     - `eval_input`: Directly paste the BBL file contents into the TeX file
-      rather than issuing a '\input{XXX.bbl}' directive.
+      rather than issuing a ``\input{XXX.bbl}`` directive.
     """
 
     def __init__(self, bblname=None, outbblname=None, eval_input=False):

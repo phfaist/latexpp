@@ -12,7 +12,8 @@ class TestExpandRefs(unittest.TestCase):
     def test_simple(self):
 
         lpp = helpers.MockLPP()
-        lpp.install_fix( labels.RenameLabels() )
+        lpp.install_fix( labels.RenameLabels(use_hash_length=16,
+                                             use_hash_encoding='hex') )
 
         self.assertEqual(
             lpp.execute(r"""\documentclass{article}
