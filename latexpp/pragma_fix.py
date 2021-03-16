@@ -41,7 +41,7 @@ class PragmaFix(BaseFix):
     A `PragmaFix` differs from other :py:class:`~latexpp.fix.BaseFix`-based
     classes in how they process LaTeX nodes.  A `PragmaFix` subclass
     reimplements :py:func:`fix_pragma_scope()` and/or
-    py:func:`fix_pragma_simple()`, which are called upon encountering
+    :py:func:`fix_pragma_simple()`, which are called upon encountering
     ``%%!lpp <instruction> [<args>] [{ ... %%!lpp }]`` constructs.  The fix
     may then choose to process these pragma instructions, and their
     surrounding node lists, as it wishes.
@@ -79,16 +79,25 @@ class PragmaFix(BaseFix):
         by a corresponding closing pragma instruction ``%%!lpp }``.
 
         This function may modify `nodelist` in place (including
-        inserting/deleting elements).
+        inserting/deleting elements). This function must return an index in
+        `nodelist` where to continue processing of further pragmas after the
+        current scope pragma, or an integer larger or equal to `nodelist`'s
+        length to indicate the end of the list was reached.
 
-        This function must return an index in `nodelist` where to continue
-        processing of further pragmas after the current scope pragma.  For
-        instance, the :py:class:`~latexpp.skip.SkipPragma` fix removes the
+        Child nodes are already and automatically parsed for pragmas, so do NOT
+        do this again when you reimplement `fix_pragma_scope()`.
+
+        Scope pragmas are parsed and reported inner first, then the outer
+        scopes.  Nested scopes are allowed.  A pragma scope must be opened and
+        closed within the same LaTeX scope (you cannot open a scope and close it
+        in a different LaTeX environment, for instance).
+
+        For instance, the :py:class:`~latexpp.skip.SkipPragma` fix removes the
         entire scope pragma and its contents with ``nodelist[jstart:jend] = []``
         and then returns `jstart` to continue processing after the removed block
-        (which has new index `jstart`).  (It is OK for this function to return
-        an index that is larger than or equal to `len(nodelist)`; this is
-        interpreted as there is no further content to process in `nodelist`.)
+        (which has new index `jstart`).  It is OK for this function to return an
+        index that is larger than or equal to `len(nodelist)`; this is
+        interpreted as there is no further content to process in `nodelist`.
 
         Arguments:
 
@@ -105,11 +114,6 @@ class PragmaFix(BaseFix):
 
           - `args` is a list of any remaining arguments after the instruction
             (excluding the opening brace).
-
-        Scope pragmas are parsed & reported inner first, then outer scopes.
-        Nested scopes are allowed.  A pragma scope must be opened and closed
-        within the same LaTeX scope (you cannot open a scope and close it in a
-        different LaTeX environment, for instance).
 
         The default implementation does not do anything and returns `jend` to
         continue after the current pragma scope.

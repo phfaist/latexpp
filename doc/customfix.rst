@@ -103,6 +103,10 @@ Key points
   details, and check the fix :py:class:`latexpp.fixes.labels.RenameLabels` for
   an example.
 
+- If you want your fix to work with latexpp pragmas, you should to subclass
+  :py:class:`latexpp.pragma_fix.PragmaFix` instead.  See the documentation
+  for that class.
+
 - The preprocessor instance, available as ``self.lpp``, exposes some methods that
   cover some common fixes' special needs:
 
