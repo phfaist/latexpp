@@ -73,7 +73,7 @@ setup(
     # see https://packaging.python.org/discussions/install-requires-vs-requirements/
     install_requires = [
         "pylatexenc >= 2.0", # require pylatexenc 2.0
-        "colorlog", # colorlog for pretty logging
+        "colorlog>=6.0.0a4", # colorlog for pretty logging
         "PyYAML", # PyYAML for reading our YAML config file
     ],
 

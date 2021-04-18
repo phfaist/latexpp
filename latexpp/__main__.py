@@ -23,16 +23,43 @@ from .preprocessor import LatexPreprocessor
 
 
 def setup_logging(level):
+    # You should use colorlog >= 6.0.0a4
     handler = colorlog.StreamHandler()
-    handler.setFormatter(colorlog.TTYColoredFormatter(
-        stream=sys.stderr,
-        fmt='%(log_color)s%(levelname)-8s: %(message)s' #'  [%(name)s]'
-    ))
+    handler.setFormatter( colorlog.LevelFormatter(
+        log_colors={
+            "DEBUG": "white",
+            "INFO": "green",
+            "WARNING": "yellow",
+            "ERROR": "bold_red",
+            "CRITICAL": "bold_red",
+        },
+        fmt={
+            # emojis we can use: 🐞 🐜 🚨 🚦 ⚙️ 🧨 🧹 ❗️❓‼️ ⁉️ ⚠️ ℹ️ ➡️ ✔️ 〰️
+            # 🎶 💭 📣 🔔 ⏳ 🔧 🔩 ✨ 💥 🔥 🐢 👉
+            "DEBUG":    "%(log_color)s〰️    %(message)s", #'  [%(name)s]'
+            "INFO":     "%(log_color)s✔️   %(message)s",
+            "WARNING":  "%(log_color)s❗  %(message)s", # (%(module)s:%(lineno)d)",
+            "ERROR":    "%(log_color)s🚨  %(message)s", # (%(module)s:%(lineno)d)",
+            "CRITICAL": "%(log_color)s🧨  %(message)s", # (%(module)s:%(lineno)d)",
+        },
+        stream=sys.stderr
+    ) )
 
     root = colorlog.getLogger()
     root.addHandler(handler)
 
     root.setLevel(level)
+
+
+# def setup_logging(level):
+#     handler = colorlog.StreamHandler()
+#     handler.setFormatter(colorlog.TTYColoredFormatter(
+#         stream=sys.stderr,
+#         fmt='%(log_color)s%(levelname)-8s: %(message)s' #'  [%(name)s]'
+#     ))
+#     root = colorlog.getLogger()
+#     root.addHandler(handler)
+#     root.setLevel(level)
 
 
 
