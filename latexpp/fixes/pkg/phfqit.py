@@ -230,7 +230,7 @@ class ExpandQitObjects(BaseFix):
                 text += '_{' + subscript + '}'
             nargcontents = self.preprocess_contents_latex(narg)
             if nargcontents:
-                (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
+                (od, md, cd) = _delims(nsizespec, '(', '|', ')')
                 text += od + nargcontents + cd
             return text
 
@@ -252,7 +252,7 @@ class ExpandQitObjects(BaseFix):
                 text += '_{' + sub + '}'
             if nepsilon is not None:
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
+            (od, md, cd) = _delims(nsizespec, '(', '|', ')')
             text += od
             text += self.preprocess_contents_latex(ntargetsys)
             if ncondsys is not None:
@@ -276,7 +276,7 @@ class ExpandQitObjects(BaseFix):
                 text += '^{' + sup + '}'
             nargcontents = self.preprocess_contents_latex(narg)
             if nargcontents:
-                (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
+                (od, md, cd) = _delims(nsizespec, '(', '|', ')')
                 text += od + nargcontents + cd
             return text
 
@@ -294,7 +294,7 @@ class ExpandQitObjects(BaseFix):
                 text += '^{' + sup + '}'
             nargcontents = self.preprocess_contents_latex(narg)
             if nargcontents:
-                (od, md, cd) = self._delims(nsizespec, '(', '|', ')')
+                (od, md, cd) = _delims(nsizespec, '(', '|', ')')
                 text += od + nargcontents + cd
             return text
 
@@ -313,7 +313,7 @@ class ExpandQitObjects(BaseFix):
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             elif default_epsilon:
                 text += '^{' + default_epsilon + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
+            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')')
             nstatecontents = self.preprocess_contents_latex(nstate)
             nrelcontents = self.preprocess_contents_latex(nrel)
             if nstatecontents or nrelcontents:
@@ -338,7 +338,7 @@ class ExpandQitObjects(BaseFix):
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             elif default_epsilon:
                 text += '^{' + default_epsilon + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
+            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')')
             nstatecontents = self.preprocess_contents_latex(nstate)
             nrelcontents = self.preprocess_contents_latex(nrel)
             if nstatecontents or nrelcontents:
@@ -356,7 +356,7 @@ class ExpandQitObjects(BaseFix):
                 text += '_{' + self.preprocess_contents_latex(nsub) + '}'
             if nsup is not None:
                 text += '^{' + self.preprocess_contents_latex(nsup) + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
+            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')')
             nstatecontents = self.preprocess_contents_latex(nstate)
             nrelcontents = self.preprocess_contents_latex(nrel)
             if nstatecontents or nrelcontents:
@@ -383,7 +383,7 @@ class ExpandQitObjects(BaseFix):
 
             if nepsilon is not None:
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
-            (od, md, cd) = self._delims(nsizespec, '(', r'\Vert', ')')
+            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')')
             if nstate.isNodeType(latexwalker.LatexGroupNode) \
                and len(nstate.nodelist) \
                and nstate.nodelist[0].isNodeType(latexwalker.LatexCharsNode) \
@@ -405,27 +405,34 @@ class ExpandQitObjects(BaseFix):
         raise ValueError("Unknown phfqit macro type: {!r}".format(m))
 
 
-    def _delims(self, sizenode, opendelim, middelim, closedelim):
-        if sizenode is None:
-            return (opendelim, middelim, closedelim)
-        if sizenode.isNodeType(latexwalker.LatexGroupNode):
-            assert( len(sizenode.nodelist) == 1 )
-            sizenode = sizenode.nodelist[0]
-        if sizenode.isNodeType(latexwalker.LatexCharsNode) and sizenode.chars == '*':
-            return (r'\mathopen{}\left'+opendelim,
-                    r'\mathclose{}\middle'+middelim+r'\mathopen{}',
-                    r'\right'+closedelim+r'\mathclose{}')
-        if sizenode.isNodeType(latexwalker.LatexMacroNode):
-            mname = sizenode.macroname
-            return (r'\mathopen{}'+'\\'+mname+'l'+opendelim,  # \bigl(
-                    r'\mathopen{}'+'\\'+mname+middelim,  # \big|
-                    r'\mathopen{}'+'\\'+mname+closedelim) # \bigr)
+def _delims(sizenode, opendelim, middelim, closedelim):
+    if sizenode is None:
+        return (opendelim, middelim, closedelim)
+    if sizenode.isNodeType(latexwalker.LatexGroupNode):
+        assert( len(sizenode.nodelist) == 1 )
+        sizenode = sizenode.nodelist[0]
+    if sizenode.isNodeType(latexwalker.LatexCharsNode) and sizenode.chars == '*':
+        return (r'\mathopen{}\left'+opendelim,
+                r'\mathclose{}\middle'+middelim+r'\mathopen{}',
+                r'\right'+closedelim+r'\mathclose{}')
+    if sizenode.isNodeType(latexwalker.LatexMacroNode):
+        mname = sizenode.macroname
+        return (r'\mathopen{}'+'\\'+mname+'l '+opendelim,  # \bigl(
+                r'\mathopen{}'+'\\'+mname+' '+middelim,  # \big|
+                r'\mathopen{}'+'\\'+mname+'r '+closedelim) # \bigr)
 
-        raise ValueError("unexpected optional sizing node : "+repr(sizenode))
+    raise ValueError("unexpected optional sizing node : "+repr(sizenode))
 
-
-
-
+def _delimtype(sizenode):
+    if sizenode is None:
+        return None
+    if sizenode.isNodeType(latexwalker.LatexGroupNode):
+        assert( len(sizenode.nodelist) == 1 )
+        sizenode = sizenode.nodelist[0]
+    if sizenode.isNodeType(latexwalker.LatexCharsNode) and sizenode.chars == '*':
+        return '*'
+    if sizenode.isNodeType(latexwalker.LatexMacroNode):
+        return '\\'+sizenode.macroname
 
 
 
@@ -437,24 +444,42 @@ mathtools_delims_macros = {
 
     'ket': (r'\lvert', r'{%(1)s}', r'\rangle'),
     'bra': (r'\langle', r'{%(1)s}', r'\rvert'),
-    'braket': (r'\langle', r'{%(1)s}\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(2)s}',
+    'braket': (r'\langle', r'{%(1)s}%(phfqitKetsBarSpace)s%(delimsize)s\vert\phfqitKetsBarSpace{%(2)s}',
                r'\rangle'),
-    'ketbra': (r'\lvert', r'{%(1)s}%(delimsize)s\rangle\hspace*{-0.25ex}%(delimsize)s\langle{%(2)s}',
+    'ketbra': (r'\lvert', r'{%(1)s}%(delimsize)s\rangle %(phfqitKetsRLAngleSpace)s%(delimsize)s\langle{%(2)s}',
                r'\rvert'),
-    'proj': (r'\lvert', r'{%(1)s}%(delimsize)s\rangle\hspace*{-0.25ex}%(delimsize)s\langle{%(1)s}',
+    'proj': (r'\lvert', r'{%(1)s}%(delimsize)s\rangle %(phfqitKetsRLAngleSpace)s%(delimsize)s\langle{%(1)s}',
              r'\rvert'),
     
     'matrixel': (r'\langle',
-                 r'{%(1)s}\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(2)s}'
-                 +r'\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(3)s}',
+                 r'{%(1)s}%(phfqitKetsBarSpace)s%(delimsize)s\vert %(phfqitKetsBarSpace)s{%(2)s}'
+                 +r'%(phfqitKetsBarSpace)s%(delimsize)s\vert %(phfqitKetsBarSpace)s{%(3)s}',
                  r'\rangle'),
     'dmatrixel': (r'\langle',
-                  r'{%(1)s}\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(2)s}'
-                 +r'\hspace*{0.2ex}%(delimsize)s\vert\hspace*{0.2ex}{%(1)s}',
+                  r'{%(1)s}%(phfqitKetsBarSpace)s%(delimsize)s\vert %(phfqitKetsBarSpace)s{%(2)s}'
+                 +r'%(phfqitKetsBarSpace)s%(delimsize)s\vert %(phfqitKetsBarSpace)s{%(1)s}',
                   r'\rangle'),
     'innerprod': (r'\langle',
-                  r'{%(1)s},\hspace*{0.2ex}{%(2)s}',
+                  r'{%(1)s}%(phfqitBeforeCommaSpace)s,%(phfqitAfterCommaSpace)s{%(2)s}',
                   r'\rangle'),
+
+    'oket': (r'\lvert', r'{%(1)s}', r'\rrangle'),
+    'obra': (r'\llangle', r'{%(1)s}', r'\rvert'),
+    'obraket': (r'\llangle', r'{%(1)s}%(phfqitOKetsBarSpace)s%(delimsize)s\vert %(phfqitOKetsBarSpace)s{%(2)s}',
+               r'\rrangle'),
+    'oketbra': (r'\lvert', r'{%(1)s}%(delimsize)s\rrangle %(phfqitOKetsRLAngleSpace)s%(delimsize)s\llangle{%(2)s}',
+               r'\rvert'),
+    'oproj': (r'\lvert', r'{%(1)s}%(delimsize)s\rrangle %(phfqitOKetsRLAngleSpace)s%(delimsize)s\llangle{%(1)s}',
+             r'\rvert'),
+    
+    'omatrixel': (r'\llangle',
+                 r'{%(1)s}%(phfqitOKetsBarSpace)s%(delimsize)s\vert %(phfqitOKetsBarSpace)s{%(2)s}'
+                 +r'%(phfqitOKetsBarSpace)s%(delimsize)s\vert %(phfqitOKetsBarSpace)s{%(3)s}',
+                 r'\rrangle'),
+    'odmatrixel': (r'\llangle',
+                  r'{%(1)s}%(phfqitOKetsBarSpace)s%(delimsize)s\vert %(phfqitOKetsBarSpace)s{%(2)s}'
+                 +r'%(phfqitOKetsBarSpace)s%(delimsize)s\vert %(phfqitOKetsBarSpace)s{%(1)s}',
+                  r'\rrangle'),
 
     'intervalc': (r'[', r'{%(1)s\mathclose{},\mathopen{}%(2)s}', r']'),
     'intervalo': (r']', r'{%(1)s\mathclose{},\mathopen{}%(2)s}', r'['),
@@ -619,7 +644,9 @@ class ExpandMacros(BaseFix):
     def __init__(self, *,
                  subst=None, ops=None, delims=None,
                  math_operator_fmt=r'\operatorname{%(opname)s}',
-                 subst_use_hspace=True):
+                 subst_use_hspace=True,
+                 subst_space=None,
+                 ):
         super().__init__()
 
         if subst is None:
@@ -650,10 +677,10 @@ class ExpandMacros(BaseFix):
 
         def delim_cfg(delimtuple):
             if len(delimtuple) == 2:
-                return dict(qitargspec='*[{',
+                return dict(qitargspec='`*[{',
                             repl=r'%(open_delim)s{%(1)s}%(close_delim)s')
             numargs = max( int(m.group(1)) for m in re.finditer(r'\%\((\d)\)s', delimtuple[1]) )
-            return dict(qitargspec='*[' + '{'*numargs,
+            return dict(qitargspec='`*[' + '{'*numargs,
                         repl='%(open_delim)s' + delimtuple[1] + '%(close_delim)s')
 
         the_simple_substitution_macros.update(**{
@@ -664,16 +691,20 @@ class ExpandMacros(BaseFix):
         _delempties(the_simple_substitution_macros)
 
 
-        # remove \hspace...'s if we don't want them.
-        # Iterate over copy of dict because we modify it
-        if not subst_use_hspace:
-            for mname, mcfg in the_simple_substitution_macros.copy().items():
-                if isinstance(mcfg, str):
-                    the_simple_substitution_macros[mname] = rx_hspace.sub('', mcfg)
-                else:
-                    the_simple_substitution_macros[mname]['repl'] = \
-                        rx_hspace.sub('', mcfg['repl'])
+        self.subst_space = dict(
+            phfqitKetsBarSpace=r'\mkern 1.5mu\relax ',
+            phfqitKetsRLAngleSpace=r'\mkern -1.8mu\relax ',
+            phfqitOKetsBarSpace=r'\mkern 1.5mu\relax ',
+            phfqitOKetsRLAngleSpace=r'\mkern -1.8mu\relax ',
+            phfqitKetsBeforeCommaSpace=r'',
+            phfqitKetsAfterCommaSpace=r'\mkern 1.5mu\relax ',
+        )
+        if subst_space is not None:
+            self.subst_space.update(subst_space)
 
+        # remove \hspace...'s if we don't want them.
+        if not subst_use_hspace:
+            self.subst_space = {k: '' for k in self.subst_space.keys()}
 
         self.substitution_helper = MacroSubstHelper(
             macros=the_simple_substitution_macros,
@@ -701,19 +732,32 @@ class ExpandMacros(BaseFix):
                 #
                 # it's a delimiter macro!
                 #
-                
-                if n.nodeargd.argnlist[0] is not None:
+
+                # check for `backtick argument after checking for * and/or [,
+                # because the latter have precedence
+
+                delimtype = None
+                if n.nodeargd.argnlist[1] is not None:
+                    # with star
+                    delimtype = '*'
+                elif n.nodeargd.argnlist[2] is not None \
+                     and n.nodeargd.argnlist[2].nodelist:
+                    delimtype = '\\'+n.nodeargd.argnlist[2].nodelist[0].macroname
+                elif n.nodeargd.argnlist[0] is not None:
+                    # we have a backtick size
+                    delimtype = _delimtype(n.nodeargd.argnlist[0])
+
+                if delimtype is None:
+                    delims_pc = ('%s', '%s')
+                    delimsize = ''
+                elif delimtype == '*':
                     # with star
                     delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
                     delimsize = r'\middle'
-                elif n.nodeargd.argnlist[1] is not None \
-                     and n.nodeargd.argnlist[1].nodelist:
-                    sizemacro = '\\'+n.nodeargd.argnlist[1].nodelist[0].macroname
-                    delimsize = sizemacro
-                    delims_pc = (sizemacro+r'l%s', sizemacro+r'r%s')
                 else:
-                    delims_pc = ('%s', '%s')
-                    delimsize = ''
+                    sizemacro = delimtype
+                    delimsize = sizemacro+r' '
+                    delims_pc = (sizemacro+r'l %s', sizemacro+r'r %s')
 
                 # get delim specification for this macro
                 delimchars = list(self.mathtools_delims_macros[n.macroname])
@@ -728,12 +772,13 @@ class ExpandMacros(BaseFix):
 
                 context = dict(open_delim=delims_pc[0]%delimchars[0],
                                delimsize=delimsize,
-                               close_delim=delims_pc[1]%delimchars[1])
+                               close_delim=delims_pc[1]%delimchars[1],
+                               **self.subst_space)
                 return self.substitution_helper.eval_subst(
                     c,
                     n,
                     node_contents_latex=self.preprocess_contents_latex,
-                    argoffset=2,
+                    argoffset=3,
                     context=context
                 )
 

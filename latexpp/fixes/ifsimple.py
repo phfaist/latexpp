@@ -26,6 +26,11 @@ class ApplyIf(BaseFix):
     ``\iffalse``, etc.) and attempts to detect custom ifs declared with
     ``\newif``.  Provide any additional ``\ifXXX`` command names using the
     `ifnames` argument.
+
+    - `ifnames` — a dictionary of TeX if-command names and corresponding
+      True/False values.
+
+      E.g. ``{'ifsomething': True, 'ifsomethingelse': False}``
     """
     def __init__(self, ifnames=None):
         super().__init__()
