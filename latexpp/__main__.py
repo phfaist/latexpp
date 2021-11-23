@@ -1,4 +1,4 @@
-import os.path
+import os
 import sys
 import argparse
 import logging
@@ -182,6 +182,8 @@ def main(argv=None, omit_processed_by=False):
                         default=None,
                         help='output directory (overrides setting from config file)')
 
+    parser.add_argument('--texinputs', default=os.environ.get("TEXINPUTS", "."))
+
     parser.add_argument('-f', '--output-fname', dest='output_fname',
                         default=None,
                         help='output file name in output directory (overrides '
@@ -234,11 +236,14 @@ def main(argv=None, omit_processed_by=False):
     if args.output_fname:
         output_fname = args.output_fname
 
+    tex_inputs = lppconfig.get('tex_inputs', ['.'])
+
     pp = LatexPreprocessor(
         output_dir=output_dir,
         main_doc_fname=fname,
         main_doc_output_fname=output_fname,
-        config_dir=config_dir
+        config_dir=config_dir,
+        tex_inputs=tex_inputs,
     )
 
     # for tests

@@ -97,25 +97,29 @@ class CopyLocalPkgs(BaseFix):
             self.subpp.initialize()
         else:
             self.subpp = None
+        self.non_local_pkgs = []
 
     def fix_node(self, n, **kwargs):
 
         pkgname = node_get_usepackage(n, self)
         if pkgname is not None and pkgname not in self.blacklist:
-            pkgnamesty = pkgname + '.sty'
-            if os_path.exists(pkgnamesty):
-                self.lpp.copy_file(pkgnamesty, destfname=pkgnamesty)
-                if self.recursive:
-                    with self.subpp.open_file(pkgnamesty) as f:
-                        pkgcontents = f.read()
-                    try:
-                        self.subpp.execute_string(pkgcontents,
-                            omit_processed_by=True, input_source=pkgnamesty)
-                    except LatexWalkerParseError as e:
-                        logger.warning("Couldn't parse file ‘%s’, cannot recursively "
-                                       "check for packages to include in that file: %s",
-                                       pkgnamesty, e)
-                return None # keep node the same
+            try:
+                pkgnamesty = self.lpp.resolve_tex_fname(pkgname, 
+                    extensions=[".sty"], issue_warning=False)
+            except FileNotFoundError:
+                self.non_local_pkgs.append(pkgname)
+                return None  # keep node the same
+            self.lpp.copy_file(pkgnamesty, destfname=os_path.basename(pkgnamesty))
+            if self.recursive:
+                with self.subpp.open_file(pkgnamesty) as f:
+                    pkgcontents = f.read()
+                try:
+                    self.subpp.execute_string(pkgcontents,
+                        omit_processed_by=True, input_source=pkgnamesty)
+                except LatexWalkerParseError as e:
+                    logger.warning("Couldn't parse file ‘%s’, cannot recursively "
+                                    "check for packages to include in that file: %s",
+                                    pkgnamesty, e)
 
         return None
 
@@ -130,6 +134,7 @@ class CopyLocalPkgs(BaseFix):
         self.finalized = True
         if self.subpp is not None:
             self.subpp.finalize()
+        logging.info("%s assumes the following non-local packages: %s.", self.__class__.__name__, ', '.join(self.non_local_pkgs))
 
 
 class InputLocalPkgs(BaseFix):
@@ -181,25 +186,28 @@ class InputLocalPkgs(BaseFix):
         )
         if self.fixes:
             self.subpp.install_fixes_from_config(self.fixes)
-
         self.subpp.initialize()
 
     def fix_node(self, n, **kwargs):
 
         pkgname = node_get_usepackage(n, self)
         if pkgname is not None and pkgname in self.packages:
-            pkgnamesty = pkgname + '.sty'
-            if os_path.exists(pkgnamesty):
-                logger.debug("Processing input package ‘%s’", pkgnamesty)
-                with self.lpp.open_file(pkgnamesty) as f:
-                    pkgcontents = f.read()
-                if self.subpp:
-                    pkgcontents = \
-                        self.subpp.execute_string(pkgcontents,
-                                                  omit_processed_by=True,
-                                                  input_source=pkgnamesty)
-                pkgcontents = r"\makeatletter " + pkgcontents + r"\makeatother "
-                return pkgcontents
+            try:
+                pkgnamesty = self.lpp.resolve_tex_fname(pkgname, 
+                    extensions=[".sty"], issue_warning=True)
+            except FileNotFoundError:
+                return None  # keep node the same
+
+            logger.debug("Processing input package ‘%s’", pkgnamesty)
+            with self.lpp.open_file(pkgnamesty) as f:
+                pkgcontents = f.read()
+            if self.subpp:
+                pkgcontents = \
+                    self.subpp.execute_string(pkgcontents,
+                                                omit_processed_by=True,
+                                                input_source=pkgnamesty)
+            pkgcontents = r"\makeatletter " + pkgcontents + r"\makeatother "
+            return pkgcontents
 
         return None
 
