@@ -1,5 +1,3 @@
-import os.path as os_path # allow tests to monkey-patch this
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -7,7 +5,7 @@ from pylatexenc.latexwalker import LatexMacroNode
 
 from latexpp.fix import BaseFix
 
-exts = [".", ".tex", ".latex"]
+exts = ["", ".tex", ".latex"]
 
 class EvalInput(BaseFix):
     r"""

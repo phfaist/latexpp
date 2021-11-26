@@ -11,7 +11,6 @@ import datetime
 import importlib
 
 import logging
-from typing import Text
 
 from pylatexenc import latexwalker
 
