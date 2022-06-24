@@ -18,6 +18,8 @@ class LatexCodeRecomposer:
         super().__init__()
 
     def node_to_latex(self, n):
+        print("*** node_to_latex: ", repr(n))
+
         if n.isNodeType(latexwalker.LatexGroupNode):
             return n.delimiters[0] + "".join(self.node_to_latex(n) for n in n.nodelist) \
                 + n.delimiters[1]

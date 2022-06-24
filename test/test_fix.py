@@ -5,6 +5,7 @@ import helpers
 
 from pylatexenc import latexwalker
 
+
 from latexpp.fix import BaseFix, BaseMultiStageFix
 
 

@@ -11,6 +11,11 @@ logger = logging.getLogger(__name__)
 
 from pylatexenc import latexwalker
 
+try:
+    from pylatexenc.latexnodes import nodes as latexnodes_nodes
+    LatexNodeList = latexnodes_nodes.LatexNodeList
+except ImportError:
+    LatexNodeList = list
 
 
 class DontFixThisNode(Exception):
@@ -180,7 +185,7 @@ class BaseFix:
         # `None`.  The rule is that if fix_node() or fix_nodelist() return
         # something non-None, they are responsible for calling
         # preprocess_latex() or preprocess_children() on all child nodes.
-        if isinstance(newnodelist, list):
+        if isinstance(newnodelist, (LatexNodeList, list)):
             return newnodelist
         if isinstance(newnodelist, str):
             # re-parse with latexwalker
@@ -221,7 +226,7 @@ class BaseFix:
                 # if it is a str then we need to re-parse output into nodes
                 nn = self.parse_nodes(nn, parsing_state=n.parsing_state)
                 # fall through case is list ->
-            if isinstance(nn, list):
+            if isinstance(nn, (LatexNodeList, list)):
                 # add new nodes
                 newnodelist.extend(nn)
                 continue
@@ -355,7 +360,7 @@ class BaseFix:
             newnode = self.parse_nodes(newnode, node.parsing_state)
             # fall through to list case ->
 
-        if isinstance(newnode, list):
+        if isinstance(newnode, (LatexNodeList, list)):
             nx = newnode
             newnode = node.parsing_state.lpp_latex_walker.make_node(
                 latexwalker.LatexGroupNode,
@@ -490,8 +495,8 @@ class BaseFix:
         """
         if n is None:
             return ''
-        if not isinstance(n, list):
-            n = [n]
+        if not isinstance(n, (LatexNodeList, list)):
+            n = LatexNodeList([n])
         #print("*** need to preprocess ", n)
         n2 = self.preprocess(n)
         #print("*** --> ", n2)
@@ -523,7 +528,7 @@ class BaseFix:
         """
         if n is None:
             return ''
-        if isinstance(n, list):
+        if isinstance(n, (LatexNodeList, list)):
             return self.preprocess_latex(n)
         if n.isNodeType(latexwalker.LatexGroupNode):
             return ''.join(self.preprocess_latex(nn) for nn in n.nodelist)
