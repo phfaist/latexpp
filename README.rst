@@ -15,13 +15,11 @@ Latex preprocessor — apply macro definitions, remove comments, and more
 Installation
 ------------
 
-Clone this repository (``git clone https://github.com/phfaist/latexpp.git``) or
-download and extract a ZIP.  Then in the latexpp directory run the commands:
+You can install `latexpp` using `pip` directly from `latexpp`'s github repo:
 
 .. code-block:: sh
 
-    > python setup.py sdist
-    > pip install dist/latexpp-0.1.tar.gz
+    > pip install git+https://github.com/phfaist/latexpp.git
 
 How it works
 ------------
@@ -102,10 +100,12 @@ Sample ``lppconfig.yml``:
 The config file follows standard YAML syntax (if you're in doubt, google a YAML
 tutorial).
 
-See the ``latexpp/fixes/`` directory for the list of possible fixes.  There
-isn't any good documentation at the moment (I wrote this preprocessor in the
+Documentation is available at `latexpp.readthedocs.io
+<https://latexpp.readthedocs.io/>`_. You can also explore the ``latexpp/fixes/``
+directory for the list of possible fixes.  The documentation is still a little
+sparse at the moment (I wrote this preprocessor in the
 matter of a few days, and I won't have tons of time to devote to it). But the
-python source is pretty short and should be relatively decipherable.
+python source is fairly short and should be relatively decipherable.
 
 Each fix is specified by a qualified python class name.  For instance,
 ``latexpp.fixes.comments.RemoveComments`` invokes class ``RemoveComments`` from
@@ -149,11 +149,9 @@ information.  The `pylatexenc` library has a list of some known macros and
 environments, and knows how to parse their arguments.  Some fixes in `latexpp`
 add their own macro and environment definitions.
 
-Once the latex document is parsed into the node structure, then the nodes are
-traversed recursively including macro arguments and environment contents.  For
-each node, we query all the fixes in the specified order to see if that return a
-latex representation of the given node.  If no fix is found, then the original
-latex representation of the node is retained.
+Once the latex document is parsed into the node structure, the document is
+processed by the given list of fixes. Each fix is called in turn. Each fix
+traverses the document node structure and applies any relevant changes.
 
 
 License

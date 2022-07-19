@@ -1,3 +1,4 @@
+import re
 import os.path as os_path # allow tests to monkey-patch this
 
 import logging
@@ -8,8 +9,11 @@ from pylatexenc.latexwalker import LatexMacroNode
 
 from latexpp.fix import BaseFix
 
+from .labels import RenameLabels
 
-exts = ['', '.pdf', '.png', '.jpg', '.jpeg', '.eps']
+
+exts = ['', '.lplx', '.pdf', '.png', '.jpg', '.jpeg', '.eps']
+
 
 
 class CopyAndRenameFigs(BaseFix):
@@ -48,6 +52,13 @@ class CopyAndRenameFigs(BaseFix):
         self.fig_counter = start_fig_counter
         self.fig_rename = fig_rename
         self.graphicspath = graphicspath
+        
+        self.post_processors = {
+            '.lplx': self.do_postprocess_lplx,
+        }
+
+        self.lplx_files_to_finalize = []
+
 
     def fix_node(self, n, **kwargs):
 
@@ -62,7 +73,8 @@ class CopyAndRenameFigs(BaseFix):
                     orig_fig_name = orig_fig_name+e
                     break
             else:
-                logger.warning("File not found: %s. Tried extensions %r", orig_fig_name, exts)
+                logger.warning("File not found: %s. Tried extensions %r",
+                               orig_fig_name, exts)
                 return None # keep the node as it is
             
             if '.' in orig_fig_name:
@@ -80,17 +92,158 @@ class CopyAndRenameFigs(BaseFix):
                 orig_fig_ext=orig_fig_ext
             )
 
+            self.lpp.copy_file(orig_fig_name, figoutname)
+
+            if orig_fig_ext in self.post_processors:
+                pp_fn = self.post_processors[orig_fig_ext]
+                pp_fn(
+                    node=n,
+                    orig_fig_name=orig_fig_name,
+                    orig_fig_basename=orig_fig_basename,
+                    orig_fig_ext=orig_fig_ext,
+                    figoutname=figoutname,
+                )
+
             # increment fig counter
             self.fig_counter += 1
-
-            self.lpp.copy_file(orig_fig_name, figoutname)
 
             # don't use unicode_to_latex(figoutname) because actually we would
             # like to keep the underscores as is, \includegraphics handles it I
             # think
-            return r'\includegraphics' + self.preprocess_latex(self.node_get_arg(n, 0)) + \
+            return (
+                r'\includegraphics' + self.preprocess_latex(self.node_get_arg(n, 0)) + \
                 '{' + figoutname + '}'
-        
+            )
 
         return None
 
+
+    def do_postprocess_lplx(self, node, orig_fig_name, figoutname, **kwargs):
+
+        rx_lplx_read = re.compile(
+            r'\\lplxGraphic\{(?P<dep_file_basename>[^}]+)\}\{(?P<dep_file_ext>[^}]+)\}'
+        )
+
+
+        self.lplx_files_to_finalize.append(figoutname)
+
+        f_contents = None
+        with self.lpp.open_file(orig_fig_name, encoding='utf-8') as f:
+            f_contents = f.read()
+
+        m = rx_lplx_read.search(f_contents)
+        
+        if m is None:
+            logger.error("Could not read dependent LPLX graphic file, your build "
+                         "might be incomplete!")
+            return []
+
+        # find and copy the dependent file
+
+        dep_basename = m.group('dep_file_basename')
+        dep_basename = os_path.join(self.graphicspath, dep_basename)
+
+        dep_ext = m.group('dep_file_ext')
+
+        dep_name = dep_basename + dep_ext
+
+        dep_figoutname = self.fig_rename.format(
+            fig_counter=self.fig_counter,
+            fig_ext=dep_ext,
+            orig_fig_name=dep_name,
+            orig_fig_basename=dep_basename,
+            orig_fig_ext=dep_ext,
+        )
+
+        node.lpp_graphics_lplx_is_lplx_file = True
+        node.lpp_graphics_lplx_output_file = figoutname
+        node.lpp_graphics_lplx_dependent_output_file = dep_figoutname
+
+        # copy to destination
+
+        logger.debug(f"Detected LPLX dependent file {dep_name}")
+
+        self.lpp.copy_file(dep_name, dep_figoutname)
+
+        # patch output lplx file to find the correct dependent file
+
+        if '.' in dep_figoutname:
+            dep_figoutname_basename, dep_figoutname_mext = \
+                dep_figoutname.rsplit('.', maxsplit=1)
+            dep_figoutname_ext = '.'+dep_figoutname_mext
+        else:
+            dep_figoutname_basename, dep_figoutname_ext = dep_figoutname, ''
+
+        patched_content = "".join([
+            f_contents[:m.start()],
+            r'\lplxGraphic{' + dep_figoutname_basename + '}{' + dep_figoutname_ext + '}',
+            f_contents[m.end():],
+        ])
+
+        file_to_patch = os_path.join(self.lpp.output_dir, figoutname)
+        with open(file_to_patch, 'w', encoding='utf-8') as fw:
+            fw.write(patched_content)
+
+        logger.debug(f"patched file {file_to_patch}")
+
+
+
+
+    def finalize_lplx(self):
+
+        # see if we have a rename-labels fix installed
+        labels_fixes = []
+        for fix in self.lpp.fixes:
+            if isinstance(fix, RenameLabels):
+                labels_fixes.append(fix)
+
+        for labels_fix in labels_fixes:
+            for lplxfigoutname in self.lplx_files_to_finalize:
+                self.replace_labels_in_lplx_file(lplxfigoutname, labels_fix)
+
+
+    def replace_labels_in_lplx_file(self, lplx_output_file, labels_fix):
+        f_content = None
+        full_output_file = os_path.join(self.lpp.output_dir,
+                                        lplx_output_file)
+
+        logger.debug(f"Patching labels in LPLX file {lplx_output_file} ...")
+
+        with open(full_output_file, 'r', encoding='utf-8') as f:
+            f_content = f.read()
+
+        def get_new_label(lbl):
+            return labels_fix.renamed_labels.get(lbl, lbl)
+
+        # replace labels brutally, using a regex
+
+        # rx_hr_uri = \
+        #     re.compile(r'(?P<pre>\\href\{)(?P<target>[^}]+)(?P<post>\})')
+        rx_hr_ref = \
+            re.compile(r'(?P<pre>\\hyperref\[\{)(?P<target>[^}]+)(?P<post>\}\])')
+        rx_hr_cite = \
+            re.compile(r'(?P<pre>\\hyperlink\{cite.)(?P<target>[^}]+)(?P<post>\})')
+
+        f_content = rx_hr_ref.sub(
+            lambda m: "".join([m.group('pre'),
+                               get_new_label(m.group('target')),
+                               m.group('post')]),
+            f_content
+        )
+
+        f_content = rx_hr_cite.sub(
+            lambda m: "".join([m.group('pre'),
+                               get_new_label(m.group('target')),
+                               m.group('post')]),
+            f_content
+        )
+
+        with open(full_output_file, 'w', encoding='utf-8') as fw:
+            fw.write(f_content)
+
+
+
+
+    def finalize(self):
+        super().finalize()
+        self.finalize_lplx()

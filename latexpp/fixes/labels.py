@@ -1,8 +1,8 @@
 #import re
-#import itertools
 import hashlib
 import base64
 import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +164,13 @@ class RenameLabels(BaseMultiStageFix):
             return n.to_latex()
 
 
+        def get_new_label(self, lbl, preserve_prefixes):
+            for p in preserve_prefixes: # used for proof environments, e.g. [*thmlbl]
+                if lbl.startswith(p):
+                    lbl = lbl[len(p):]
+                    return p + self.parent_fix.renamed_labels.get(lbl, lbl)
+            return self.parent_fix.renamed_labels.get(lbl, lbl)
+
         def replace_node_args(self, n, label_args, *, preserve_prefixes=None):
             pf = self.parent_fix
             if n.nodeargd is None or max(label_args) >= len(n.nodeargd.argnlist):
@@ -172,20 +179,13 @@ class RenameLabels(BaseMultiStageFix):
             if not preserve_prefixes:
                 preserve_prefixes = []
 
-            def get_new_label(l):
-                for p in preserve_prefixes:
-                    if l.startswith(p):
-                        l = l[len(p):]
-                        return p + pf.renamed_labels.get(l, l)
-                return pf.renamed_labels.get(l, l)
-
             for arg_i in label_args:
                 n_arg = n.nodeargd.argnlist[arg_i]
                 lblargs = [x.strip()
                            for x in self.arg_to_latex(n_arg).split(',')
                            if x.strip()]
                 newlblarg = ",".join([
-                    get_new_label(l)
+                    self.get_new_label(l, preserve_prefixes=preserve_prefixes)
                     for l in lblargs
                 ])
                 delims = ('{', '}')
@@ -222,7 +222,7 @@ class RenameLabels(BaseMultiStageFix):
                and n.environmentname == 'proof':
                 self.preprocess_child_nodes(n)
                 self.replace_node_args(n, [0], preserve_prefixes=('**','*',))
-
+            
 
 
     def compute_renamed_labels(self, collected_labels):

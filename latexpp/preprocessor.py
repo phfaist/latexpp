@@ -585,7 +585,7 @@ class LatexPreprocessor:
         
         self.register_output_file(destfname)
 
-    def open_file(self, fname):
+    def open_file(self, fname, **kwargs):
         """
         Open the file `fname` for reading and return a handle to the open file.
         Should be used in a context manager as ``with lpp.open_file(xxx) as f:``
@@ -593,7 +593,7 @@ class LatexPreprocessor:
         (Use this function instead of ``open()`` directly so that the fixes can
         be integrated more easily in the tests with mock inputs.)
         """
-        return open(self._resolve_source_fname(fname))
+        return open(self._resolve_source_fname(fname), **kwargs)
 
 
     # these methods that access the filesystem are separate functions so that
