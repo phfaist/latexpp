@@ -12,7 +12,7 @@ from latexpp.fix import BaseFix
 from .labels import RenameLabels
 
 
-exts = ['', '.lplx', '.pdf', '.png', '.jpg', '.jpeg', '.eps']
+_exts = ['', '.lplx', '.pdf', '.png', '.jpg', '.jpeg', '.eps']
 
 
 
@@ -44,7 +44,7 @@ class CopyAndRenameFigs(BaseFix):
     """
 
     def __init__(self, fig_rename='fig-{fig_counter:02}{fig_ext}',
-                 start_fig_counter=1, graphicspath="."):
+                 start_fig_counter=1, graphicspath=".", exts=None):
         super().__init__()
 
         # By default we start at Fig #1 because journals like separate files
@@ -52,6 +52,7 @@ class CopyAndRenameFigs(BaseFix):
         self.fig_counter = start_fig_counter
         self.fig_rename = fig_rename
         self.graphicspath = graphicspath
+        self.exts = _exts
         
         self.post_processors = {
             '.lplx': self.do_postprocess_lplx,
@@ -68,13 +69,13 @@ class CopyAndRenameFigs(BaseFix):
             # find file and copy it
             orig_fig_name = self.preprocess_arg_latex(n, 1)
             orig_fig_name = os_path.join(self.graphicspath, orig_fig_name)
-            for e in exts:
+            for e in self.exts:
                 if os_path.exists(orig_fig_name+e):
                     orig_fig_name = orig_fig_name+e
                     break
             else:
                 logger.warning("File not found: %s. Tried extensions %r",
-                               orig_fig_name, exts)
+                               orig_fig_name, self.exts)
                 return None # keep the node as it is
             
             if '.' in orig_fig_name:
