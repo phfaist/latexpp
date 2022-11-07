@@ -52,7 +52,7 @@ class CopyAndRenameFigs(BaseFix):
         self.fig_counter = start_fig_counter
         self.fig_rename = fig_rename
         self.graphicspath = graphicspath
-        self.exts = _exts
+        self.exts = exts if exts is not None else _exts
         
         self.post_processors = {
             '.lplx': self.do_postprocess_lplx,
