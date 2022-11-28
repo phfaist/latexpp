@@ -36,5 +36,13 @@ jobs:
         run: |-
           pip install -r requirements.txt; pip install pytest
 
+      - name: 'Setup TeX Live (latex is needed for some latexpp tests)'
+        uses: teatimeguest/setup-texlive-action@v2
+        with:
+          packages: >-
+            scheme-basic
+            cleveref
+            hyperref
+
       - name: 'Run tests'
         run: pytest

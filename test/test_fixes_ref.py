@@ -29,8 +29,6 @@ hyperref_aux_preamble = r"""\relax
 """
 
 
-@unittest.skipIf(os.environ.get("TRAVIS", "") == "true",
-                 "Skipping these tests on Travis CI because you'd need to run latex.")
 class TestExpandRefs(unittest.TestCase):
 
     maxDiff = None
