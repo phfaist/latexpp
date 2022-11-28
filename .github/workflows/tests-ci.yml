@@ -43,6 +43,7 @@ jobs:
             scheme-basic
             cleveref
             hyperref
+            crossreftools
 
       - name: 'Run tests'
         run: pytest
