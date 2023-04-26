@@ -8,12 +8,13 @@ readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-pylatexenc = ">=2.0"
+pylatexenc = ">=3.0a15"
 colorlog = ">=6.0.0a4"
 PyYAML = "^6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.3.1"
+toml = "^0.10.2"
 
 [build-system]
 requires = ["poetry-core"]
