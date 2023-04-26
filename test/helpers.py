@@ -6,6 +6,15 @@ import unittest
 
 from pylatexenc import latexwalker, macrospec
 
+from pylatexenc.latexwalker import ParsingState
+
+try:
+    from pylatexenc.latexnodes import LatexArgumentSpec
+    from pylatexenc.latexnodes.nodes import LatexNodeList
+except ImportError:
+    LatexArgumentSpec = type(None)
+    LatexNodeList = list
+
 from latexpp import preprocessor 
 
 
@@ -135,20 +144,11 @@ def nodelist_to_d(nodelist, use_line_numbers=False, use_detailed_position=False)
         if isinstance(x, (str, int, bool)):
             return x
 
-        if isinstance(x, latexwalker.LatexNode):
-            n = x
-            d = {
-                'nodetype': n.__class__.__name__
-            }
-            for fld in n._fields:
-                d[fld] = n.__dict__[fld]
 
-            pos = d.pop('pos', None)
-            len_ = d.pop('len', None)
-
+        def _add_pos(d, pos, len_):
             if use_line_numbers:
                 lineno, colno = \
-                    n.parsing_state.lpp_latex_walker.pos_to_lineno_colno(n.pos)
+                    n.parsing_state.lpp_latex_walker.pos_to_lineno_colno(pos)
 
                 d['lineno'] = lineno
 
@@ -156,11 +156,52 @@ def nodelist_to_d(nodelist, use_line_numbers=False, use_detailed_position=False)
                     d['colno'] = colno
                     d['pos'] = pos
                     d['len'] = len_
+            
+        # we already tested for 'list', so this condition never evals to true
+        # if we're running w/ pylatexenc 2
+        if isinstance(x, LatexNodeList):
+            d = {
+                'nodelist': x.nodelist,
+            }
+            _add_pos(d, x.pos, x.len)
+            return d
+
+        if isinstance(x, latexwalker.LatexNode):
+            n = x
+            d = {
+                'nodetype': n.__class__.__name__
+            }
+            for fld in n._fields:
+                # skip some fields that we choose not to compare in our tests
+                if fld in (
+                        'latex_walker', 'spec', 'parsing_state',
+                        'pos', 'len', 'pos_end', 
+                        ):
+                    continue
+
+                d[fld] = n.__dict__[fld]
+
+            _add_pos(d, n.pos, n.len)
 
             return get_obj(d)
 
         if isinstance(x, macrospec.ParsedMacroArgs):
-            return get_obj(x.to_json_object())
+            d = x.to_json_object()
+            if 'arguments_spec_list' in d:
+                d.pop('arguments_spec_list')
+                d['argspec'] = x.argspec
+            return get_obj(d)
+
+        if isinstance(x, ParsingState):
+            d = x.to_json_object()
+            return get_obj(d)
+
+        if isinstance(x, (latexwalker.LatexWalker,
+                          macrospec.MacroSpec,
+                          macrospec.EnvironmentSpec,
+                          macrospec.SpecialsSpec,
+                          LatexArgumentSpec)):
+            return { '$skip-serialization-type': x.__class__.__name__ }
 
         raise ValueError("Unknown value to serialize: {!r}".format(x))
 

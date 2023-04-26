@@ -10,3 +10,4 @@ doc/_build
 doc/example_custom_fix/latexpp_output
 doccases_test
 *.JUNK_DRAFT
+.python-version
