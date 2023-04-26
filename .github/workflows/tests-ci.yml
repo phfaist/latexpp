@@ -1,13 +1,11 @@
 
 name: 'tests-ci'
 
-
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
 
 jobs:
   tests-ci:
@@ -20,6 +18,8 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
+        poetry-version:
+          - "1.4"
         os:
           - 'ubuntu-latest'
 
@@ -30,10 +30,12 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '${{ matrix.python-version }}'
-
-      - name: 'Install dependencies'
-        run: |-
-          pip install -r requirements.txt; pip install pytest
+      - name: 'Set up poetry - Run image'
+        uses: abatilo/actions-poetry@v2
+        with:
+          poetry-version: '${{ matrix.poetry-version }}'
+      - name: 'Poetry Install'
+        run: poetry install
 
       - name: 'Setup TeX Live (latex is needed for some latexpp tests)'
         uses: teatimeguest/setup-texlive-action@v2
@@ -45,4 +47,4 @@ jobs:
             crossreftools
 
       - name: 'Run tests'
-        run: pytest
+        run: poetry run pytest
