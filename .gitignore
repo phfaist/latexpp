@@ -20,3 +20,4 @@ doccases_test
 
 *.JUNK_DRAFT
 
+.python-version

@@ -98,8 +98,13 @@ The same, but emphasized: \emph{%
                             "chars": "Hello, world!"
                         },
                         {
+                            'nodetype': 'LatexSpecialsNode',
+                            'specials_chars': '\n\n',
+                            'nodeargd': { 'argspec': '', 'argnlist': [] },
+                        },
+                        {
                             "nodetype": "LatexCharsNode",
-                            "chars": "\n\nThe same, but emphasized: "
+                            "chars": "The same, but emphasized: "
                         },
                         {
                             "nodetype": "LatexMacroNode",
@@ -226,9 +231,18 @@ proident, sunt in culpa qui officia deserunt mollit anim id est laborum.}
                     'nodetype': 'LatexEnvironmentNode',
                     'environmentname': 'document',
                     'nodelist': [
-                        {'nodetype': 'LatexCharsNode', 'chars': '\n\n'},
+                        {
+                            'nodetype': 'LatexSpecialsNode',
+                            'specials_chars': '\n\n',
+                            'nodeargd': { 'argspec': '', 'argnlist': [] },
+                        },
+                        {
+                            'nodetype': 'LatexSpecialsNode',
+                            'specials_chars': '\n\n',
+                            'nodeargd': { 'argspec': '', 'argnlist': [] },
+                        },
                         {'nodetype': 'LatexCharsNode',
-                         'chars': '\n\nLorem ipsum dolor sit amet, consectetur '
+                         'chars': 'Lorem ipsum dolor sit amet, consectetur '
                          'adipiscing elit, sed do eiusmod tempor\nincididunt ut labore '
                          'et dolore magna aliqua. Ut enim ad minim veniam, quis\n'
                          'nostrud exercitation ullamco laboris nisi ut aliquip ex '
@@ -246,10 +260,18 @@ proident, sunt in culpa qui officia deserunt mollit anim id est laborum.}
                              ], 'delimiters': ['{', '}']}
                          ]},
                          'macro_post_space': ''},
-                        {'nodetype': 'LatexCharsNode', 'chars': '\n\n'},
+                        {
+                            'nodetype': 'LatexSpecialsNode',
+                            'specials_chars': '\n\n',
+                            'nodeargd': { 'argspec': '', 'argnlist': [] },
+                        },
                         {'nodetype': 'LatexCharsNode',
                          'chars': "[Marked scope contains 4 occurrences of the substring `lor']"},
-                        {'nodetype': 'LatexCharsNode', 'chars': '\n\n'}
+                        {
+                            'nodetype': 'LatexSpecialsNode',
+                            'specials_chars': '\n\n',
+                            'nodeargd': { 'argspec': '', 'argnlist': [] },
+                        },
                     ],
                     'nodeargd': {'argspec': '', 'argnlist': []}
                 },
@@ -307,9 +329,17 @@ But don't skip this.
                     'nodetype': 'LatexEnvironmentNode',
                     'environmentname': 'document',
                     'nodelist': [
-                        {'nodetype': 'LatexCharsNode', 'chars': '\n\n'},
+                        {'nodetype': 'LatexSpecialsNode',
+                         'specials_chars': '\n\n',
+                         'nodeargd': { 'argspec': '', 'argnlist': [] }},
+                        {'nodetype': 'LatexSpecialsNode',
+                         'specials_chars': '\n\n',
+                         'nodeargd': { 'argspec': '', 'argnlist': [] }},
                         {'nodetype': 'LatexCharsNode',
-                         'chars': '\n\nBut don\'t skip this.\n\n'},
+                         'chars': 'But don\'t skip this.'},
+                        {'nodetype': 'LatexSpecialsNode',
+                         'specials_chars': '\n\n',
+                         'nodeargd': { 'argspec': '', 'argnlist': [] }},
                     ],
                     'nodeargd': {'argspec': '', 'argnlist': []}
                 },

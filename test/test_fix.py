@@ -5,6 +5,7 @@ import helpers
 
 from pylatexenc import latexwalker
 
+
 from latexpp.fix import BaseFix, BaseMultiStageFix
 
 
@@ -390,6 +391,38 @@ Also: {\itshape some italic text}."""
         self.assertTrue( c.isNodeType(latexwalker.LatexCharsNode) )
         self.assertEqual( c.chars, "Hello !" )
         
+
+    def test_preprocess_nofix(self):
+
+        class MyNoFix(BaseFix):
+            def fix_node(self, n, **kwargs):
+                return None
+
+
+        latex = r"""
+The projected state $P_k\rho  P_{k'}$ boo.
+
+
+
+I left four newlines here.  Let's see if they get preserved.
+"""
+
+        lpp = helpers.MockLPP()
+        myfix = MyNoFix()
+        lpp.install_fix( myfix )
+
+        lw = lpp.make_latex_walker(latex)
+        nodelist = lw.get_latex_nodes()[0]
+
+        print('nodelist is ', nodelist)
+
+        newnodelist = myfix.preprocess(nodelist)
+
+        newlatex = ''.join(n.to_latex() for n in newnodelist)
+
+        self.assertEqual(newlatex, latex)
+        
+
 
 
 
