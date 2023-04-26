@@ -413,12 +413,13 @@ class ExpandRefs(BaseFix):
                             f.write(r"""\myextractref{%d}{%s}""" %(j, cmd) +"\n")
                     if do_amseqref:
                         f.write(r"""
-\let\lppoldeqref\eqref
+%%\let\lppoldeqref\eqref
+\def\lppoldeqref#1{\textup{\normalfont{(\ref{#1})}}}%
 \def\eqref#1{%
   \ref{#1} % set in \tmp@save
   \begingroup
-    \edef\ref##1{\detokenize\expandafter{\tmp@save}}
-    \protected@xdef\tmp@save@eqref{\lppoldeqref{#1}}
+    \edef\ref##1{\detokenize\expandafter{\tmp@save}}%
+    \protected@xdef\tmp@save@eqref{\lppoldeqref{#1}}%
   \endgroup
 }
 \def\myextractamseqref#1#2{

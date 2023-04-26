@@ -223,12 +223,7 @@ class NCArgsParser(MacroStandardArgsParser):
 
         orig_pos = pos
 
-        # we'll have to update the parsing state --- FIXME NEED BETTER INTERFACE
-        # IN PYLATEXENC.  Should be able to modify in place the
-        # LatexContextDb....right?
-        if '_lpp-custom-newcommands' not in parsing_state.latex_context.d:
-            parsing_state.latex_context.add_context_category('_lpp-custom-newcommands', prepend=True)
-
+        new_add_context_defs = {}
 
         if self.ncmacrotype == 'newcommand':
             (new_macro_def, pos, len_) = \
@@ -266,7 +261,9 @@ class NCArgsParser(MacroStandardArgsParser):
             # update the parsing state --- FIXME NEED BETTER INTERFACE IN
             # PYLATEXENC.  Should be able to modify in place the LatexContextDb....right?
             m = new_macro_def.new_defined_macrospec
-            parsing_state.latex_context.d['_lpp-custom-newcommands']['macros'][m.macroname] = m
+            #parsing_state.latex_context.d['_lpp-custom-newcommands']['macros'][m.macroname] = m
+
+            new_add_context_defs['macros'] = [ m ]
 
             logger.debug("New command defined: {} {} -> {}"
                          .format(m.macroname,
@@ -309,8 +306,9 @@ class NCArgsParser(MacroStandardArgsParser):
             # update the parsing state --- FIXME NEED BETTER INTERFACE IN
             # PYLATEXENC.  Should be able to modify in place the LatexContextDb....right?
             e = new_env_def.new_defined_environmentspec
-            ddcat = parsing_state.latex_context.d['_lpp-custom-newcommands']
-            ddcat['environments'][e.environmentname] = e
+            #ddcat = parsing_state.latex_context.d['_lpp-custom-newcommands']
+            #ddcat['environments'][e.environmentname] = e
+            new_add_context_defs['environments'] = [ e ]
 
             logger.debug("New environment defined: {} / {}"
                          .format(e.environmentname,
@@ -325,8 +323,14 @@ class NCArgsParser(MacroStandardArgsParser):
         #logger.debug("latex context is now\n%r", parsing_state.latex_context.d)
 
         # tag on the new parsing state modification in the returned information
+        new_parsing_state = parsing_state.sub_context(
+            latex_context=parsing_state.latex_context.extended_with(
+                **new_add_context_defs
+            )
+        )
+
         mdic = {
-            'new_parsing_state': parsing_state
+            'new_parsing_state': new_parsing_state
         }
 
         return (new_def, orig_pos, pos - orig_pos, mdic)
@@ -340,9 +344,9 @@ class NCArgsParser(MacroStandardArgsParser):
         # kept as single tokens.  The argument placeholder # is recognized as
         # "special".
         toks_latex_context = LatexContextDb() # completely empty context.
-        #empty_latex_context.set_unknown_macro_spec(MacroSpec(''))
-        #empty_latex_context.set_unknown_environment_spec(EnvironmentSpec(''))
-        #empty_latex_context.set_unknown_specials_spec(SpecialsSpec(''))
+        toks_latex_context.set_unknown_macro_spec(MacroSpec(''))
+        toks_latex_context.set_unknown_environment_spec(EnvironmentSpec(''))
+        toks_latex_context.set_unknown_specials_spec(SpecialsSpec(''))
         toks_latex_context.add_context_category(
             'arg_placeholder',
             specials=[

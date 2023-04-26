@@ -12,7 +12,7 @@ import importlib
 
 import logging
 
-from pylatexenc import latexwalker
+from pylatexenc import latexwalker, macrospec
 
 from . import __version__
 
@@ -139,7 +139,6 @@ class LatexPreprocessor:
         # parser / nodes collector has no way of reporting them)
         self.latex_context = \
             self.latex_context.filtered_context(exclude_categories=['latex-paragraph'])
-
 
         self.latex_context.add_context_category('latexpp-categories-marker-end',
                                                 macros=[], prepend=True)

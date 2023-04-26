@@ -240,7 +240,7 @@ Equation~\eqref{eq:test} reads:
 \newtheorem{lemma}{Lemma}
 
 \begin{document}
-Equation~\protect \textup  {\mathsurround \z@ \protect \normalfont  (\ignorespaces 1\unskip \@@italiccorr )} reads:
+Equation~\protect \textup  {\protect \normalfont  {(1)}} reads:
 \begin{equation}
   \label{eq:test}
   a + b = c\ .
@@ -291,7 +291,7 @@ Equation~\eqref{eq:test}:
 \usepackage{hyperref}
 
 \begin{document}
-Equation~\protect \textup  {\mathsurround \z@ \protect \normalfont  (\ignorespaces \protect \hyperref [eq:test]{1}\unskip \@@italiccorr )}:
+Equation~\protect \textup  {\protect \normalfont  {(\protect \hyperref [eq:test]{1})}}:
 \begin{equation}
   \label{eq:test}
   a + b = c\ .
