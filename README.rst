@@ -12,11 +12,11 @@ Latex preprocessor — apply macro definitions, remove comments, and more
 Installation
 ------------
 
-You can install `latexpp` using `pip` directly from `latexpp`'s github repo:
+You can install `latexpp` using `pip`:
 
 .. code-block:: sh
 
-    > pip install git+https://github.com/phfaist/latexpp.git
+    > pip install latexpp
 
 How it works
 ------------
