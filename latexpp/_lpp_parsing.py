@@ -18,7 +18,7 @@ class LatexCodeRecomposer:
         super().__init__()
 
     def node_to_latex(self, n):
-        print("*** node_to_latex: ", repr(n))
+        #print("*** node_to_latex: ", repr(n))
 
         if n.isNodeType(latexwalker.LatexGroupNode):
             return n.delimiters[0] + "".join(self.node_to_latex(n) for n in n.nodelist) \
@@ -62,8 +62,6 @@ class LatexCodeRecomposer:
                         for n in n.nodeargd.argnlist )
 
 
-
-
 class _LPPParsingState(latexwalker.ParsingState):
     def __init__(self, lpp_latex_walker, **kwargs):
         super().__init__(**kwargs)
@@ -73,9 +71,10 @@ class _LPPParsingState(latexwalker.ParsingState):
 
 
 class _LPPLatexWalker(latexwalker.LatexWalker):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, latex_context=None, **kwargs):
         self.lpp = kwargs.pop('lpp')
-        super().__init__(*args, **kwargs)
+        
+        super().__init__(*args, latex_context=latex_context, **kwargs)
 
         # for severe debugging
         #self.debug_nodes = True
@@ -97,12 +96,35 @@ class _LPPLatexWalker(latexwalker.LatexWalker):
         # node structure
         node.to_latex = functools.partial(self.node_to_latex, node)
 
+        #print("*** debug -> made node ", node)
+
         return node
+
+    def make_nodelist(self, nodelist, *args, **kwargs):
+        try:
+            nodelist = super().make_nodelist(nodelist, *args, **kwargs)
+        except Exception:
+            nodelist = list(nodelist)
+
+        # forbid method latex_verbatim()
+        nodelist.latex_verbatim = _no_latex_verbatim
+
+        # add method to_latex() that reconstructs the latex dynamically from the
+        # node structure
+        nodelist.to_latex = functools.partial(self.nodelist_to_latex, nodelist)
+
+        #print("*** debug -> made node list ", nodelist)
+
+        return nodelist
+
+
 
 
     def node_to_latex(self, n):
         return LatexCodeRecomposer().node_to_latex(n)
 
+    def nodelist_to_latex(self, nodelist):
+        return ''.join(self.node_to_latex(n) for n in nodelist)
 
     def pos_to_lineno_colno(self, pos, **kwargs):
         if pos is None:

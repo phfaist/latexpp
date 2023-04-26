@@ -133,6 +133,14 @@ class LatexPreprocessor:
         self.display_output_dir = output_dir.rstrip('/') + '/'
 
         self.latex_context = latexwalker.get_default_latex_context_db()
+
+        # don't report '\n\n' as specials nodes, because otherwise the precise
+        # space characters used get lost and replaced by '\n\n' (the token
+        # parser / nodes collector has no way of reporting them)
+        self.latex_context = \
+            self.latex_context.filtered_context(exclude_categories=['latex-paragraph'])
+
+
         self.latex_context.add_context_category('latexpp-categories-marker-end',
                                                 macros=[], prepend=True)
 

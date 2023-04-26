@@ -257,7 +257,8 @@ def main(argv=None, omit_processed_by=False):
 
     except latexwalker.LatexWalkerParseError as e:
         logger.error("Parse error! %s", e)
-        sys.exit(1)
+        #sys.exit(1)
+        raise # will cause error code exit
 
 
 

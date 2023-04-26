@@ -12,10 +12,12 @@ logger = logging.getLogger(__name__)
 from pylatexenc import latexwalker
 
 try:
+    from pylatexenc.latexnodes import LatexWalkerParseError
     from pylatexenc.latexnodes import nodes as latexnodes_nodes
     LatexNodeList = latexnodes_nodes.LatexNodeList
 except ImportError:
     LatexNodeList = list
+    from pylatexenc.latexwalker import LatexWalkerParseError
 
 
 class DontFixThisNode(Exception):
@@ -192,7 +194,19 @@ class BaseFix:
             ps = None
             if nodelist:
                 ps = nodelist[0].parsing_state
-            return self.parse_nodes(newnodelist, parsing_state=ps)
+            try:
+                return self.parse_nodes(newnodelist, parsing_state=ps)
+            except LatexWalkerParseError as e:
+                if hasattr(nodelist, 'latex_walker') and hasattr(nodelist, 'pos'):
+                    latex_walker = nodelist.latex_walker
+                    pos = nodelist.pos
+                    logger.error(
+                        "Error {}, near ‘{}’ ".format(
+                            latex_walker.format_pos(pos),
+                            nodelist.to_latex()
+                        )
+                    )
+                raise
         if newnodelist is not None:
             raise ValueError("{}.fix_nodelist() did not return a string or node list"
                              .format(self.fix_name()))
@@ -224,7 +238,19 @@ class BaseFix:
 
             if isinstance(nn, str):
                 # if it is a str then we need to re-parse output into nodes
-                nn = self.parse_nodes(nn, parsing_state=n.parsing_state)
+                try:
+                    nn = self.parse_nodes(nn, parsing_state=n.parsing_state)
+                except LatexWalkerParseError as e:
+                    if hasattr(nodelist, 'latex_walker') and hasattr(nodelist, 'pos'):
+                        latex_walker = nodelist.latex_walker
+                        pos = nodelist.pos
+                        logger.error(
+                            "Error {}, near ‘{}’ ".format(
+                                latex_walker.format_pos(pos),
+                                nodelist.to_latex()
+                            )
+                        )
+                    raise
                 # fall through case is list ->
             if isinstance(nn, (LatexNodeList, list)):
                 # add new nodes
@@ -362,10 +388,19 @@ class BaseFix:
 
         if isinstance(newnode, (LatexNodeList, list)):
             nx = newnode
+            # by default, ensure the contents are enclosed in curly braces to
+            # make sure the syntax of the resulting LaTeX code isn't changed
+            # (e.g., replacing ‘\rhostate’ by ‘\hat\rho’ in ‘\frac\rhostate{2}’
+            # should give ‘\frac{\hat\rho}{2}’, not ‘\frac\hat\rho{2}’.  Only
+            # omit the extra '{' delimiters if the node itself contains a single
+            # element which is a group node.
+            delimiters = ('{', '}')
+            if len(nx) == 1 and nx[0].isNodeType(latexwalker.LatexGroupNode):
+                delimiters = ('', '')
             newnode = node.parsing_state.lpp_latex_walker.make_node(
                 latexwalker.LatexGroupNode,
                 nodelist=nx,
-                delimiters=('{', '}'),
+                delimiters=delimiters,
                 parsing_state=node.parsing_state,
                 pos=None, len=None
             )
@@ -496,7 +531,7 @@ class BaseFix:
         if n is None:
             return ''
         if not isinstance(n, (LatexNodeList, list)):
-            n = LatexNodeList([n])
+            n = n.latex_walker.make_nodelist([n], parsing_state=n.parsing_state)
         #print("*** need to preprocess ", n)
         n2 = self.preprocess(n)
         #print("*** --> ", n2)
