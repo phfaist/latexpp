@@ -45,6 +45,7 @@ jobs:
             cleveref
             hyperref
             crossreftools
+            etoolbox
 
       - name: 'Run tests'
         run: poetry run pytest
