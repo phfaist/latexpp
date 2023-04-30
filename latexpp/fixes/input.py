@@ -1,5 +1,3 @@
-import os.path as os_path # allow tests to monkey-patch this
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -7,8 +5,7 @@ from pylatexenc.latexwalker import LatexMacroNode
 
 from latexpp.fix import BaseFix
 
-
-exts = ['', '.tex', '.latex']
+exts = ["", ".tex", ".latex"]
 
 class EvalInput(BaseFix):
     r"""
@@ -39,13 +36,9 @@ class EvalInput(BaseFix):
 
             logger.info("Input ‘%s’", infname)
 
-            for e in exts:
-                # FIXME: resolve path relative to main document source
-                if os_path.exists(infname+e):
-                    infname = infname+e
-                    break
-            else:
-                logger.warning("File not found: ‘%s’. Tried extensions %r", infname, exts)
+            try:
+                infname = self.lpp.resolve_tex_fname(infname, extensions=exts)
+            except FileNotFoundError:
                 return None # keep the node as it is
 
             # open that file and go through it, too
@@ -107,12 +100,9 @@ class CopyInputDeps(BaseFix):
 
             infname = self.preprocess_arg_latex(n, 0)
 
-            for e in exts:
-                if os_path.exists(infname+e):
-                    infname = infname+e
-                    break
-            else:
-                logger.warning("File not found: ‘%s’. Tried extensions %r", infname, exts)
+            try:
+                infname = self.lpp.resolve_tex_fname(infname, extentions=exts)
+            except FileNotFoundError:
                 return None # keep the node as it is
 
             logger.info("Preprocessing ‘%s’", infname)

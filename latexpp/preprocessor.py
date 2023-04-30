@@ -80,6 +80,9 @@ class LatexPreprocessor:
       specified to some helpers such as :py:meth:`copy_file()` are interpreted
       as relative to this directory.
 
+    - `tex_inputs` is a list of search paths, similar to the LaTeX environment 
+      varibale `TEXINPUTS`.
+
     The fixes can be installed directly via a configuration data structure with
     :py:meth:`install_fixes_from_config()` (as extracted from a YaML reader from
     a `lppconfig.yml` file, for instance), or fix instances can be installed
@@ -119,7 +122,8 @@ class LatexPreprocessor:
                  output_dir='_latexpp_output',
                  main_doc_fname=None,
                  main_doc_output_fname=None,
-                 config_dir=None):
+                 config_dir=".",
+                 tex_inputs=(".",)):
 
         super().__init__()
 
@@ -128,6 +132,7 @@ class LatexPreprocessor:
         self.main_doc_output_fname = main_doc_output_fname
         # directory relative to which to search for custom python fixes:
         self.config_dir = config_dir
+        self.tex_inputs = tex_inputs
 
         # version of output_dir for displaying purposes
         self.display_output_dir = output_dir.rstrip('/') + '/'
@@ -306,9 +311,25 @@ class LatexPreprocessor:
 
 
     def _resolve_source_fname(self, fname):
-        if self.config_dir:
-            return os.path.join(self.config_dir, fname)
-        return fname
+        return os.path.join(self.config_dir, fname)
+
+
+    def resolve_tex_fname(self, fname, extensions=('',), issue_warning=False):
+        """Resolves a TEX file based on the search paths of tex_inputs, returns a 
+        relative path to config_dir."""
+
+        for p in self.tex_inputs:
+            for ext in extensions:
+                f = os.path.join(p, fname + ext)
+                if os.path.exists(f):
+                    return os.path.relpath(f, self.config_dir)
+        
+        if issue_warning:
+            logger.warning("File not found: ‘%s’. Tried extensions %r with TEXINPUS='%s'", 
+                fname, extensions, ';'.join(self.tex_inputs))
+
+        raise FileNotFoundError()
+
 
     def execute_file(self, fname, *, output_fname, omit_processed_by=False):
         r"""
@@ -321,7 +342,7 @@ class LatexPreprocessor:
         *latexpp*.
         """
 
-        with open(self._resolve_source_fname(fname), 'r') as f:
+        with open(self._resolve_source_fname(self.resolve_tex_fname(fname)), 'r') as f:
             s = f.read()
 
         outdata = self.execute_string(s, input_source='file ‘{}’'.format(fname))
@@ -507,7 +528,9 @@ class LatexPreprocessor:
         """
         pp = LatexPreprocessor(output_dir=self.output_dir,
                                main_doc_fname=self.main_doc_fname,
-                               main_doc_output_fname=self.main_doc_output_fname)
+                               main_doc_output_fname=self.main_doc_output_fname, 
+                               config_dir=self.config_dir, 
+                               tex_inputs=self.tex_inputs)
         pp.parent_preprocessor = self
         if lppconfig_fixes:
             pp.install_fixes_from_config(lppconfig_fixes)
