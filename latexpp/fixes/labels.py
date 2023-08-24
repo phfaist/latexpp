@@ -158,6 +158,8 @@ class RenameLabels(BaseMultiStageFix):
             self.collected_labels = []
 
         def arg_to_latex(self, n):
+            if n is None:
+                return ''
             if n.isNodeType(latexwalker.LatexGroupNode):
                 return ''.join(nn.to_latex() for nn in n.nodelist
                                if not nn.isNodeType(latexwalker.LatexCommentNode))
@@ -189,9 +191,10 @@ class RenameLabels(BaseMultiStageFix):
                     for l in lblargs
                 ])
                 delims = ('{', '}')
-                if n.nodeargd.argnlist[arg_i].isNodeType(latexwalker.LatexGroupNode):
+                argi_n = n.nodeargd.argnlist[arg_i]
+                if argi_n is not None and argi_n.isNodeType(latexwalker.LatexGroupNode):
                     # use same "group" delimiters as before
-                    delims = n.nodeargd.argnlist[arg_i].delimiters
+                    delims = argi_n.delimiters
                 n.nodeargd.argnlist[arg_i] = n.parsing_state.lpp_latex_walker.make_node(
                     latexwalker.LatexGroupNode,
                     nodelist=[n.parsing_state.lpp_latex_walker.make_node(

@@ -25,6 +25,9 @@ from .preprocessor import LatexPreprocessor
 def setup_logging(level):
     # You should use colorlog >= 6.0.0a4
     handler = colorlog.StreamHandler()
+    dbg_modinfo_add = ''
+    if level < logging.DEBUG:
+        dbg_modinfo_add = '  [%(name)s]'
     handler.setFormatter( colorlog.LevelFormatter(
         log_colors={
             "DEBUG": "white",
@@ -36,7 +39,7 @@ def setup_logging(level):
         fmt={
             # emojis we can use: 🐞 🐜 🚨 🚦 ⚙️ 🧨 🧹 ❗️❓‼️ ⁉️ ⚠️ ℹ️ ➡️ ✔️ 〰️
             # 🎶 💭 📣 🔔 ⏳ 🔧 🔩 ✨ 💥 🔥 🐢 👉
-            "DEBUG":    "%(log_color)s〰️    %(message)s", #'  [%(name)s]'
+            "DEBUG":    "%(log_color)s〰️    %(message)s"+dbg_modinfo_add, #'  [%(name)s]'
             "INFO":     "%(log_color)s✔️   %(message)s",
             "WARNING":  "%(log_color)s❗  %(message)s", # (%(module)s:%(lineno)d)",
             "ERROR":    "%(log_color)s🚨  %(message)s", # (%(module)s:%(lineno)d)",
@@ -190,6 +193,12 @@ def main(argv=None, omit_processed_by=False):
     parser.add_argument('-v', '--verbose', dest='verbosity', default=logging.INFO,
                         action='store_const', const=logging.DEBUG,
                         help='verbose mode, see what\'s going on in more detail')
+    parser.add_argument('--superverbose', dest='verbosity',
+                        action='store_const', const=(logging.DEBUG - 1),
+                        help='*really* verbose, probably too much so for your needs')
+    parser.add_argument('--megaverbose', dest='verbosity',
+                        action='store_const', const=(logging.DEBUG - 2),
+                        help='most likely way way way too verbose for your needs')
 
     parser.add_argument('--new', action=NewLppconfigTemplate)
 
@@ -202,6 +211,15 @@ def main(argv=None, omit_processed_by=False):
 
 
     setup_logging(level=args.verbosity)
+    if args.verbosity >= logging.DEBUG:
+        # pylatexenc verbosity is just way tooo verbose
+        logging.getLogger('pylatexenc').setLevel(logging.INFO)
+    if args.verbosity >= logging.DEBUG-1:
+        # filter out those components of pylatexenc that are simply so
+        # excessively verbose
+        for mod in ['pylatexenc.latexnodes._nodescollector',
+                    'pylatexenc.latexnodes._tokenreader']:
+            logging.getLogger(mod).setLevel(logging.INFO)
 
 
     if args.lppconfig:

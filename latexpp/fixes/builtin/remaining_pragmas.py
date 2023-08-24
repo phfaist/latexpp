@@ -19,6 +19,7 @@ class ReportRemainingPragmas(PragmaFix):
             n.parsing_state.lpp_latex_walker.pos_to_lineno_colno(n.pos)[0],
             ne.parsing_state.lpp_latex_walker.pos_to_lineno_colno(ne.pos)[0]
         )
+        return jend
 
     def fix_pragma_simple(self, nodelist, j, instruction, args):
         n = nodelist[j]
@@ -28,4 +29,4 @@ class ReportRemainingPragmas(PragmaFix):
             n.comment,
             n.parsing_state.lpp_latex_walker.pos_to_lineno_colno(n.pos)[0]
         )
-
+        return j+1
