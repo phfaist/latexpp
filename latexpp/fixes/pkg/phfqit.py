@@ -444,7 +444,7 @@ mathtools_delims_macros = {
 
     'ket': (r'\lvert', r'{%(1)s}', r'\rangle'),
     'bra': (r'\langle', r'{%(1)s}', r'\rvert'),
-    'braket': (r'\langle', r'{%(1)s}%(phfqitKetsBarSpace)s%(delimsize)s\vert\phfqitKetsBarSpace{%(2)s}',
+    'braket': (r'\langle', r'{%(1)s}%(phfqitKetsBarSpace)s%(delimsize)s\vert%(phfqitKetsBarSpace)s{%(2)s}',
                r'\rangle'),
     'ketbra': (r'\lvert', r'{%(1)s}%(delimsize)s\rangle %(phfqitKetsRLAngleSpace)s%(delimsize)s\langle{%(2)s}',
                r'\rvert'),
@@ -632,6 +632,13 @@ class ExpandMacros(BaseFix):
         ``\left``/``\right``, or nothing if no sizing options are given) and
         which can be placed immediately before a delimiter.
 
+      - `<delim-spec>={'open': <left-delim>, 'close': <right-delim>, 'repl':
+        <contents-repl>, 'default-size': r'\big', 'prefix': <prefix-content>,
+        'suffix': <suffix-content>}` enables you to additional specify a default
+        sizing argument if no size argument was specified, as well as additional
+        fixed pieces of string to render before the opening delimiter (prefix)
+        and after the closing delimiter (suffix).
+
     - `subst_use_hspace`: In all the above substitutions (including delimiters),
       there are some custom sizing corrections in the form of ``\hspace*{XXex}``
       that adjust the spacing between the different symbols in the expansion of
@@ -639,6 +646,11 @@ class ExpandMacros(BaseFix):
       that the document looks the same when compiled.  If instead, you would
       like simple substitutions without these fine-tuning spacing commands, set
       `subst_use_hspace=False`.
+
+    - `llanglefrommnsymbolfonts`: If set to `True`, then include preamble
+      definitions that will make available the '\llangle' and '\rrangle'
+      commands by picking the corresponding symbols from the MnSymbols
+      font. (see https://tex.stackexchange.com/a/79701/32188)
     """
 
     def __init__(self, *,
@@ -646,6 +658,7 @@ class ExpandMacros(BaseFix):
                  math_operator_fmt=r'\operatorname{%(opname)s}',
                  subst_use_hspace=True,
                  subst_space=None,
+                 llanglefrommnsymbolfonts=False,
                  ):
         super().__init__()
 
@@ -671,21 +684,79 @@ class ExpandMacros(BaseFix):
         })
 
         # delimiter macros --> substitution rules
-        self.mathtools_delims_macros = dict(mathtools_delims_macros)
-        self.mathtools_delims_macros.update(delims)
-        _delempties(self.mathtools_delims_macros)
+        the_mathtools_delims_macros = dict(mathtools_delims_macros)
+        the_mathtools_delims_macros.update(delims)
+        _delempties(the_mathtools_delims_macros)
 
-        def delim_cfg(delimtuple):
-            if len(delimtuple) == 2:
-                return dict(qitargspec='`*[{',
-                            repl=r'%(open_delim)s{%(1)s}%(close_delim)s')
-            numargs = max( int(m.group(1)) for m in re.finditer(r'\%\((\d)\)s', delimtuple[1]) )
-            return dict(qitargspec='`*[' + '{'*numargs,
-                        repl='%(open_delim)s' + delimtuple[1] + '%(close_delim)s')
+        def mkdelimspec(delimspec):
+            # delimspec = {
+            #   'open': <left-delim>,
+            #   'close': <right-delim>,
+            #   'repl': <contents-repl>,
+            #   'default-size': r'\big',
+            #   'prefix': <prefix-content>,
+            #   'suffix': <suffix-content>, }
+            #   --> auto-set: 'qitargspec': <argspec>, 'full-repl': <full repl string>
+            if isinstance(delimspec, (list, tuple)):
+                if len(delimspec) == 2:
+                    numargs = 1
+                    delimspec = {
+                        'open': delimspec[0],
+                        'close': delimspec[1],
+                        # set automatically below
+                        # 'repl': r'%(open_delim)s{%(1)s}%(close_delim)s',
+                        # 'qitargspec': '`*[{'
+                    }
+                else:
+                    opendelim, repl, closedelim = delimspec
+                    numargs = max( int(m.group(1))
+                                   for m in re.finditer(r'\%\((\d)\)s', repl) )
+                    delimspec = {
+                        'open': opendelim,
+                        'close': closedelim,
+                        'repl': repl,
+                        # set automatically below
+                        # 'qitargspec': '`*[' + '{'*numargs
+                    }
+            if 'open' not in delimspec or 'close' not in delimspec:
+                raise ValueError("<delim-spec> must contain keys 'open' and 'close': "
+                                 + repr(delimspec))
+            if 'default-size' not in delimspec:
+                delimspec['default-size'] = None
+            if 'repl' not in delimspec:
+                delimspec['repl'] = r'{%(1)s}'
+                delimspec['qitargspec'] = '`*[{'
+            if 'qitargspec' not in delimspec:
+                numargs = max( int(m.group(1))
+                               for m in re.finditer(r'\%\((\d)\)s', delimspec['repl'] ) )
+                delimspec['qitargspec'] = '`*[' + '{'*numargs
+            if 'prefix' not in delimspec:
+                delimspec['prefix'] = ''
+            if 'suffix' not in delimspec:
+                delimspec['suffix'] = ''
+
+            delimspec['full-repl'] = (
+                delimspec['prefix'] + r'%(open_delim)s'
+                + delimspec['repl'] + 
+                r'%(close_delim)s' + delimspec['suffix']
+            )
+
+            logger.debug("Parsed delimspec → ", delimspec)
+
+            return delimspec
+
+        self.mathtools_delims_macros = {
+            k: mkdelimspec(v)
+            for k, v in the_mathtools_delims_macros.items()
+        }
+
+        def delim_cfg(delimspec):
+            return dict(qitargspec=delimspec['qitargspec'],
+                        repl=delimspec['full-repl'])
 
         the_simple_substitution_macros.update(**{
-            mname: delim_cfg(delimtuple)
-            for mname, delimtuple in self.mathtools_delims_macros.items()
+            mname: delim_cfg(delimspec)
+            for mname, delimspec in self.mathtools_delims_macros.items()
         })
 
         _delempties(the_simple_substitution_macros)
@@ -712,11 +783,52 @@ class ExpandMacros(BaseFix):
             args_parser_class=PhfQitObjectArgsParser,
         )
 
+        self.llanglefrommnsymbolfonts = llanglefrommnsymbolfonts
+
 
 
     def specs(self, **kwargs):
         # get specs from substitution helper
         return dict(**self.substitution_helper.get_specs())
+
+    def add_preamble(self):
+        preamble = ""
+        if self.llanglefrommnsymbolfonts:
+            preamble += r"""
+%% ---
+%% Make the \llangle and \rrangle comands available by fetching
+%% the corresponding symbols from the MnSymbols font.
+%%
+\DeclareFontFamily{OMX}{MnSymbolE}{}
+\DeclareSymbolFont{MnLargeSymbols}{OMX}{MnSymbolE}{m}{n}
+\SetSymbolFont{MnLargeSymbols}{bold}{OMX}{MnSymbolE}{b}{n}
+\DeclareFontShape{OMX}{MnSymbolE}{m}{n}{
+    <-6>  MnSymbolE5
+   <6-7>  MnSymbolE6
+   <7-8>  MnSymbolE7
+   <8-9>  MnSymbolE8
+   <9-10> MnSymbolE9
+  <10-12> MnSymbolE10
+  <12->   MnSymbolE12
+}{}
+\DeclareFontShape{OMX}{MnSymbolE}{b}{n}{
+    <-6>  MnSymbolE-Bold5
+   <6-7>  MnSymbolE-Bold6
+   <7-8>  MnSymbolE-Bold7
+   <8-9>  MnSymbolE-Bold8
+   <9-10> MnSymbolE-Bold9
+  <10-12> MnSymbolE-Bold10
+  <12->   MnSymbolE-Bold12
+}{}
+\let\llangle\relax
+\let\rrangle\relax
+\DeclareMathDelimiter{\llangle}{\mathopen}%
+                     {MnLargeSymbols}{'164}{MnLargeSymbols}{'164}
+\DeclareMathDelimiter{\rrangle}{\mathclose}%
+                     {MnLargeSymbols}{'171}{MnLargeSymbols}{'171}
+%% ---
+"""
+        return preamble
 
     def fix_node(self, n, **kwargs):
 
@@ -747,23 +859,27 @@ class ExpandMacros(BaseFix):
                     # we have a backtick size
                     delimtype = _delimtype(n.nodeargd.argnlist[0])
 
+                #
+                # get delim specification for this macro
+                #
+                delimspec = self.mathtools_delims_macros[n.macroname]
+                delimchars = [ delimspec['open'], delimspec['close'] ] # need list here
+
+                if delimtype is None and delimspec['default-size'] is not None:
+                    delimtype = delimspec['default-size']
+
                 if delimtype is None:
                     delims_pc = ('%s', '%s')
                     delimsize = ''
                 elif delimtype == '*':
                     # with star
-                    delims_pc = (r'\mathopen{}\left%s', r'\right%s\mathclose{}')
+                    delims_pc = (r'\mathopen{}\left %s', r'\right %s\mathclose{}')
                     delimsize = r'\middle'
                 else:
                     sizemacro = delimtype
                     delimsize = sizemacro+r' '
                     delims_pc = (sizemacro+r'l %s', sizemacro+r'r %s')
 
-                # get delim specification for this macro
-                delimchars = list(self.mathtools_delims_macros[n.macroname])
-                if len(delimchars) == 3:
-                    # replacement string is already stored in substitution helper
-                    delimchars = [delimchars[0], delimchars[2]]
 
                 # ensure we protect bare delimiter macros with a trailing space
                 for j in (0, 1):

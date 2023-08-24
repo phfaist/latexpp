@@ -41,6 +41,10 @@ class CopyAndRenameFigs(BaseFix):
 
     - `start_fig_counter`: Figure numbering starts at this number (by default,
       1).
+
+    - `graphicspath`: Filesystem path where to look for graphics files
+    
+    - `exts`: Extensions to search for when looking up graphics files.
     """
 
     def __init__(self, fig_rename='fig-{fig_counter:02}{fig_ext}',

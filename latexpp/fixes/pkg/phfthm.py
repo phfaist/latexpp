@@ -17,24 +17,47 @@ class Expand(BaseFix):
     def __init__(self,
                  deftheorems=['theorem', 'lemma', 'proposition', 'corollary'],
                  proofenvs=dict(proof='proof'),
-                 ref_type=r'\cref{%s}', proof_of_name='Proof of %s'):
+                 ref_type=r'\cref{%s}',
+                 proof_of_name='Proof of %s',
+                 use_shared_counter=False,
+                 define_thmheading=False):
         super().__init__()
 
         self.deftheorems = deftheorems
         self.proofenvs = dict(proofenvs)
         self.ref_type = ref_type
         self.proof_of_name = proof_of_name
+        self.use_shared_counter = use_shared_counter
+        self.define_thmheading = define_thmheading
 
     def add_preamble(self):
 
         p = [ ]
+
+        sharedcounteroption = ""
+        if self.use_shared_counter is True:
+            sharedcounteroption = "[phfthmcounter]"
+            p.append( r"\newcounter{phfthmcounter}" )
+        elif self.use_shared_counter:
+            sharedcounteroption = "[" + self.use_shared_counter + "]"
+
         if isinstance(self.deftheorems, str):
             # raw preamble
             p.append(self.deftheorems)
         else:
             p.append(r"\usepackage{amsthm}")
             for t in self.deftheorems:
-                p.append( r"\newtheorem{%s}{%s}"%(t, t.capitalize()) )
+                p.append( r"\newtheorem{%s}%s{%s}"%(t, sharedcounteroption, t.capitalize()) )
+
+        if self.define_thmheading:
+            p.append(r"""
+\newenvironment{thmheading}[1]{%
+    \par\medskip\noindent\textbf{#1}.~\itshape
+}{%
+    \par\medskip
+}
+""")
+
         return "\n".join(p)
         
 

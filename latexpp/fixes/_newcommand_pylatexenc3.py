@@ -492,6 +492,12 @@ class Expand(BaseFix):
     Detect custom macro and environment definitions in the preamble and apply
     them throughout the document.
 
+    .. warning::
+
+       This fix doesn't seem to work reliably with my new revamped pylatexenc
+       3(alpha) because of the new way of handling parsing state changes.  I
+       need to fix this fix!
+
     This fix detects custom macros and environments, for instance:
 
     .. code-block:: latex
