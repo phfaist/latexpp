@@ -102,7 +102,7 @@ class EvalInput(BaseFix):
         # for \usepackage, surround the contents with '\makeatletter
         # .. \makeatother' and remove '\ProvidesPackage'
         if n.macroname == 'usepackage':
-            infdata = re.sub(r'\\ProvidesPackage\s*\{[^}]+\}\s*\[(\{[^}]*\}|[^\]]*)\]',
+            infdata = re.sub(r'\\ProvidesPackage\s*\{[^}]+\}\s*(\[(\{[^}]*\}|[^\]]*)\])?',
                              '', infdata)
             infdata = r'\makeatletter' + '\n' + infdata + r'\makeatother' + '\n'
 
