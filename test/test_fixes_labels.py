@@ -5,7 +5,7 @@ import helpers
 
 from latexpp.fixes import labels
 
-class TestExpandRefs(unittest.TestCase):
+class TestRenameLabels(unittest.TestCase):
 
     maxDiff = None
 
@@ -93,6 +93,44 @@ as~\cpageref{thm:a94d9b09fe949376,eq:ce3135e517010c8e,eq:unknown}.
         )
 
 
+    def test_proof_ref(self):
+
+        lpp = helpers.MockLPP()
+        lpp.install_fix( labels.RenameLabels(
+            use_hash_length=16,
+            use_hash_encoding='hex',
+            label_rename_fmt='L.%(hash)s',
+            hack_phfthm_proofs=True,
+        ) )
+
+        self.assertEqual(
+            lpp.execute(r"""\documentclass{article}
+\begin{document}
+\begin{theorem}
+  \label{thm:that-arse-of-a-theorem}
+  Theorem statement here.
+\end{theorem}
+The proof of \cref{thm:that-arse-of-a-theorem} is on
+page \cpageref{proof:thm:that-arse-of-a-theorem}.
+\begin{proof}[*thm:that-arse-of-a-theorem]
+  Proof here.
+\end{proof}
+\end{document}
+"""),
+            r"""\documentclass{article}
+\begin{document}
+\begin{theorem}
+  \label{L.a94d9b09fe949376}
+  Theorem statement here.
+\end{theorem}
+The proof of \cref{L.a94d9b09fe949376} is on
+page \cpageref{proof:L.a94d9b09fe949376}.
+\begin{proof}[*L.a94d9b09fe949376]
+  Proof here.
+\end{proof}
+\end{document}
+"""
+        )
 
 
 

@@ -131,9 +131,12 @@ class RenameLabels(BaseMultiStageFix):
         def __init__(self, parent_fix, **kwargs):
             super().__init__(parent_fix, **kwargs)
             self.collected_labels = []
+            self.phfthm_hack_collected_proof_labels = []
 
         def fix_node(self, n, **kwargs):
+
             pf = self.parent_fix
+
             if n.isNodeType(latexwalker.LatexMacroNode) and n.macroname in pf.labelcmds:
                 labelname = n.macroname
                 label_args = pf.labelcmds[labelname]['label_args']
@@ -147,23 +150,37 @@ class RenameLabels(BaseMultiStageFix):
                         else:
                             self.collected_labels.append( labelname )
 
+            # pick out the proof label, if applicable, to register the
+            # `proof:XXX` label for replacement as well.  The user can then
+            # do stuff like ``The proof of \cref{thm:XXX} can be found on
+            # page \cpageref{proof:thm:XXX}``.
+            if pf.hack_phfthm_proofs and n.isNodeType(latexwalker.LatexEnvironmentNode) \
+               and n.environmentname == 'proof':
+                self.preprocess_child_nodes(n)
+
+                if n.nodeargd.argnlist and len(n.nodeargd.argnlist) and n.nodeargd.argnlist[0]:
+                    proofarg = pf.arg_to_latex(n.nodeargd.argnlist[0]).strip()
+                    proofthmlabel = None
+                    if proofarg.startswith('**'):
+                        proofthmlabel = proofarg[2:]
+                    elif proofarg.startswith('*'):
+                        proofthmlabel = proofarg[1:]
+                    if proofthmlabel:
+                        self.phfthm_hack_collected_proof_labels.append(proofthmlabel)
+            
+
         def stage_finish(self):
             # rename all labels
             pf = self.parent_fix
-            pf.compute_renamed_labels(self.collected_labels)
+            pf.compute_renamed_labels(
+                self.collected_labels,
+                self.phfthm_hack_collected_proof_labels
+            )
 
     class ReplaceRefs(BaseMultiStageFix.Stage):
         def __init__(self, parent_fix, **kwargs):
             super().__init__(parent_fix, **kwargs)
             self.collected_labels = []
-
-        def arg_to_latex(self, n):
-            if n is None:
-                return ''
-            if n.isNodeType(latexwalker.LatexGroupNode):
-                return ''.join(nn.to_latex() for nn in n.nodelist
-                               if not nn.isNodeType(latexwalker.LatexCommentNode))
-            return n.to_latex()
 
 
         def get_new_label(self, lbl, preserve_prefixes):
@@ -184,7 +201,7 @@ class RenameLabels(BaseMultiStageFix):
             for arg_i in label_args:
                 n_arg = n.nodeargd.argnlist[arg_i]
                 lblargs = [x.strip()
-                           for x in self.arg_to_latex(n_arg).split(',')
+                           for x in pf.arg_to_latex(n_arg).split(',')
                            if x.strip()]
                 newlblarg = ",".join([
                     self.get_new_label(l, preserve_prefixes=preserve_prefixes)
@@ -227,8 +244,16 @@ class RenameLabels(BaseMultiStageFix):
                 self.replace_node_args(n, [0], preserve_prefixes=('**','*',))
             
 
+    def arg_to_latex(self, n):
+        if n is None:
+            return ''
+        if n.isNodeType(latexwalker.LatexGroupNode):
+            return ''.join(nn.to_latex() for nn in n.nodelist
+                           if not nn.isNodeType(latexwalker.LatexCommentNode))
+        return n.to_latex()
 
-    def compute_renamed_labels(self, collected_labels):
+
+    def compute_renamed_labels(self, collected_labels, phfthm_hack_collected_proof_labels):
             
         def _get_prefix(j, labelname):
             j = labelname.find(':')
@@ -271,6 +296,14 @@ class RenameLabels(BaseMultiStageFix):
 
             self.renamed_labels[l] = newl
 
+        for l in phfthm_hack_collected_proof_labels:
+
+            if l not in self.renamed_labels:
+                continue
+
+            self.renamed_labels['proof:' + l] = 'proof:' + self.renamed_labels[l]
+
+            
 
 class _WrapContext:
     def __init__(self, d, args, kwargs):
