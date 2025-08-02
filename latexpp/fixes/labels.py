@@ -156,7 +156,6 @@ class RenameLabels(BaseMultiStageFix):
             # page \cpageref{proof:thm:XXX}``.
             if pf.hack_phfthm_proofs and n.isNodeType(latexwalker.LatexEnvironmentNode) \
                and n.environmentname == 'proof':
-                self.preprocess_child_nodes(n)
 
                 if n.nodeargd.argnlist and len(n.nodeargd.argnlist) and n.nodeargd.argnlist[0]:
                     proofarg = pf.arg_to_latex(n.nodeargd.argnlist[0]).strip()
