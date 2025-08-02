@@ -15,10 +15,23 @@ class Expand(BaseFix):
     or ```{...}``, into equivalent LaTeX code that does not require the
     {phfparen} package.
 
-    This fix takes no arguments, and once applied, removes the dependency on the
+    This fix removes the dependency on the
     {phfparen} package.  (That is, unless you defined custom delimiters etc. via
     {phfparen} internals or if you did other weird stuff like that...)
+
+    Arguments:
+
+    - `wrap_in_latex_group`: If set to true (false by default), then the delimited
+      math contents is wrapped in a ``{...}`` group.  This prevents line breaks
+      within the delimited expression, as is the case when you use the `phfparen`
+      latex package.
     """
+
+    def __init__(self, wrap_in_latex_group=False):
+        super().__init__()
+
+        self.wrap_in_latex_group = wrap_in_latex_group
+
 
     def specs(self, **kwargs):
         return dict(specials=[
@@ -53,9 +66,16 @@ class Expand(BaseFix):
                 # literal braces if given with curly braces
                 delimchars = (r'\{', r'\}')
 
-            return delims_pc[0]%delimchars[0] \
-                + self.preprocess_latex(n.nodeargd.contents_node.nodelist) \
+            inner_replaced_str = self.preprocess_latex(n.nodeargd.contents_node.nodelist)
+
+            if self.wrap_in_latex_group:
+                inner_replaced_str = '{' + inner_replaced_str + '}'
+
+            replaced_str = delims_pc[0]%delimchars[0] \
+                + inner_replaced_str \
                 + delims_pc[1]%delimchars[1]
+
+            return replaced_str
 
         return None
 
