@@ -151,10 +151,20 @@ class ExpandQitObjects(BaseFix):
 
     - `DCSym`: the default symbol to use for coherent-relative-entropy-like QIT
       objects.  Defaults to '\\hat{D}'
+
+    - `wrap_delimited_in_latex_group`: whether to wrap contents of delimited
+      expressions into LaTeX groups to avoid line breaks inside an entropy
+      argument (false by default).
+
+    - `qitobjs_emulate_phfqit_appearance`: will include additional hacks to try
+      to emulate `phfqit.sty`'s appearance as best as possible; will include e.g.
+      empty subscript/superscript groups, etc., as necessary.
     """
     
     def __init__(self, qitobjs=dict(), qitobjdef=['stdset'],
-                 HSym='H', DSym='D', DCSym=r'\hat{D}'):
+                 HSym='H', DSym='D', DCSym=r'\hat{D}',
+                 wrap_delimited_in_latex_group=False,
+                 qitobjs_emulate_phfqit_appearance=False):
         super().__init__()
 
         self.qitobjs = dict(baseqitobjs)
@@ -164,6 +174,8 @@ class ExpandQitObjects(BaseFix):
         self.HSym = HSym
         self.DSym = DSym
         self.DCSym = DCSym
+        self.wrap_delimited_in_latex_group = wrap_delimited_in_latex_group
+        self.qitobjs_emulate_phfqit_appearance = qitobjs_emulate_phfqit_appearance
 
     def specs(self, **kwargs):
         return dict(
@@ -178,7 +190,7 @@ class ExpandQitObjects(BaseFix):
             "IdentProc": "`[[{",
             "ee": "^",
             "Hbase": "`[[{[",
-            "Hfnbase": "`(",
+            "Hfnbase": "_^`(",
             "DD": "_^`{{",
             "Dbase": "[`{{",
             "Dalpha": "[[`{{",
@@ -208,6 +220,11 @@ class ExpandQitObjects(BaseFix):
 
         #logger.debug("fix_qitobj: m=%r, n=%r", m, n)
 
+        def _wrapdelim(x):
+            if self.wrap_delimited_in_latex_group:
+                return '{' + x + '}'
+            return x
+
         if m['type'] == 'IdentProc':
 
             nsizespec, nsysA, nsysB, narg = n.nodeargd.argnlist
@@ -231,7 +248,7 @@ class ExpandQitObjects(BaseFix):
             nargcontents = self.preprocess_contents_latex(narg)
             if nargcontents:
                 (od, md, cd) = _delims(nsizespec, '(', '|', ')')
-                text += od + nargcontents + cd
+                text += od + _wrapdelim(nargcontents) + cd
             return text
 
         if m['type'] == 'ee':
@@ -250,13 +267,17 @@ class ExpandQitObjects(BaseFix):
             text = '{' + sym + '}'
             if sub:
                 text += '_{' + sub + '}'
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '_{}'
             if nepsilon is not None:
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
-            (od, md, cd) = _delims(nsizespec, '(', '|', ')')
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '^{}'
+            (od, md, cd) = _delims(nsizespec, '(', '|', ')', mdspace=(r'\,', r'\,'))
             text += od
-            text += self.preprocess_contents_latex(ntargetsys)
+            text += _wrapdelim( self.preprocess_contents_latex(ntargetsys) )
             if ncondsys is not None:
-                text += r'\,' + md + r'\,' + self.preprocess_contents_latex(ncondsys)
+                text += md + _wrapdelim( self.preprocess_contents_latex(ncondsys) )
             text += cd
             if nstate is not None:
                 text += r'_{' + self.preprocess_contents_latex(nstate) + '}'
@@ -264,38 +285,31 @@ class ExpandQitObjects(BaseFix):
         
         if m['type'] == 'Hfnbase':
             
-            nsizespec, narg = n.nodeargd.argnlist
-            sub = m.get('sub', None)
-            sup = m.get('sup', None)
-            sym = m.get('sym', self.HSym)
-
-            text = '{' + sym + '}'
-            if sub:
-                text += '_{' + sub + '}'
-            if sup:
-                text += '^{' + sup + '}'
-            nargcontents = self.preprocess_contents_latex(narg)
-            if nargcontents:
-                (od, md, cd) = _delims(nsizespec, '(', '|', ')')
-                text += od + nargcontents + cd
-            return text
-
-        if m['type'] == 'Hfnbase':
-            
             nsub, nsup, nsizespec, narg = n.nodeargd.argnlist
-            sub = m.get('sub', None)
-            sup = m.get('sup', None)
             sym = m.get('sym', self.HSym)
 
             text = '{' + sym + '}'
+            if nsub:
+                sub = self.preprocess_contents_latex(nsub)
+            else:
+                sub = m.get('sub', None)
+            if nsup:
+                sup = self.preprocess_contents_latex(nsup)
+            else:
+                sup = m.get('sup', None)
+                
             if sub:
                 text += '_{' + sub + '}'
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '_{}'
             if sup:
                 text += '^{' + sup + '}'
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '^{}'
             nargcontents = self.preprocess_contents_latex(narg)
             if nargcontents:
                 (od, md, cd) = _delims(nsizespec, '(', '|', ')')
-                text += od + nargcontents + cd
+                text += od + _wrapdelim(nargcontents) + cd
             return text
 
         if m['type'] == 'Dbase':
@@ -309,16 +323,19 @@ class ExpandQitObjects(BaseFix):
             text = '{' + sym + '}'
             if sub:
                 text += '_{' + sub + '}'
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '_{}'
             if nepsilon is not None:
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             elif default_epsilon:
                 text += '^{' + default_epsilon + '}'
-            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')')
-            nstatecontents = self.preprocess_contents_latex(nstate)
-            nrelcontents = self.preprocess_contents_latex(nrel)
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '^{}'
+            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')', mdspace=(r'\,', r'\,'))
+            nstatecontents = _wrapdelim( self.preprocess_contents_latex(nstate) )
+            nrelcontents = _wrapdelim( self.preprocess_contents_latex(nrel) )
             if nstatecontents or nrelcontents:
-                text += od + nstatecontents + r'\,' + md + r'\,' \
-                    + nrelcontents + cd
+                text += od + nstatecontents + md + nrelcontents + cd
             return text
 
         if m['type'] == 'Dalpha':
@@ -338,12 +355,11 @@ class ExpandQitObjects(BaseFix):
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
             elif default_epsilon:
                 text += '^{' + default_epsilon + '}'
-            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')')
-            nstatecontents = self.preprocess_contents_latex(nstate)
-            nrelcontents = self.preprocess_contents_latex(nrel)
+            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')', mdspace=(r'\,', r'\,'))
+            nstatecontents = _wrapdelim( self.preprocess_contents_latex(nstate) )
+            nrelcontents = _wrapdelim( self.preprocess_contents_latex(nrel) )
             if nstatecontents or nrelcontents:
-                text += od + nstatecontents + r'\,' + md + r'\,' \
-                    + nrelcontents + cd
+                text += od + nstatecontents + md + nrelcontents + cd
             return text
 
         if m['type'] == 'DD':
@@ -354,14 +370,17 @@ class ExpandQitObjects(BaseFix):
             text = '{' + sym + '}'
             if nsub is not None:
                 text += '_{' + self.preprocess_contents_latex(nsub) + '}'
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '_{}'
             if nsup is not None:
                 text += '^{' + self.preprocess_contents_latex(nsup) + '}'
-            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')')
-            nstatecontents = self.preprocess_contents_latex(nstate)
-            nrelcontents = self.preprocess_contents_latex(nrel)
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '^{}'
+            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')', mdspace=(r'\,', r'\,'))
+            nstatecontents = _wrapdelim( self.preprocess_contents_latex(nstate) )
+            nrelcontents = _wrapdelim( self.preprocess_contents_latex(nrel) )
             if nstatecontents or nrelcontents:
-                text += od + nstatecontents + r'\,' + md + r'\,' \
-                    + nrelcontents + cd
+                text += od + nstatecontents + md + nrelcontents + cd
             return text
 
         if m['type'] == 'DCohbase':
@@ -380,10 +399,15 @@ class ExpandQitObjects(BaseFix):
                 text += '_{' + tX + '}'
             elif tXp:
                 text += '_{' + tXp + '}'
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '_{}'
 
             if nepsilon is not None:
                 text += '^{' + self.preprocess_contents_latex(nepsilon) + '}'
-            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')')
+            elif self.qitobjs_emulate_phfqit_appearance:
+                text += '^{}'
+
+            (od, md, cd) = _delims(nsizespec, '(', r'\Vert', ')', mdspace=(r'\,',r'\,'))
             if nstate.isNodeType(latexwalker.LatexGroupNode) \
                and len(nstate.nodelist) \
                and nstate.nodelist[0].isNodeType(latexwalker.LatexCharsNode) \
@@ -397,29 +421,49 @@ class ExpandQitObjects(BaseFix):
                 else:
                     statelatex = self.preprocess_contents_latex(nstate) + '_{' + tXp \
                         + 'R_{' + tX + '}}'
-            text += od + statelatex + r'\,' + md + r'\,' + \
-                self.preprocess_contents_latex(nGX) + r',\,' \
-                + self.preprocess_contents_latex(nGXp) + cd
+            text += od + _wrapdelim( statelatex ) + md + \
+                _wrapdelim( self.preprocess_contents_latex(nGX) ) + r',\,' \
+                + _wrapdelim( self.preprocess_contents_latex(nGXp) ) + cd
             return text
 
         raise ValueError("Unknown phfqit macro type: {!r}".format(m))
 
 
-def _delims(sizenode, opendelim, middelim, closedelim):
+def _delims(sizenode, opendelim, middelim, closedelim, mdspace=None):
+    mdsl, mdsr = '', ''
+    if mdspace:
+        mdsl, mdsr = mdspace
+
     if sizenode is None:
-        return (opendelim, middelim, closedelim)
+        if mdsl:
+            mdsl = r'\mathclose{}' + mdsl
+        if mdsr:
+            mdsr = mdsr + r'\mathopen{}'
+        return (opendelim, mdsl+middelim+mdsr, closedelim)
+
     if sizenode.isNodeType(latexwalker.LatexGroupNode):
         assert( len(sizenode.nodelist) == 1 )
         sizenode = sizenode.nodelist[0]
+
     if sizenode.isNodeType(latexwalker.LatexCharsNode) and sizenode.chars == '*':
-        return (r'\mathopen{}\left'+opendelim,
-                r'\mathclose{}\middle'+middelim+r'\mathopen{}',
-                r'\right'+closedelim+r'\mathclose{}')
+        # cf. https://tex.stackexchange.com/a/2610/32188
+        return (
+            r'\mathopen{}\left'+opendelim ,
+            r'\mathclose{}' + mdsl + r'\middle'+middelim + mdsr +r'\mathopen{}' ,
+            r'\right'+closedelim+r'\mathclose{}'
+        )
     if sizenode.isNodeType(latexwalker.LatexMacroNode):
         mname = sizenode.macroname
-        return (r'\mathopen{}'+'\\'+mname+'l '+opendelim,  # \bigl(
-                r'\mathopen{}'+'\\'+mname+' '+middelim,  # \big|
-                r'\mathopen{}'+'\\'+mname+'r '+closedelim) # \bigr)
+        return (
+            #r'\mathopen{}'+
+            '\\'+mname+'l '+opendelim  # \bigl(
+            ,
+            r'\mathclose{}' + mdsl + '\\'+mname+' '+middelim
+            + mdsr + r'\mathopen{}'  # \big|
+            ,
+            #r'\mathclose{}'+
+            '\\'+mname+'r '+closedelim # \bigr)
+        )
 
     raise ValueError("unexpected optional sizing node : "+repr(sizenode))
 
@@ -531,6 +575,7 @@ math_operators = {
 }
 
 rx_hspace = re.compile(r'\\hspace\*?\{[^}]+\}')
+
 
 
 def _delempties(d):
@@ -829,12 +874,43 @@ class ExpandMacros(BaseFix):
 %% ---
 """
         return preamble
-
+    
     def fix_node(self, n, **kwargs):
 
         # we treat all via the substitution helper
         c = self.substitution_helper.get_node_cfg(n)
         if c is not None:
+
+            def _delimited_arg_filter(node, arg_contents, arg_index, substarg=None, **kwargs):
+                if substarg is not None:
+                    if node is None or arg_contents is None:
+                        return ''
+                    os, cs = substarg.split(',', 1)
+                    return os + arg_contents + cs
+                if node is None or arg_contents is None:
+                    return ''
+                s = c['qitargspec'][arg_index]
+                if s == '{':
+                    return '{' + arg_contents + '}'
+                if s == '[':
+                    return '[' + arg_contents + ']'
+                if s == '(':
+                    return '(' + arg_contents + ')'
+                if s == '<':
+                    return '<' + arg_contents + '>'
+                if s == '_':
+                    return '_{' + arg_contents + '}'
+                if s == '^':
+                    return '^{' + arg_contents + '}'
+                if s == '*':
+                    return '*' + arg_contents
+                if s == '`':
+                    return '`' + arg_contents
+                raise ValueError("Unknown delimiter for 'X.delimited': " + repr(s))
+
+            _arg_filters = {
+                'delimited': _delimited_arg_filter
+            }
 
             # got a substitution. Check if it is a delimiter, which warrants
             # further processing
@@ -873,7 +949,7 @@ class ExpandMacros(BaseFix):
                     delimsize = ''
                 elif delimtype == '*':
                     # with star
-                    delims_pc = (r'\mathopen{}\left %s', r'\right %s\mathclose{}')
+                    delims_pc = (r'\left %s', r'\right %s')
                     delimsize = r'\middle'
                 else:
                     sizemacro = delimtype
@@ -895,13 +971,15 @@ class ExpandMacros(BaseFix):
                     n,
                     node_contents_latex=self.preprocess_contents_latex,
                     argoffset=3,
-                    context=context
+                    context=context,
+                    arg_filters=_arg_filters,
                 )
 
             return self.substitution_helper.eval_subst(
                 c,
                 n,
-                node_contents_latex=self.preprocess_contents_latex
+                node_contents_latex=self.preprocess_contents_latex,
+                arg_filters=_arg_filters,
             )
                 
 

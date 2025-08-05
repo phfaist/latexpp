@@ -74,6 +74,102 @@ and a fraction $\frac{\hat\phi}2$.
         )
 
 
+    def test_macro_filter(self):
+
+        lpp = helpers.MockLPP()
+        lpp.install_fix(
+            phfqit.ExpandMacros(
+                subst=dict(
+                    TestMacro=dict(
+                        qitargspec='[[',
+                        repl=r'\mathcal{T}_{%(1)s}^{%(2.delimited:(,))s}',
+                    ),
+                ),
+            ),
+        )
+        lpp.install_fix(
+            phfqit.ExpandQitObjects(wrap_delimited_in_latex_group=True)
+        )
+
+        latex = r"""
+\begin{document}
+$\TestMacro[][\phi](\rho)$ and $\TestMacro(\rho)$.
+\end{document}
+"""
+
+        result = lpp.execute(latex)
+
+        self.assertEqual(
+            result,
+            r"""
+\begin{document}
+$\mathcal{T}_{}^{(\phi)}(\rho)$ and $\mathcal{T}_{}^{}(\rho)$.
+\end{document}
+"""
+        )
+        
+
+
+class TestExpandQitObjects(unittest.TestCase):
+
+    def test_Hfnbase(self):
+
+        lpp = helpers.MockLPP()
+        lpp.install_fix(
+            phfqit.ExpandQitObjects(wrap_delimited_in_latex_group=True)
+        )
+
+        latex = r"""
+\begin{document}
+$\Hfn(\rho)$ and $\Hfn_a^{b}`\bigg(\sum \rho_j)$.
+\end{document}
+"""
+
+        result = lpp.execute(latex)
+
+        self.assertEqual(
+            result,
+            r"""
+\begin{document}
+${H}({\rho})$ and ${H}_{a}^{b}\biggl ({\sum \rho_j}\biggr )$.
+\end{document}
+"""
+        )
+        
+    def test_Hfnbase_Hfnphi(self):
+
+        lpp = helpers.MockLPP()
+        lpp.install_fix(
+            phfqit.ExpandMacros(
+                subst=dict(
+                    Hfnphi=dict(
+                        qitargspec='[`(',
+                        repl='\Hfn_{%(1)s}%(2.delimited)s(%(3)s)',
+                    ),
+                ),
+            ),
+        )
+        lpp.install_fix(
+            phfqit.ExpandQitObjects(wrap_delimited_in_latex_group=True)
+        )
+
+        latex = r"""
+\begin{document}
+$\Hfnphi[\phi](\rho)$ and $\Hfnphi[\phi_x]`\bigg(\sum \rho_j)$.
+\end{document}
+"""
+
+        result = lpp.execute(latex)
+
+        self.assertEqual(
+            result,
+            r"""
+\begin{document}
+${H}_{\phi}({\rho})$ and ${H}_{\phi_x}\biggl ({\sum \rho_j}\biggr )$.
+\end{document}
+"""
+        )
+        
 
 if __name__ == '__main__':
     helpers.test_main()

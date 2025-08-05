@@ -62,13 +62,14 @@ class MacroSubstHelper:
         r"""
         Return the specs that we need to declare to the latex walker
         """
+        macros = [
+            MacroSpec(m, args_parser=self.args_parser_class(
+                self._cfg_argspec_repl(mconfig)[0]
+            ))
+            for m, mconfig in self.macros.items()
+        ]
         return dict(
-            macros=[
-                MacroSpec(m, args_parser=self.args_parser_class(
-                    self._cfg_argspec_repl(mconfig)[0]
-                ))
-                for m, mconfig in self.macros.items()
-            ],
+            macros=macros,
             environments=[
                 EnvironmentSpec(e, args_parser=self.args_parser_class(
                     self._cfg_argspec_repl(econfig)[0]
@@ -129,8 +130,9 @@ class MacroSubstHelper:
         return None
 
 
-    def eval_subst(self, c, n, *, node_contents_latex, argoffset=0, context={}):
-        """
+    def eval_subst(self, c, n, *, node_contents_latex, argoffset=0, context={},
+                   arg_filters=None):
+        r"""
         Return the replacement string for the given node `n`, where the
         macro/environment config (argspec/repl) is provided in `c` (return value
         of `get_node_cfg()`).
@@ -152,24 +154,53 @@ class MacroSubstHelper:
         in addition to the argument placeholders ``%(1)s`` etc., to the
         environment body ``%(body)s``, and to
         ``%(macroname)s``/``%(environmentname)s``.
+
+        If `arg_filters` is not None and set to a dictionary, then additional
+        placeholders of the type ``%(1.xyz)`` are also recognized, where `xyz`
+        are keys in the `arg_filters` dictionary.  The values in the
+        `arg_filters` dictionary are functions that take the keyword arguments
+        `argspec`, `node`, `arg_index` (0-based index), `arg_number`
+        (placeholder number), and `arg_contents` (string representing the
+        contents of the argument, as would be used if no filter were invoked),
+        and return the replacement string should this placeholder and filter be
+        used.
         """
 
         argspec, repl = self._cfg_argspec_repl(c)
+
+        # TODO: use a lazy dictionary that will only evaluate the values if the
+        # placeholder is actually used.
             
-        q = dict(self.context)
+        q = _LazySubstDict(self.context)
 
         if argspec and (n.nodeargd is None or n.nodeargd.argnlist is None):
             logger.debug("Node arguments were not set, skipping replacement: %r", n)
             raise fixes.DontFixThisNode
 
         if n.nodeargd and n.nodeargd.argnlist:
-            q.update(dict(
-                    (str(1+k), v)
-                    for k, v in enumerate(
-                            node_contents_latex(n) if n is not None else ''
-                            for n in n.nodeargd.argnlist[argoffset:]
-                    )
-                ))
+            for k, nn in enumerate(n.nodeargd.argnlist[argoffset:]):
+                if nn is None:
+                    arg_contents = ''
+                else:
+                    arg_contents = node_contents_latex(nn)
+
+                q[str(1+k)] = arg_contents
+
+                if arg_filters:
+                    for filterkey, filterfn in arg_filters.items():
+                        q.register_fn(
+                            str(1+k)+'.'+filterkey,
+                            filterfn,
+                            dict(
+                                argspec=argspec[k],
+                                arg_index=k,
+                                arg_number=1+k,
+                                node=nn,
+                                arg_contents=arg_contents,
+                            ),
+                            allow_args=True,
+                        )
+                            
 
         if n.isNodeType(LatexMacroNode):
             q.update(macroname=n.macroname)
@@ -197,3 +228,38 @@ class MacroSubstHelper:
 
         #logger.debug(" -- Performing substitution {} -> {}".format(n.to_latex(), text))
         return text
+
+
+
+class _LazySubstDict:
+    def __init__(self, d):
+        self.d = d
+        self.fns = []
+
+    def update(self, *args, **kwargs):
+        self.d.update(*args, **kwargs)
+
+    def register_fn(self, keyfn, filterfn, argsfn, allow_args=True):
+        self.fns.append( (keyfn, filterfn, argsfn, allow_args) )
+
+    def __setitem__(self, key, value):
+        self.d[key] = value
+
+    def __getitem__(self, key):
+        if key in self.d:
+            return self.d[key]
+
+        for keyfn, filterfn, argsfn, allow_args in self.fns:
+            if key == keyfn:
+                substarg = None
+            elif allow_args and key.startswith(keyfn+':'):
+                substarg = key[len(keyfn+':'):]
+            else:
+                continue
+
+            kwargs = dict(argsfn)
+            if substarg is not None:
+                kwargs['substarg'] = substarg
+            return filterfn(**kwargs)
+            
+        

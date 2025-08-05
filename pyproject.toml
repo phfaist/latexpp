@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "latexpp"
-version = "0.2.0a3"
+version = "0.2.0a4"
 description = "Latex preprocessor — apply macro definitions, remove comments, and more"
 authors = ["Philippe Faist"]
 license = "MIT"
