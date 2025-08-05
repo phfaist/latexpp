@@ -233,7 +233,7 @@ class MacroSubstHelper:
 
 class _LazySubstDict:
     def __init__(self, d):
-        self.d = d
+        self.d = dict(d)
         self.fns = []
 
     def update(self, *args, **kwargs):
