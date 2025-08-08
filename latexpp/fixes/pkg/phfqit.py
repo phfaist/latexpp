@@ -435,10 +435,10 @@ def _delims(sizenode, opendelim, middelim, closedelim, mdspace=None):
         mdsl, mdsr = mdspace
 
     if sizenode is None:
-        if mdsl:
-            mdsl = r'\mathclose{}' + mdsl
-        if mdsr:
-            mdsr = mdsr + r'\mathopen{}'
+        # if mdsl:
+        #     mdsl = r'\mathclose{}' + mdsl
+        # if mdsr:
+        #     mdsr = mdsr + r'\mathopen{}'
         return (opendelim, mdsl+middelim+mdsr, closedelim)
 
     if sizenode.isNodeType(latexwalker.LatexGroupNode):
