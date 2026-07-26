@@ -18,24 +18,20 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
-        poetry-version:
-          - "1.4"
         os:
           - 'ubuntu-latest'
 
     runs-on: '${{ matrix.os }}'
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - name: 'Set up uv'
+        uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           python-version: '${{ matrix.python-version }}'
-      - name: 'Set up poetry - Run image'
-        uses: abatilo/actions-poetry@v2
-        with:
-          poetry-version: '${{ matrix.poetry-version }}'
-      - name: 'Poetry Install'
-        run: poetry install
+      - name: 'Install the project'
+        run: uv sync --locked
 
       - name: 'Setup TeX Live (latex is needed for some latexpp tests)'
         uses: teatimeguest/setup-texlive-action@v2
@@ -48,4 +44,4 @@ jobs:
             etoolbox
 
       - name: 'Run tests'
-        run: poetry run pytest
+        run: uv run --no-sync pytest

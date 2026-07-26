@@ -1,31 +1,50 @@
-[tool.poetry]
+[project]
 name = "latexpp"
 version = "0.2.0a4"
 description = "Latex preprocessor — apply macro definitions, remove comments, and more"
-authors = ["Philippe Faist"]
+authors = [
+    { name = "Philippe Faist" },
+]
 license = "MIT"
+license-files = ["License.txt"]
 readme = "README.rst"
+requires-python = ">=3.7,<4.0"
+dependencies = [
+    "pylatexenc>=3.0a15",
+    "colorlog>=6.0.0a4",
+    "PyYAML>=6.0,<7.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.7"
-pylatexenc = ">=3.0a15"
-colorlog = ">=6.0.0a4"
-PyYAML = "^6.0"
+[project.scripts]
+latexpp = "latexpp.__main__:main"
 
-[tool.poetry.scripts]
-latexpp = 'latexpp.__main__:main'
+[dependency-groups]
+dev = [
+    "pytest>=7.3.1,<8.0",
+    "toml>=0.10.2,<0.11",
+]
+# 'builddoc' is opt-in only (see [tool.uv] default-groups below); install it
+# with `uv sync --group builddoc`
+builddoc = [
+    "Sphinx>=5.0.0",
+    "sphinx-issues>=3.0.0",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.3.1"
-toml = "^0.10.2"
+[tool.uv]
+default-groups = ["dev"]
 
-[tool.poetry.group.builddoc]
-optional = true
+[tool.hatch.build.targets.wheel]
+packages = ["latexpp"]
 
-[tool.poetry.group.builddoc.dependencies]
-Sphinx = ">=5.0.0"
-sphinx-issues = ">=3.0.0"
+[tool.hatch.build.targets.sdist]
+include = [
+    "latexpp",
+    "test",
+    "doc",
+    "README.rst",
+    "License.txt",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

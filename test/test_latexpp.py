@@ -15,7 +15,7 @@ class TestHardcodedPackageVersion(unittest.TestCase):
         path = os.path.join( os.path.dirname(__file__), '..', "pyproject.toml" )
         with open(path) as fpp:
             pyproject = toml.loads(fpp.read())
-        pyproject_version = pyproject["tool"]["poetry"]["version"]
+        pyproject_version = pyproject["project"]["version"]
 
         package_init_version = latexpp.__version__
 
